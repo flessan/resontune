@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rubik Indonesia - Belajar Rubik 3x3 Gratis</title>
+    <meta name="description"
+        content="Site sederhana untuk belajar rubik 3x3. Tutorial, timer, dan kumpulan algoritma. Open source, gratis, dan mengajak kontribusi.">
+    <meta name="keywords" content="rubik 3x3, tutorial rubik, timer rubik, algoritma rubik">
+    <meta name="author" content="Rubik Indonesia">
+    <link rel="canonical" href="https://rubik.id/">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://rubik.id/">
+    <meta property="og:title" content="Rubik Indonesia - Belajar Rubik 3x3 Gratis">
+    <meta property="og:description"
+        content="Site sederhana untuk belajar rubik 3x3. Tutorial, timer, dan algoritma. Open source.">
+    <meta property="og:image" content="./assets/og-image.jpg">
+    <meta property="og:locale" content="id_ID">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="Rubik Indonesia - Belajar Rubik 3x3 Gratis">
+    <meta property="twitter:description" content="Site sederhana untuk belajar rubik 3x3. Open source.">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23FF5733'/><text y='.9em' font-size='90'>🎲</text></svg>">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #FAFBFC;
+            --bg-secondary: #FFFFFF;
+            --fg: #1A1A2E;
+            --fg-secondary: #4A5568;
+            --card: #FFFFFF;
+            --border: #E2E8F0;
+            --shadow: rgba(0, 0, 0, 0.08);
+            --shadow-strong: rgba(0, 0, 0, 0.15);
+            --muted: #718096;
+            --accent: #FF5733;
+            --accent-hover: #E04E2D;
+            --accent-light: #FFE5DD;
+
+            --max-width: 1200px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+
+            --font-h: 'Space Grotesk', 'Inter', sans-serif;
+            --font-m: 'Space Mono', monospace;
+            --font-body: 'Inter', sans-serif;
+
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="dark"] {
+            --bg: #1A202C;
+            --bg-secondary: #2D3748;
+            --fg: #F7FAFC;
+            --fg-secondary: #CBD5E0;
+            --card: #2D3748;
+            --border: #4A5568;
+            --shadow: rgba(0, 0, 0, 0.3);
+            --shadow-strong: rgba(0, 0, 0, 0.5);
+            --muted: #A0AEC0;
+            --accent-light: #3D2B26;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            font-size: 16px;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--fg);
+            line-height: 1.7;
+            overflow-x: hidden;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        ::selection {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .animate-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ===== HEADER ===== */
+        .site-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+        }
+
+        .header-inner {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            gap: 16px;
+        }
+
+        .logo {
+            font-family: var(--font-h);
+            font-weight: 700;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--fg);
+            transition: var(--transition);
+            z-index: 101;
+        }
+
+        .logo:hover {
+            transform: scale(1.02);
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--accent), #FF9800);
+            border-radius: var(--radius);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 2px;
+            padding: 4px;
+            box-shadow: 0 4px 12px rgba(255, 87, 51, 0.3);
+        }
+
+        .logo-icon span {
+            border-radius: 3px;
+        }
+
+        .logo-icon span:nth-child(1) {
+            background: #FF5252;
+        }
+
+        .logo-icon span:nth-child(2) {
+            background: #448AFF;
+        }
+
+        .logo-icon span:nth-child(3) {
+            background: #FFD600;
+        }
+
+        .logo-icon span:nth-child(4) {
+            background: #4CAF50;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .main-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .main-nav a {
+            font-family: var(--font-h);
+            font-size: 0.95rem;
+            font-weight: 600;
+            padding: 10px 16px;
+            text-decoration: none;
+            color: var(--fg);
+            border-radius: var(--radius);
+            transition: var(--transition);
+        }
+
+        .main-nav a:hover,
+        .main-nav a.active {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .theme-toggle,
+        .github-btn {
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            border-radius: var(--radius);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            color: var(--fg);
+            font-size: 1.1rem;
+            text-decoration: none;
+        }
+
+        .theme-toggle:hover,
+        .github-btn:hover {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        /* Mobile Menu */
+        .mobile-menu-toggle {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            padding: 8px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            z-index: 101;
+        }
+
+        .mobile-menu-toggle span {
+            display: block;
+            width: 25px;
+            height: 3px;
+            background: var(--fg);
+            border-radius: 3px;
+            transition: var(--transition);
+        }
+
+        .mobile-menu-toggle.active span:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+
+        .mobile-menu-toggle.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .mobile-menu-toggle.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -6px);
+        }
+
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-secondary);
+            z-index: 100;
+            padding: 100px 24px 24px;
+            flex-direction: column;
+            gap: 16px;
+            animation: slideDown 0.3s ease;
+        }
+
+        .mobile-nav.active {
+            display: flex;
+        }
+
+        .mobile-nav a {
+            font-family: var(--font-h);
+            font-size: 1.3rem;
+            font-weight: 600;
+            padding: 16px 20px;
+            text-decoration: none;
+            color: var(--fg);
+            border-radius: var(--radius);
+            transition: var(--transition);
+            border: 1px solid var(--border);
+        }
+
+        .mobile-nav a:hover,
+        .mobile-nav a.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        .mobile-nav .github-link {
+            margin-top: auto;
+            background: var(--card);
+            border: 2px solid var(--border);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .mobile-nav .github-link:hover {
+            background: #333;
+            border-color: #333;
+            color: #fff;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 80px 24px 60px;
+            text-align: center;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-m);
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            background: var(--accent-light);
+            color: var(--accent);
+            padding: 10px 20px;
+            border-radius: 24px;
+            margin-bottom: 24px;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            line-height: 1.1;
+            letter-spacing: -2px;
+            margin-bottom: 20px;
+            font-weight: 700;
+            font-family: var(--font-h);
+        }
+
+        .hero h1 .gradient-text {
+            background: linear-gradient(135deg, var(--accent), #FF9800);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-desc {
+            font-size: 1.2rem;
+            color: var(--fg-secondary);
+            max-width: 680px;
+            margin: 0 auto 40px;
+            line-height: 1.8;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 32px;
+            border: none;
+            border-radius: var(--radius);
+            font-family: var(--font-h);
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(255, 87, 51, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(255, 87, 51, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--card);
+            color: var(--fg);
+            border: 2px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-3px);
+        }
+
+        .btn-github {
+            background: #333;
+            color: #fff;
+            border: 2px solid #333;
+        }
+
+        .btn-github:hover {
+            background: #000;
+            border-color: #000;
+            transform: translateY(-3px);
+        }
+
+        /* ===== NOTICE BOX ===== */
+        .notice-box {
+            max-width: var(--max-width);
+            margin: 0 auto 60px;
+            padding: 0 24px;
+        }
+
+        .notice-content {
+            background: var(--accent-light);
+            border: 2px solid var(--accent);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .notice-icon {
+            font-size: 1.5rem;
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .notice-text h3 {
+            font-family: var(--font-h);
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            color: var(--accent);
+        }
+
+        .notice-text p {
+            color: var(--fg-secondary);
+            line-height: 1.6;
+        }
+
+        /* ===== FEATURES ===== */
+        .features {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 0 24px 80px;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .section-title {
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 16px;
+            font-family: var(--font-h);
+        }
+
+        .section-desc {
+            font-size: 1.1rem;
+            color: var(--fg-secondary);
+            max-width: 640px;
+            margin: 0 auto;
+            line-height: 1.8;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            transition: var(--transition);
+            text-decoration: none;
+            color: var(--fg);
+            display: block;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 40px var(--shadow-strong);
+            border-color: var(--accent);
+        }
+
+        .feature-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--accent), #FF9800);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: #fff;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 24px rgba(255, 87, 51, 0.3);
+        }
+
+        .feature-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            font-family: var(--font-h);
+        }
+
+        .feature-desc {
+            color: var(--fg-secondary);
+            line-height: 1.7;
+            margin-bottom: 16px;
+        }
+
+        .feature-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        /* ===== CONTRIBUTION CTA ===== */
+        .contribution-cta {
+            background: var(--bg-secondary);
+            padding: 80px 24px;
+            text-align: center;
+        }
+
+        .cta-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .cta-title {
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            font-weight: 700;
+            margin-bottom: 20px;
+            font-family: var(--font-h);
+        }
+
+        .cta-desc {
+            font-size: 1.15rem;
+            color: var(--fg-secondary);
+            margin-bottom: 32px;
+            line-height: 1.8;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* ===== FOOTER ===== */
+        .site-footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 40px 24px 30px;
+        }
+
+        .footer-container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .footer-text {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: var(--fg-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: var(--accent);
+        }
+
+        .footer-bottom {
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .footer-bottom a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .footer-bottom a:hover {
+            text-decoration: underline;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .main-nav {
+                display: none;
+            }
+
+            .mobile-menu-toggle {
+                display: flex;
+            }
+
+            .hero {
+                padding: 60px 16px 40px;
+            }
+
+            .features {
+                padding: 0 16px 60px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .footer-links {
+                justify-content: center;
+            }
+
+            .hero-cta {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* ===== ACCESSIBILITY ===== */
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        a:focus,
+        button:focus {
+            outline: 3px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        body.menu-open {
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- HEADER -->
+    <header class="site-header" role="banner">
+        <div class="header-inner">
+            <a href="index.html" class="logo" aria-label="Rubik Indonesia - Home">
+                <div class="logo-icon" aria-hidden="true">
+                    <span></span><span></span><span></span><span></span>
+                </div>
+                Rubik Indonesia
+            </a>
+
+            <nav class="main-nav" aria-label="Main navigation">
+                <a href="index.html" class="active">Home</a>
+                <a href="./tutorial/">Tutorial</a>
+                <a href="timer.html">Timer</a>
+                <a href="algoritma.html">Algoritma</a>
+            </nav>
+
+            <div class="header-right">
+                <a href="https://github.com/flessan/Rubik" target="_blank" rel="noopener noreferrer" class="github-btn"
+                    aria-label="GitHub Repository" title="Kontribusi di GitHub">
+                    <i class="fab fa-github"></i>
+                </a>
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" title="Mode gelap/terang">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu" aria-expanded="false">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MOBILE NAVIGATION -->
+    <nav class="mobile-nav" id="mobileNav" aria-label="Mobile navigation">
+        <a href="index.html" class="active">Home</a>
+        <a href="./tutorial/">Tutorial</a>
+        <a href="timer.html">Timer</a>
+        <a href="algoritma.html">Algoritma</a>
+        <a href="kontribusi.html">Kontribusi</a>
+        <a href="https://github.com/flessan/Rubik" target="_blank" rel="noopener noreferrer" class="github-link">
+            <i class="fab fa-github"></i>
+            Kontribusi di GitHub
+        </a>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-badge">
+            <i class="fas fa-code-branch"></i>
+            Open Source & Gratis
+        </div>
+        <h1>Belajar Rubik 3×3 <span class="gradient-text">Dengan Mudah</span></h1>
+        <p class="hero-desc">Site sederhana untuk belajar rubik 3x3. Dilengkapi tutorial, timer latihan, dan kumpulan
+            algoritma. Dibuat dengan ❤️ untuk komunitas rubik Indonesia.</p>
+        <div class="hero-cta">
+            <a href="./tutorial/" class="btn btn-primary">
+                <i class="fas fa-play"></i>
+                Mulai Belajar
+            </a>
+            <a href="https://github.com/flessan/Rubik" target="_blank" rel="noopener noreferrer" class="btn btn-github">
+                <i class="fab fa-github"></i>
+                Kontribusi di GitHub
+            </a>
+        </div>
+    </section>
+
+    <!-- NOTICE -->
+    <div class="notice-box animate-in">
+        <div class="notice-content">
+            <div class="notice-icon">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <div class="notice-text">
+                <h3>Site Ini Masih Baru</h3>
+                <p>Site ini baru saja dimulai dan masih dalam pengembangan. Fitur masih terbatas, tapi kami terus
+                    berusaha menambah konten. Jika kamu menemukan bug, punya saran, atau ingin berkontribusi, silakan
+                    buka issue atau pull request di <a href="https://github.com/flessan/Rubik" target="_blank"
+                        rel="noopener noreferrer" style="color: var(--accent); font-weight: 600;">GitHub</a>. Terima
+                    kasih!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- FEATURES -->
+    <section class="features">
+        <div class="section-header animate-in">
+            <h2 class="section-title">Apa yang Bisa Kamu Lakukan?</h2>
+            <p class="section-desc">Beberapa fitur yang sudah tersedia untuk membantu kamu belajar rubik 3x3.</p>
+        </div>
+        <div class="features-grid">
+            <a href="./tutorial/" class="feature-card animate-in">
+                <div class="feature-icon">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                <h3 class="feature-title">Tutorial Lengkap</h3>
+                <p class="feature-desc">Tutorial step-by-step menyelesaikan rubik 3x3 dengan metode Layer by Layer.
+                    Dilengkapi gambar dan penjelasan yang mudah dipahami.</p>
+                <span class="feature-link">
+                    Lihat Tutorial <i class="fas fa-arrow-right"></i>
+                </span>
+            </a>
+            <a href="timer.html" class="feature-card animate-in">
+                <div class="feature-icon">
+                    <i class="fas fa-stopwatch"></i>
+                </div>
+                <h3 class="feature-title">Timer Latihan</h3>
+                <p class="feature-desc">Timer dengan presisi milidetik untuk latihan speedcubing. Lacak waktu terbaik,
+                    rata-rata, dan statistik Ao5 kamu.</p>
+                <span class="feature-link">
+                    Coba Timer <i class="fas fa-arrow-right"></i>
+                </span>
+            </a>
+            <a href="algoritma.html" class="feature-card animate-in">
+                <div class="feature-icon">
+                    <i class="fas fa-cube"></i>
+                </div>
+                <h3 class="feature-title">Kumpulan Algoritma</h3>
+                <p class="feature-desc">Referensi lengkap algoritma rubik 3x3 dengan notasi yang mudah dibaca. Cocok
+                    untuk pemula hingga advanced.</p>
+                <span class="feature-link">
+                    Lihat Algoritma <i class="fas fa-arrow-right"></i>
+                </span>
+            </a>
+        </div>
+    </section>
+
+    <!-- CONTRIBUTION CTA -->
+    <section class="contribution-cta">
+        <div class="cta-container animate-in">
+            <h2 class="cta-title">Ingin Berkontribusi?</h2>
+            <p class="cta-desc">Site ini open source dan kami sangat mengapresiasi kontribusi dari siapa saja. Baik itu
+                perbaikan bug, penambahan fitur, atau perbaikan konten tutorial. Semua bantuan sangat berarti!</p>
+            <div class="cta-buttons">
+                <a href="kontribusi.html" class="btn btn-primary">
+                    <i class="fas fa-hands-helping"></i>
+                    Cara Berkontribusi
+                </a>
+                <a href="https://github.com/flessan/Rubik" target="_blank" rel="noopener noreferrer"
+                    class="btn btn-github">
+                    <i class="fab fa-github"></i>
+                    Lihat di GitHub
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="site-footer" role="contentinfo">
+        <div class="footer-container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="logo-icon" aria-hidden="true" style="width: 36px; height: 36px;">
+                        <span></span><span></span><span></span><span></span>
+                    </div>
+                    <span class="footer-text">Rubik Indonesia</span>
+                </div>
+                <div class="footer-links">
+                    <a href="./tutorial/">Tutorial</a>
+                    <a href="timer.html">Timer</a>
+                    <a href="algoritma.html">Algoritma</a>
+                    <a href="kontribusi.html">Kontribusi</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2026 Rubik Indonesia. Open source di <a href="https://github.com/flessan/Rubik" target="_blank"
+                        rel="noopener noreferrer">GitHub</a>. Dibuat untuk komunitas rubik Indonesia.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // ===== MOBILE MENU =====
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const mobileNav = document.getElementById('mobileNav');
+        const body = document.body;
+
+        mobileMenuToggle.addEventListener('click', () => {
+            mobileMenuToggle.classList.toggle('active');
+            mobileNav.classList.toggle('active');
+            body.classList.toggle('menu-open');
+
+            const isExpanded = mobileMenuToggle.classList.contains('active');
+            mobileMenuToggle.setAttribute('aria-expanded', isExpanded);
+        });
+
+        mobileNav.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenuToggle.classList.remove('active');
+                mobileNav.classList.remove('active');
+                body.classList.remove('menu-open');
+                mobileMenuToggle.setAttribute('aria-expanded', 'false');
+            });
+        });
+
+        // ===== THEME TOGGLE =====
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        html.setAttribute('data-theme', savedTheme);
+        updateThemeIcon(savedTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        });
+
+        function updateThemeIcon(theme) {
+            const icon = themeToggle.querySelector('i');
+            icon.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+        }
+
+        // ===== ANIMATIONS =====
+        const animateEls = document.querySelectorAll('.animate-in');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        animateEls.forEach(el => observer.observe(el));
+    </script>
+</body>
+
+</html>
