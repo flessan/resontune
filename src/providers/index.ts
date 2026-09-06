@@ -16,7 +16,7 @@
  * official link, never a scraped or proxied stream.
  */
 import type { Track, QueueItem, LocalTrack, PlayResolution } from '@/lib/types';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { getLocalBlob, getLocalArtwork } from '@/local/db';
 
 export type Resolution =
@@ -31,8 +31,18 @@ export async function resolveRemotePlayback(trackId: string): Promise<Resolution
     if (r.mode === 'stream') return { type: 'stream', url: r.url, mimeType: r.mimeType };
     return { type: 'external', url: r.url, label: r.label };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'This track is not available right now.';
-    return { type: 'unavailable', reason: msg };
+    // Map failures to calm, human copy; technical details stay in the console.
+    console.warn('[player] playback resolution failed', err);
+    let reason = 'This track is temporarily unavailable. Try again in a moment.';
+    if (err instanceof ApiError) {
+      if (err.status === 404) reason = 'This track is no longer available.';
+      else if (err.status === 410) reason = 'This track was removed at the rights holder’s request.';
+      else if (err.status === 403) reason = 'This track can’t be played from this source.';
+      else if (err.status >= 400 && err.status < 500 && err.message) reason = err.message;
+    } else if (err instanceof TypeError) {
+      reason = 'You appear to be offline. Reconnect and try again.';
+    }
+    return { type: 'unavailable', reason };
   }
 }
 

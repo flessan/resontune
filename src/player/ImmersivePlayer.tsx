@@ -7,8 +7,11 @@ import '@/visualizer/modes';
 import { setTypographyText } from '@/visualizer/modes/typography';
 import { extractAccent, loadImage } from '@/lib/artworkColor';
 import { SeekBar } from './SeekBar';
+import { api } from '@/lib/api';
+import { OriginalBadge, SourceChip } from '@/components/Provenance';
+import type { Track } from '@/lib/types';
 import {
-  IconPlay, IconPause, IconPrev, IconNext, IconClose, IconSettings,
+  IconPlay, IconPause, IconPrev, IconNext, IconClose, IconSettings, IconMic,
 } from '@/components/Icons';
 
 /**
@@ -27,7 +30,20 @@ export function ImmersivePlayer() {
   const runnerRef = useRef<VisualizerRunner | null>(null);
   const [uiVisible, setUiVisible] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [showLyrics, setShowLyrics] = useState(false);
+  const [detail, setDetail] = useState<Track | null>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* track detail for provenance + lyrics */
+  useEffect(() => {
+    setDetail(null);
+    setShowLyrics(false);
+    if (item?.origin === 'remote' && item.trackSlug) {
+      api.get<{ track: Track }>(`/tracks/${item.trackSlug}`)
+        .then((r) => setDetail(r.track))
+        .catch(() => {});
+    }
+  }, [item?.queueId, item?.origin, item?.trackSlug]);
 
   const modes = listModes();
   const mode = modes.find((m) => m.id === modeId) ?? modes[0];
@@ -172,7 +188,12 @@ export function ImmersivePlayer() {
             {item ? (
               <>
                 <div className="t">{item.title}</div>
-                <div className="a">{item.artistName}{item.origin === 'local' ? ' · local file' : ''}</div>
+                <div className="a" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  {item.artistName}
+                  {item.sourceType === 'original'
+                    ? <OriginalBadge compact />
+                    : <SourceChip origin={item.origin} sourceType={item.sourceType} />}
+                </div>
               </>
             ) : (
               <div className="a">Nothing playing</div>
@@ -187,6 +208,16 @@ export function ImmersivePlayer() {
             <SeekBar compact />
           </div>
           <div className="imm-controls">
+            {detail?.lyrics?.body && (
+              <button
+                className={`icon-btn ${showLyrics ? 'active' : ''}`}
+                onClick={() => setShowLyrics((v) => !v)}
+                aria-label="Toggle lyrics"
+                aria-pressed={showLyrics}
+              >
+                <IconMic width={18} height={18} />
+              </button>
+            )}
             <button className="icon-btn" onClick={() => void prev()} aria-label="Previous"><IconPrev /></button>
             <button className="icon-btn" onClick={() => void toggle()} aria-label={playing ? 'Pause' : 'Play'} style={{ width: 44, height: 44 }}>
               {playing ? <IconPause width={22} height={22} /> : <IconPlay width={22} height={22} />}
@@ -194,6 +225,12 @@ export function ImmersivePlayer() {
             <button className="icon-btn" onClick={() => void next()} aria-label="Next"><IconNext /></button>
           </div>
         </div>
+
+        {showLyrics && detail?.lyrics?.body && (
+          <div className="imm-lyrics" role="region" aria-label="Lyrics">
+            {detail.lyrics.body}
+          </div>
+        )}
       </div>
     </div>
   );

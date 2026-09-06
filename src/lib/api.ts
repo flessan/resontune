@@ -15,11 +15,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   if (!res.ok) {
-    let message = `Request failed (${res.status})`;
+    // Human copy in the UI; status codes and bodies go to the console only.
+    let message =
+      res.status === 404 ? 'This page or item is no longer available.'
+      : res.status === 410 ? 'This content has been removed.'
+      : res.status === 429 ? 'You’re doing that a little too fast. Give it a moment and try again.'
+      : res.status >= 500 ? 'Something went wrong on our side. Please try again in a moment.'
+      : 'That didn’t work. Please try again.';
     try {
       const body = await res.json();
-      if (body?.error) message = body.error;
+      if (body?.error && res.status < 500) message = body.error;
     } catch { /* keep default */ }
+    console.warn(`[api] ${init?.method ?? 'GET'} ${path} → ${res.status}`);
     throw new ApiError(res.status, message);
   }
   return res.json() as Promise<T>;

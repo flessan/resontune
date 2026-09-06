@@ -2,7 +2,7 @@
  * A single collection: title/curator/description plus its ordered mix of
  * tracks, releases and artists — with the curator's notes inline.
  */
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
 import type { Collection, CollectionItem, Track } from '@/lib/types';
 import { TrackRow } from '@/components/TrackRow';
@@ -22,7 +22,16 @@ export default function CollectionPage() {
   const { data, loading, error } = useFetch<Data>(slug ? `/collections/${slug}` : null);
 
   if (loading) return <div className="loading-page"><span className="spin" /></div>;
-  if (error || !data) return <div className="page"><div className="empty"><h3>Collection not found</h3><p>{error}</p></div></div>;
+  if (error || !data) {
+    return (
+      <div className="page">
+        <div className="empty">
+          <h3>This collection isn't available</h3>
+          <p>{error ?? 'It may have been unpublished.'} See all current <Link to="/collections">collections</Link>.</p>
+        </div>
+      </div>
+    );
+  }
 
   const { collection, items } = data;
   const trackItems = items.filter((i) => i.kind === 'track' && i.track) as (CollectionItem & { track: Track })[];

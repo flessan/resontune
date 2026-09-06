@@ -132,6 +132,10 @@ class PlayerEngine {
   }
 
   async play(): Promise<void> {
+    // play() is always triggered by a user gesture (or media keys after
+    // one), so this is the natural place to guarantee the analysis graph —
+    // the visualizer must have data the moment audio starts.
+    this.ensureAnalysis();
     if (this.ctx?.state === 'suspended') await this.ctx.resume();
     await this.audio.play();
   }

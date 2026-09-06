@@ -1,10 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePlayer } from './store';
+import { engine } from './engine';
 import { SeekBar } from './SeekBar';
 import { api } from '@/lib/api';
 import { Artwork } from '@/components/Artwork';
 import { SourceChip, provenanceLabel } from '@/components/Provenance';
+import { useSettings } from '@/stores/settings';
+import { VisualizerRunner, listModes } from '@/visualizer/engine';
+import '@/visualizer/modes';
+import { setTypographyText } from '@/visualizer/modes/typography';
+import { extractAccent, loadImage } from '@/lib/artworkColor';
 import type { Track } from '@/lib/types';
 import { formatDuration } from '@/lib/format';
 import {
@@ -13,6 +19,97 @@ import {
 } from '@/components/Icons';
 
 type Tab = 'queue' | 'lyrics' | 'about';
+
+/**
+ * Live visualizer strip inside the expanded player — the same engine and
+ * mode registry as the immersive view, rendered into a wide panel under
+ * the artwork, with a compact control surface (mode + three sliders).
+ * Settings persist through the settings store (localStorage).
+ */
+function VisualizerStrip({ item }: { item: { artworkUrl: string | null; title: string; artistName: string; queueId: string } }) {
+  const modeId = useSettings((s) => s.visualizerMode);
+  const vSettings = useSettings((s) => s.visualizer);
+  const { setVisualizerMode, updateVisualizer } = useSettings.getState();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const runnerRef = useRef<VisualizerRunner | null>(null);
+  const [showTuning, setShowTuning] = useState(false);
+
+  const modes = listModes();
+  const mode = modes.find((m) => m.id === modeId) ?? modes[0];
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    engine.ensureAnalysis();
+    const runner = new VisualizerRunner(canvasRef.current, mode, vSettings, () => engine.readFrame());
+    runnerRef.current = runner;
+    runner.start();
+    return () => runner.destroy();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => { runnerRef.current?.setMode(mode); }, [mode]);
+  useEffect(() => { runnerRef.current?.setSettings(vSettings); }, [vSettings]);
+
+  useEffect(() => {
+    setTypographyText(item.title, item.artistName);
+    if (item.artworkUrl) {
+      void extractAccent(item.artworkUrl).then((hex) => { if (hex) runnerRef.current?.setAccent(hex); });
+      void loadImage(item.artworkUrl)
+        .then((img) => runnerRef.current?.setArtwork(img))
+        .catch(() => runnerRef.current?.setArtwork(null));
+    } else {
+      runnerRef.current?.setArtwork(null);
+    }
+  }, [item.queueId, item.artworkUrl, item.title, item.artistName]);
+
+  return (
+    <div className="ps-vis">
+      <canvas ref={canvasRef} className="ps-vis-canvas" aria-hidden="true" />
+      <div className="ps-vis-controls">
+        <label className="visually-hidden" htmlFor="ps-vis-mode">Visualizer mode</label>
+        <select
+          id="ps-vis-mode"
+          className="ps-vis-select"
+          value={mode.id}
+          onChange={(e) => setVisualizerMode(e.target.value)}
+        >
+          {modes.map((m) => (
+            <option key={m.id} value={m.id}>{m.name}</option>
+          ))}
+        </select>
+        <button
+          className={`icon-btn ${showTuning ? 'active' : ''}`}
+          onClick={() => setShowTuning((v) => !v)}
+          aria-label="Visualizer tuning"
+          aria-expanded={showTuning}
+        >
+          <IconWave width={14} height={14} />
+        </button>
+      </div>
+      {showTuning && (
+        <div className="ps-vis-tuning">
+          {([
+            ['Sensitivity', 'sensitivity', 0.4, 2],
+            ['Intensity', 'intensity', 0.4, 2],
+            ['Speed', 'speed', 0.3, 2],
+          ] as const).map(([label, key, min, max]) => (
+            <label key={key}>
+              <span>{label}</span>
+              <input
+                type="range"
+                min={min}
+                max={max}
+                step={0.05}
+                value={vSettings[key]}
+                onChange={(e) => updateVisualizer({ [key]: Number(e.target.value) })}
+              />
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ExpandedPlayer() {
   const item = usePlayer((s) => s.queue[s.index] ?? null);
@@ -84,6 +181,7 @@ export function ExpandedPlayer() {
               {item.albumTitle ? <> — {item.albumTitle}</> : null}
             </p>
           </div>
+          <VisualizerStrip item={item} />
         </div>
 
         <div className="ps-right">

@@ -26,6 +26,8 @@ See [.env.example](../.env.example):
 | `ALLOW_DEV_LOGIN` | keep dev sign-in when OAuth is configured (dev only; always off in production unless explicitly true) |
 | `ADMIN_USER_IDS` / `MODERATOR_USER_IDS` | comma-separated user ids granted roles server-side — the only way to bootstrap the first production admin |
 | `AUDIO_CDN_BASE` | base URL for hosted-audio object keys (default `/media/audio`) |
+| `GITHUB_SPONSORS_URL` / `SOCIABUZZ_URL` / `QRIS_IMAGE_URL` | support-page links (all optional; admin-editable at runtime via `PUT /api/site/config/support`, which overrides env) |
+| `REPO_URL` | public repository URL used on About/Contribute/footer (default `https://github.com/flessan/resontune`) |
 
 Secrets live only in server env. The client bundle contains none.
 

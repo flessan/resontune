@@ -36,7 +36,16 @@ export default function TrackPage() {
   }, [data?.track.artworkUrl]);
 
   if (loading) return <div className="loading-page"><span className="spin" /></div>;
-  if (error || !data) return <div className="page"><div className="empty"><h3>Track not found</h3><p>{error}</p></div></div>;
+  if (error || !data) {
+    return (
+      <div className="page">
+        <div className="empty">
+          <h3>This track isn't available</h3>
+          <p>{error ?? 'It may have been unpublished or removed.'} Try <Link to="/search">searching the catalog</Link> or browsing <Link to="/discover">Discover</Link>.</p>
+        </div>
+      </div>
+    );
+  }
 
   const { track, related, moreFromArtist } = data;
   const isCurrent = currentId === track.id;

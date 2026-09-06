@@ -33,7 +33,8 @@ const saved = load();
 
 export const useSettings = create<SettingsState>((set, get) => ({
   theme: (saved.theme as Theme) ?? 'system',
-  visualizerMode: saved.visualizerMode ?? 'radial',
+  // Minimal Spectrum is the first-run default — calm, not flashy.
+  visualizerMode: saved.visualizerMode ?? 'minimal',
   visualizer: { ...DEFAULT_SETTINGS, ...(saved.visualizer ?? {}) },
 
   setTheme: (theme) => {

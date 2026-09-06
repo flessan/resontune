@@ -185,6 +185,16 @@ export class VisualizerRunner {
     this.render(frame);
   }
 
+  /** Reduced motion: heavier temporal smoothing so amplitude changes stay gentle. */
+  private effectiveSettings(): VisualizerSettings {
+    if (!this.reducedMotion) return this.settings;
+    return {
+      ...this.settings,
+      smoothing: Math.max(this.settings.smoothing, 0.88),
+      intensity: Math.min(this.settings.intensity, 0.8),
+    };
+  }
+
   private render(frame: AnalysisFrame) {
     const { ctx, canvas } = this;
     const w = canvas.width;
@@ -197,7 +207,7 @@ export class VisualizerRunner {
       dpr: Math.min(window.devicePixelRatio || 1, 2),
       t: this.clock,
       frame,
-      settings: this.settings,
+      settings: this.effectiveSettings(),
       accent: this.accent,
       paper: '#efeae0',
       artwork: this.artwork,

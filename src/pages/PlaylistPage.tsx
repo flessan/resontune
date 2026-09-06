@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
 import type { Playlist, Track } from '@/lib/types';
 import { TrackRow } from '@/components/TrackRow';
@@ -22,7 +22,16 @@ export default function PlaylistPage() {
   const [editing, setEditing] = useState(false);
 
   if (loading) return <div className="loading-page"><span className="spin" /></div>;
-  if (error || !data) return <div className="page"><div className="empty"><h3>Playlist not found</h3><p>{error}</p></div></div>;
+  if (error || !data) {
+    return (
+      <div className="page">
+        <div className="empty">
+          <h3>This playlist isn't available</h3>
+          <p>{error ?? 'It may be private or deleted.'} Head to <Link to="/playlists">your playlists</Link> to make a new one.</p>
+        </div>
+      </div>
+    );
+  }
 
   const { playlist, tracks } = data;
   const isOwner = user && playlist.ownerId === user.id;

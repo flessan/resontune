@@ -27,6 +27,8 @@ interface PlayerState {
   repeat: RepeatMode;
   view: PlayerView;
   error: string | null;
+  /** Set when the current item can only be played on its official external page. */
+  externalLink: { url: string; label: string } | null;
 
   current: () => QueueItem | null;
   playQueue: (items: QueueItem[], startIndex?: number) => Promise<void>;
@@ -100,10 +102,10 @@ export const usePlayer = create<PlayerState>((set, get) => {
     const { queue } = get();
     const item = queue[index];
     if (!item) return;
-    set({ index, loading: true, error: null });
+    set({ index, loading: true, error: null, externalLink: null });
     const resolved = await resolveSrc(item);
     if (!resolved) {
-      set({ loading: false, error: `Couldn't load “${item.title}”. The file may have been removed.`, playing: false });
+      set({ loading: false, error: `Couldn't load “${item.title}”. The file may have been removed. Try another track.`, playing: false });
       return;
     }
     if ('error' in resolved) {
@@ -113,7 +115,12 @@ export const usePlayer = create<PlayerState>((set, get) => {
     if ('external' in resolved) {
       // Direct playback isn't permitted for this source — playback happens
       // on the official external page; communicate rather than fake it.
-      set({ loading: false, playing: false, error: `${resolved.label}: ${resolved.external}` });
+      set({
+        loading: false,
+        playing: false,
+        error: `“${item.title}” plays on ${resolved.label}.`,
+        externalLink: { url: resolved.external, label: resolved.label },
+      });
       return;
     }
     try {
@@ -127,7 +134,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       }
     } catch (err) {
       console.warn('[player] play failed', err);
-      set({ loading: false, playing: false, error: 'Playback failed for this track.' });
+      set({ loading: false, playing: false, error: 'This track couldn’t be played right now. Skip ahead or try again.' });
     }
     void persistState(get());
   };
@@ -170,6 +177,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     repeat: 'off',
     view: 'compact',
     error: null,
+    externalLink: null,
 
     current: () => {
       const { queue, index } = get();

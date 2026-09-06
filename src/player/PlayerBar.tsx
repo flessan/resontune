@@ -5,6 +5,7 @@ import { engine } from './engine';
 import { SeekBar } from './SeekBar';
 import { Artwork } from '@/components/Artwork';
 import { SourceChip } from '@/components/Provenance';
+import { MiniSpectrum } from './MiniSpectrum';
 import {
   IconPlay, IconPause, IconPrev, IconNext, IconShuffle, IconRepeat,
   IconRepeatOne, IconVolume, IconMute, IconExpand, IconWave,
@@ -19,6 +20,7 @@ export function PlayerBar() {
   const volume = usePlayer((s) => s.volume);
   const muted = usePlayer((s) => s.muted);
   const error = usePlayer((s) => s.error);
+  const externalLink = usePlayer((s) => s.externalLink);
   const { toggle, next, prev, toggleShuffle, cycleRepeat, setVolume, toggleMute, setView } = usePlayer.getState();
 
   const miniRef = useRef<HTMLDivElement>(null);
@@ -45,7 +47,7 @@ export function PlayerBar() {
       }}
     >
       <div className="pb-miniprogress" ref={miniRef} style={{ width: 0 }} aria-hidden />
-      <div className="pb-now">
+      <div className="pb-now" key={item?.queueId ?? 'idle'}>
         {item ? (
           <>
             <button className="pb-art" onClick={openExpanded} aria-label="Open player" style={{ padding: 0, border: '1px solid var(--line)' }}>
@@ -61,7 +63,19 @@ export function PlayerBar() {
                 <SourceChip origin={item.origin} sourceType={item.sourceType} />
               </div>
               <div className="pb-sub">
-                {item.origin === 'remote' && item.artistSlug ? (
+                {error ? (
+                  <span style={{ color: 'var(--ink-muted)' }}>
+                    {error}
+                    {externalLink && (
+                      <>
+                        {' '}
+                        <a href={externalLink.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ textDecoration: 'underline' }}>
+                          Listen on {externalLink.label}
+                        </a>
+                      </>
+                    )}
+                  </span>
+                ) : item.origin === 'remote' && item.artistSlug ? (
                   <Link to={`/artist/${item.artistSlug}`} onClick={(e) => e.stopPropagation()}>{item.artistName}</Link>
                 ) : (
                   item.artistName
@@ -110,6 +124,7 @@ export function PlayerBar() {
       </div>
 
       <div className="pb-right">
+        {item && <MiniSpectrum className="mini-spectrum desktop-only" />}
         <button className="icon-btn desktop-only" onClick={() => setView('immersive')} aria-label="Open visualizer" disabled={!item}>
           <IconWave width={17} height={17} />
         </button>

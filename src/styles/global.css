@@ -596,6 +596,126 @@ h1.page-title {
 
 .station-card .station-desc { font-size: 12.5px; color: var(--ink-muted); line-height: 1.45; }
 
+/* About / Contribute / Support cards */
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin-bottom: 30px;
+}
+
+.about-grid.three { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+
+.about-card {
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 22px;
+  background: var(--bg-raised);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.about-card h3 {
+  font-family: var(--font-display);
+  font-size: 19px;
+  margin: 0;
+}
+
+.about-card p { margin: 0; font-size: 13.5px; line-height: 1.65; color: var(--ink-soft); }
+.about-card.slim { padding: 18px; }
+.about-card a { color: var(--accent); }
+.about-card .btn { color: inherit; }
+.about-card code {
+  font-size: 12px;
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.about-steps {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13.5px;
+  line-height: 1.9;
+  color: var(--ink-soft);
+}
+
+.about-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13.5px;
+}
+
+.about-links a { display: inline-flex; align-items: center; gap: 5px; }
+
+.qris-img {
+  width: 100%;
+  max-width: 220px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.supporter-wall { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Catalog-style release footer (rights / credits / license) */
+.release-notes {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--ink-faint);
+  max-width: 560px;
+}
+.release-notes p { margin: 0; }
+.release-notes a { color: inherit; text-decoration: underline; }
+
+/* Footer */
+.site-footer {
+  margin-top: 56px;
+  padding: 28px 0 12px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.site-footer .f-brand {
+  font-family: var(--font-display);
+  font-size: 17px;
+}
+
+.site-footer .f-brand em { font-style: italic; color: var(--accent); }
+
+.site-footer .f-tagline {
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin-top: 4px;
+}
+
+.site-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  font-size: 12.5px;
+}
+
+.site-footer nav a {
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+
+.site-footer nav a:hover { color: var(--ink); text-decoration: underline; }
+
 /* ---------------------------------------------------------------- buttons */
 
 .btn {
@@ -658,6 +778,18 @@ h1.page-title {
   font-size: 14px;
 }
 .field textarea { resize: vertical; min-height: 90px; }
+/* Standalone input (outside a .field wrapper) */
+.input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  font-size: 14px;
+  color: var(--ink);
+}
+.input:focus { border-color: var(--accent); outline: none; }
+textarea.input { resize: vertical; }
 .field input:focus, .field textarea:focus, .field select:focus {
   border-color: var(--accent);
   outline: none;
@@ -792,6 +924,85 @@ h1.page-title {
 }
 @media (max-width: 860px) { .pb-right .desktop-only { display: none; } }
 
+/* Track change: quiet crossfade, no bounce. Honors reduced motion. */
+.pb-now { animation: pb-fade 240ms ease-out; }
+@keyframes pb-fade {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pb-now { animation: none; }
+}
+
+/* Minimal Spectrum in the compact player — quiet, always-on audio response */
+.mini-spectrum {
+  width: 96px;
+  height: 26px;
+  margin-right: 8px;
+  display: block;
+  opacity: 0.9;
+}
+@media (max-width: 1100px) { .pb-right .mini-spectrum { display: none; } }
+
+/* Visualizer strip inside the expanded player */
+.ps-vis {
+  width: min(340px, 72vw);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ps-vis-canvas {
+  width: 100%;
+  height: 64px;
+  display: block;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+
+.ps-vis-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ps-vis-select {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  font-size: 12.5px;
+  border-radius: 7px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+
+.ps-vis-tuning {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-raised);
+}
+
+.ps-vis-tuning label {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  color: var(--ink-muted);
+}
+
+.ps-vis-tuning input[type='range'] { width: 100%; }
+
+@media (max-height: 720px) {
+  .ps-vis-canvas { height: 44px; }
+}
+
 .vol-wrap { display: flex; align-items: center; gap: 6px; width: 110px; }
 .vol-wrap input[type='range'] {
   flex: 1;
@@ -888,7 +1099,7 @@ h1.page-title {
   min-height: 0;
 }
 .ps-art {
-  width: min(380px, 72vw, 44vh);
+  width: min(340px, 72vw, 38vh);
   aspect-ratio: 1;
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -1037,6 +1248,27 @@ h1.page-title {
 .imm-ui.hidden { opacity: 0; pointer-events: none; }
 .imm-top { display: flex; justify-content: space-between; align-items: flex-start; }
 .imm-bottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; }
+
+.imm-lyrics {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: min(620px, 84vw);
+  max-height: 52vh;
+  overflow-y: auto;
+  padding: 24px 28px;
+  border-radius: 12px;
+  background: rgba(16, 15, 12, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(6px);
+  color: rgba(239, 234, 224, 0.92);
+  font-family: var(--font-display);
+  font-size: clamp(16px, 2.2vw, 21px);
+  line-height: 1.75;
+  white-space: pre-wrap;
+  text-align: center;
+}
 .imm-meta .t { font-family: var(--font-display); font-size: 26px; font-weight: 640; }
 .imm-meta .a { color: rgba(239, 234, 224, 0.65); font-size: 15px; }
 .imm-controls { display: flex; gap: 6px; align-items: center; }

@@ -30,6 +30,9 @@ import Community from './pages/Community';
 import Radio from './pages/Radio';
 import Collections from './pages/Collections';
 import CollectionPage from './pages/CollectionPage';
+import About from './pages/About';
+import Contribute from './pages/Contribute';
+import Support from './pages/Support';
 
 import { useAuth } from './stores/auth';
 import { restorePlayerState, setupMediaSession } from './player/store';
@@ -46,6 +49,9 @@ const router = createBrowserRouter([
       { path: '/radio', element: <Radio /> },
       { path: '/collections', element: <Collections /> },
       { path: '/collection/:slug', element: <CollectionPage /> },
+      { path: '/about', element: <About /> },
+      { path: '/contribute', element: <Contribute /> },
+      { path: '/support', element: <Support /> },
       { path: '/search', element: <Search /> },
       { path: '/library', element: <Library /> },
       { path: '/track/:slug', element: <TrackPage /> },

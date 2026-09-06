@@ -100,6 +100,14 @@ export function requireModerator(req: Request, _res: Response, next: NextFunctio
   next();
 }
 
+export function requireAdmin(req: Request, _res: Response, next: NextFunction) {
+  if (!req.user) return next(new HttpError(401, 'Sign in required.'));
+  if (req.user.role !== 'admin') {
+    return next(new HttpError(403, 'Admin access required.'));
+  }
+  next();
+}
+
 async function createSession(res: Response, userId: string) {
   const db = await getDb();
   const sid = uuid();

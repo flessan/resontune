@@ -22,7 +22,16 @@ export default function ArtistPage() {
   const { data, loading, error } = useFetch<Data>(`/artists/${slug}`, [slug]);
 
   if (loading) return <div className="loading-page"><span className="spin" /></div>;
-  if (error || !data) return <div className="page"><div className="empty"><h3>Artist not found</h3><p>{error}</p></div></div>;
+  if (error || !data) {
+    return (
+      <div className="page">
+        <div className="empty">
+          <h3>This artist page isn't available</h3>
+          <p>{error ?? 'The profile may have been removed.'} Discover more artists in <Link to="/originals">Originals</Link> and <Link to="/community">Community</Link>.</p>
+        </div>
+      </div>
+    );
+  }
 
   const { artist, albums, popularTracks } = data;
 

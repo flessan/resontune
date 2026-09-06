@@ -27,6 +27,7 @@ import { moderationRouter } from './routes/moderation.ts';
 import { HttpError } from './util/http.ts';
 import { seedIfEmpty } from './seed/seed.ts';
 import { playRouter } from './routes/play.ts';
+import { siteRouter } from './routes/site.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.API_PORT ?? process.env.PORT ?? 8787);
@@ -94,6 +95,7 @@ async function main() {
 
   app.use('/api', catalogRouter());
   app.use('/api/play', playRouter());
+  app.use('/api/site', siteRouter());
   app.use('/api/playlists', playlistsRouter());
   app.use('/api/me', meRouter());
   app.use('/api/moderation', moderationRouter());

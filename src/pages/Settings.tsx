@@ -1,10 +1,95 @@
+import { useEffect, useState } from 'react';
 import { useSettings, type Theme } from '@/stores/settings';
+import { useAuth } from '@/stores/auth';
+import { api } from '@/lib/api';
 import { listModes } from '@/visualizer/engine';
 import '@/visualizer/modes';
 import { usePlayer } from '@/player/store';
 import { IconSun, IconMoon, IconSettings as IconSys, IconWave } from '@/components/Icons';
 
+/** Admin-only: edit the public support links without redeploying. */
+function SupportConfigEditor() {
+  const [form, setForm] = useState({ githubSponsorsUrl: '', sociabuzzUrl: '', qrisImageUrl: '', supporters: '' });
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    api.get<{ githubSponsorsUrl: string | null; sociabuzzUrl: string | null; qrisImageUrl: string | null; supporters: string[] }>('/site/config')
+      .then((c) => setForm({
+        githubSponsorsUrl: c.githubSponsorsUrl ?? '',
+        sociabuzzUrl: c.sociabuzzUrl ?? '',
+        qrisImageUrl: c.qrisImageUrl ?? '',
+        supporters: c.supporters.join('\n'),
+      }))
+      .catch(() => {});
+  }, []);
+
+  const save = async () => {
+    setStatus('saving');
+    setError('');
+    try {
+      await api.put('/site/config/support', {
+        githubSponsorsUrl: form.githubSponsorsUrl.trim() || null,
+        sociabuzzUrl: form.sociabuzzUrl.trim() || null,
+        qrisImageUrl: form.qrisImageUrl.trim() || null,
+        supporters: form.supporters.split('\n').map((s) => s.trim()).filter(Boolean),
+      });
+      setStatus('saved');
+      setTimeout(() => setStatus('idle'), 2000);
+    } catch (e) {
+      setStatus('error');
+      setError(e instanceof Error ? e.message : 'Could not save');
+    }
+  };
+
+  return (
+    <>
+      <div className="section-head"><h2 className="section-title">Support page (admin)</h2></div>
+      <p style={{ color: 'var(--ink-muted)', fontSize: 13.5, marginTop: 0, maxWidth: 560 }}>
+        Public links shown on the Support page. Leave a field empty to hide that
+        method. Supporter names are listed only with each person's permission —
+        one name per line.
+      </p>
+      <div style={{ display: 'grid', gap: 12, maxWidth: 560 }}>
+        {([
+          ['githubSponsorsUrl', 'GitHub Sponsors URL', 'https://github.com/sponsors/…'],
+          ['sociabuzzUrl', 'Sociabuzz URL', 'https://sociabuzz.com/…'],
+          ['qrisImageUrl', 'QRIS image URL', '/media/qris.png or https://…'],
+        ] as const).map(([key, label, placeholder]) => (
+          <label key={key} style={{ display: 'grid', gap: 4, fontSize: 12.5, color: 'var(--ink-muted)' }}>
+            {label}
+            <input
+              className="input"
+              type="url"
+              value={form[key]}
+              placeholder={placeholder}
+              onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+            />
+          </label>
+        ))}
+        <label style={{ display: 'grid', gap: 4, fontSize: 12.5, color: 'var(--ink-muted)' }}>
+          Supporters (one name per line, opt-in only)
+          <textarea
+            className="input"
+            rows={4}
+            value={form.supporters}
+            onChange={(e) => setForm((f) => ({ ...f, supporters: e.target.value }))}
+          />
+        </label>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button className="btn small primary" onClick={() => void save()} disabled={status === 'saving'}>
+            {status === 'saving' ? 'Saving…' : 'Save support settings'}
+          </button>
+          {status === 'saved' && <span style={{ fontSize: 12.5, color: 'var(--ink-muted)' }}>Saved.</span>}
+          {status === 'error' && <span style={{ fontSize: 12.5, color: 'var(--danger, #b3423f)' }}>{error}</span>}
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function Settings() {
+  const user = useAuth((s) => s.user);
   const theme = useSettings((s) => s.theme);
   const visualizerMode = useSettings((s) => s.visualizerMode);
   const vis = useSettings((s) => s.visualizer);
@@ -100,6 +185,8 @@ export default function Settings() {
           <tr><td><span className="kbd">Esc</span></td><td>Close expanded / immersive player</td></tr>
         </tbody>
       </table>
+
+      {user?.role === 'admin' && <SupportConfigEditor />}
 
       <div className="section-head"><h2 className="section-title">About</h2></div>
       <p className="prose" style={{ fontSize: 13.5 }}>

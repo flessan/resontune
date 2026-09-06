@@ -30,13 +30,27 @@ HTMLAudioElement ─► MediaElementSource ─► AnalyserNode ─► AnalysisFr
 
 Modes never touch the player. The runner owns the canvas, DPR sizing, the
 speed-scaled clock, `prefers-reduced-motion` handling (the clock slows to
-15% instead of freezing) and user settings.
+15%, temporal smoothing rises and intensity is capped — dampened, never
+removed) and user settings.
+
+## Where the visualizer lives
+
+The visualizer is on by default — no tab or setting required:
+
+- **Compact player bar** — a small always-on *Minimal Spectrum*
+  (`src/player/MiniSpectrum.tsx`, its own rAF loop, settles on pause).
+- **Expanded player** — a wider spectrum strip with a mode dropdown and
+  Sensitivity / Intensity / Speed sliders.
+- **Immersive player** — the full-screen experience with all settings.
+
+`minimal` is the first-run default mode; the user's choice persists in
+localStorage and applies across expanded and immersive views.
 
 ## User settings
 
 `sensitivity · intensity · speed · opacity · smoothing · scale · background`
-— editable in Settings and live inside the immersive player, persisted in
-localStorage.
+— editable in Settings, in the expanded player's quick controls, and live
+inside the immersive player; persisted in localStorage.
 
 ## Writing a mode
 

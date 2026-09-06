@@ -12,6 +12,7 @@ import {
   IconHeart, IconSubmit, IconUser, IconSettings, IconShield, IconWave, IconQueue,
 } from './Icons';
 import { SignInDialog } from './SignInDialog';
+import { Footer } from './Footer';
 
 export function Layout() {
   const view = usePlayer((s) => s.view);
@@ -93,11 +94,11 @@ export function Layout() {
             <IconUser width={17} height={17} /> Sign in
           </button>
         )}
-        <div style={{ padding: '14px 10px 4px', fontSize: 11, color: 'var(--ink-faint)', lineHeight: 1.5 }}>
+        <div style={{ padding: '14px 10px 4px', fontSize: 11, color: 'var(--ink-faint)', lineHeight: 1.6 }}>
           Open music. For everyone.<br />
-          <a href="https://github.com/flessan/resontune" target="_blank" rel="noreferrer" style={{ textDecoration: 'underline' }}>
-            Open source
-          </a>
+          <NavLink to="/about" style={{ textDecoration: 'underline', color: 'inherit' }}>About</NavLink>
+          {' · '}
+          <NavLink to="/support" style={{ textDecoration: 'underline', color: 'inherit' }}>Support</NavLink>
         </div>
       </aside>
 
@@ -120,6 +121,9 @@ export function Layout() {
           )}
         </div>
         <Outlet />
+        <div className="page" style={{ paddingTop: 0 }}>
+          <Footer />
+        </div>
       </main>
 
       <PlayerBar />

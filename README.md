@@ -44,6 +44,11 @@ mechanisms. No DRM bypass, no scraping, no proxying protected streams.
 The player is persistent across navigation, has compact / expanded /
 immersive modes, media-key support (Media Session API), queue + position
 persistence, and a real Web-Audio-powered visualizer engine with eight modes.
+The visualizer is on by default: pressing play lights up a subtle **Minimal
+Spectrum** right in the compact player bar, the expanded player adds a larger
+spectrum with quick mode/sensitivity controls, and the immersive view is the
+full experience. Every mode renders from live audio analysis — silence looks
+like silence.
 
 ### What ResonTune is not
 
@@ -110,6 +115,22 @@ OAuth configured, dev sign-in disables itself automatically.
 | [docs/deployment.md](docs/deployment.md) | Deployment, env vars, security posture |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
 | [SECURITY.md](SECURITY.md) | Reporting vulnerabilities |
+
+## Contributing & support
+
+There's a contribution path for everyone — musicians (submit through the
+in-app community program), listeners (metadata and rights reports,
+translations, docs), and developers (fork → branch → change → PR; see
+[CONTRIBUTING.md](CONTRIBUTING.md)). The in-app **Contribute** page
+summarizes all of them.
+
+ResonTune has no subscriptions or ads; infrastructure is community-supported.
+The in-app **Support** page lists the active methods (GitHub Sponsors,
+Sociabuzz, QRIS). All of them are external links — ResonTune never collects
+payment credentials. Instance operators configure the links via
+`GITHUB_SPONSORS_URL` / `SOCIABUZZ_URL` / `QRIS_IMAGE_URL` (see
+`.env.example`) or live from the admin section of the Settings page — no
+rebuild needed.
 
 ## Principles
 
