@@ -35,12 +35,16 @@ removed) and user settings.
 
 ## Where the visualizer lives
 
-The visualizer is on by default — no tab or setting required:
+The visualizer is **ambient behavior of the player**, never a panel, card
+or destination. It is on by default — press play and the interface reacts:
 
-- **Compact player bar** — a small always-on *Minimal Spectrum*
-  (`src/player/MiniSpectrum.tsx`, its own rAF loop, settles on pause).
-- **Expanded player** — a wider spectrum strip with a mode dropdown and
-  Sensitivity / Intensity / Speed sliders.
+- **Compact player bar** — the *Minimal Spectrum* shares the row with the
+  track metadata (`src/player/MiniSpectrum.tsx`: own rAF loop, edge-faded
+  via CSS mask, settles on pause). No box, no reserved area.
+- **Expanded player** — a full-width ambient canvas layered on the sheet
+  surface itself, fading upward behind the controls; the artwork carries a
+  barely-perceptible bass-responsive scale. Mode + Sensitivity / Intensity /
+  Speed live in a contextual popover off the playback controls.
 - **Immersive player** — the full-screen experience with all settings.
 
 `minimal` is the first-run default mode; the user's choice persists in
@@ -49,8 +53,8 @@ localStorage and applies across expanded and immersive views.
 ## User settings
 
 `sensitivity · intensity · speed · opacity · smoothing · scale · background`
-— editable in Settings, in the expanded player's quick controls, and live
-inside the immersive player; persisted in localStorage.
+— editable in Settings, in the expanded player's visualizer popover, and
+live inside the immersive player; persisted in localStorage.
 
 ## Writing a mode
 

@@ -89,6 +89,7 @@ export class VisualizerRunner {
   private rafId: number | null = null;
   private startTime = performance.now();
   private accent = '#d97f4e';
+  private paper = '#efeae0';
   private artwork: HTMLImageElement | null = null;
   private reducedMotion: boolean;
   private resizeObs: ResizeObserver;
@@ -135,6 +136,12 @@ export class VisualizerRunner {
 
   setAccent(color: string) {
     this.accent = color;
+  }
+
+  /** Base drawing color ("paper"). Defaults to warm off-white for dark
+      surfaces; light surfaces should pass their ink color instead. */
+  setPaper(color: string) {
+    this.paper = color;
   }
 
   setArtwork(img: HTMLImageElement | null) {
@@ -209,7 +216,7 @@ export class VisualizerRunner {
       frame,
       settings: this.effectiveSettings(),
       accent: this.accent,
-      paper: '#efeae0',
+      paper: this.paper,
       artwork: this.artwork,
       reducedMotion: this.reducedMotion,
     });

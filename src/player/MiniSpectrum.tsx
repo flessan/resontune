@@ -56,16 +56,21 @@ export function MiniSpectrum({ bars = BARS, className }: { bars?: number; classN
       const h = canvas.height;
       ctx.clearRect(0, 0, w, h);
       const gap = w / (bars * 2);
-      const barW = Math.max(1.5, gap * 0.9);
+      const barW = Math.max(1.5, gap * 0.85);
       const accentColor = accent();
       const inkColor = ink();
+      const mid = h / 2;
+      // Center-anchored bars — reads as ambient surface motion, not a widget.
       for (let i = 0; i < bars; i++) {
         const v = levels[i];
-        const bh = Math.max(h * 0.06, v * h * 0.92);
+        const bh = Math.max(h * 0.045, v * h * 0.94);
         const x = gap * (i * 2) + gap / 2;
-        ctx.fillStyle = i === Math.floor(bars * 0.3) || i === Math.floor(bars * 0.7) ? accentColor : inkColor;
-        ctx.globalAlpha = 0.3 + v * 0.7;
-        ctx.fillRect(x, h - bh, barW, bh);
+        ctx.fillStyle = v > 0.5 ? accentColor : inkColor;
+        ctx.globalAlpha = 0.28 + v * 0.72;
+        const r = Math.min(barW / 2, 2);
+        ctx.beginPath();
+        ctx.roundRect(x, mid - bh / 2, barW, bh, r);
+        ctx.fill();
       }
       ctx.globalAlpha = 1;
     };
@@ -114,7 +119,7 @@ export function MiniSpectrum({ bars = BARS, className }: { bars?: number; classN
   return (
     <canvas
       ref={canvasRef}
-      className={className ?? 'mini-spectrum'}
+      className={className ?? 'pb-spectrum'}
       aria-hidden="true"
     />
   );

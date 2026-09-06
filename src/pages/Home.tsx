@@ -1,8 +1,7 @@
 /**
- * Home — the front page of a music platform, not a dashboard:
- * Featured Release → Originals → New releases → Rising artists →
- * Community picks → Trending → Collections. Every section is music-first,
- * deterministic and explained; nothing here is an engagement statistic.
+ * Home — the front room of a music app: play something within one screen.
+ * A compact artwork-led featured banner, then horizontal shelves and dense
+ * track lists. No promotional storytelling; the music is the interface.
  */
 import { Link } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
@@ -32,6 +31,8 @@ interface HomeData {
 
 export default function Home() {
   const { data, loading, error } = useFetch<HomeData>('/home');
+  const hasQueue = usePlayer((s) => s.queue.length > 0);
+  const playing = usePlayer((s) => s.playing);
 
   const playFeatured = async (slug: string) => {
     try {
@@ -44,6 +45,10 @@ export default function Home() {
     }
   };
 
+  const resume = () => {
+    void usePlayer.getState().toggle();
+  };
+
   if (loading) return <div className="loading-page"><span className="spin" /></div>;
   if (error || !data) return <div className="page"><div className="empty"><h3>Couldn't load the catalog</h3><p>{error}</p></div></div>;
 
@@ -53,65 +58,45 @@ export default function Home() {
     <div className="page">
       {feat && (
         <section className="featured" aria-label="Featured release">
-          {feat.artworkUrl && <img src={feat.artworkUrl} alt="" />}
+          {feat.artworkUrl && (
+            <Link to={`/release/${feat.slug}`}><img src={feat.artworkUrl} alt="" /></Link>
+          )}
           <div>
             <div className="kicker">
-              Featured release{feat.catalogNo ? ` · ${feat.catalogNo}` : ''}
+              Featured{feat.catalogNo ? ` · ${feat.catalogNo}` : ''}
             </div>
-            <div style={{ marginBottom: 8 }}><OriginalBadge /></div>
-            <h2>{feat.title}</h2>
+            <h2><Link to={`/release/${feat.slug}`}>{feat.title}</Link></h2>
             <div className="featured-artist">
               <Link to={`/artist/${feat.artist.slug}`}>{feat.artist.name}</Link>
-              {' · '}{feat.type.toUpperCase()}
-              {feat.releasedOn ? ` · ${new Date(feat.releasedOn).getFullYear()}` : ''}
+              {feat.sourceType === 'original' && <span style={{ marginLeft: 10 }}><OriginalBadge compact /></span>}
             </div>
-            {feat.description && <p className="blurb">{feat.description}</p>}
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <button className="btn primary" onClick={() => void playFeatured(feat.slug)}>
-                <IconPlay width={15} height={15} /> Play
+                <IconPlay width={14} height={14} /> Play
               </button>
-              <Link to={`/release/${feat.slug}`} className="btn">Open release</Link>
+              {hasQueue && !playing && (
+                <button className="btn" onClick={resume}>Resume listening</button>
+              )}
             </div>
           </div>
         </section>
       )}
 
       <div className="section-head">
-        <h2 className="section-title">ResonTune Originals</h2>
-        <Link to="/originals" className="section-link">The Originals catalog</Link>
-      </div>
-      <div className="card-row">
-        {data.originals.slice(0, 6).map((t) => (
-          <TrackTile key={t.id} track={t} context={data.originals} />
-        ))}
-      </div>
-
-      <div className="section-head">
         <h2 className="section-title">New releases</h2>
-        <Link to="/albums" className="section-link">All releases</Link>
+        <Link to="/albums" className="section-link">See all</Link>
       </div>
-      <div className="card-row">
-        {data.newReleases.slice(0, 6).map((al) => <AlbumTile key={al.id} album={al} />)}
-      </div>
-
-      <div className="section-head">
-        <h2 className="section-title">Rising artists</h2>
-        <Link to="/artists" className="section-link">All artists</Link>
-      </div>
-      <div className="card-row">
-        {data.risingArtists.map((a) => <ArtistTile key={a.id} artist={a} />)}
+      <div className="shelf">
+        {data.newReleases.map((al) => <AlbumTile key={al.id} album={al} />)}
       </div>
 
       <div className="section-head">
-        <h2 className="section-title">Community picks</h2>
-        <span className="section-note">chosen by listeners, not algorithms</span>
+        <h2 className="section-title">ResonTune Originals</h2>
+        <Link to="/originals" className="section-link">See all</Link>
       </div>
-      <div className="tracklist">
-        {data.communityPicks.map((t, i) => (
-          <div key={t.id}>
-            <TrackRow track={t} index={i} context={data.communityPicks} />
-            {t.pickNote && <div className="note-card" style={{ margin: '6px 0 10px 90px' }}>“{t.pickNote}”</div>}
-          </div>
+      <div className="shelf">
+        {data.originals.slice(0, 10).map((t) => (
+          <TrackTile key={t.id} track={t} context={data.originals} />
         ))}
       </div>
 
@@ -119,20 +104,38 @@ export default function Home() {
         <h2 className="section-title">Trending</h2>
         <span className="section-note">most played in the last two weeks</span>
       </div>
-      <div className="card-row">
-        {data.trending.slice(0, 6).map((t) => (
-          <TrackTile key={t.id} track={t} context={data.trending} />
+      <div className="tracklist home-tracklist">
+        {data.trending.slice(0, 8).map((t, i) => (
+          <TrackRow key={t.id} track={t} index={i} context={data.trending} />
         ))}
+      </div>
+
+      <div className="section-head">
+        <h2 className="section-title">From the community</h2>
+        <Link to="/community" className="section-link">See all</Link>
+      </div>
+      <div className="tracklist home-tracklist">
+        {data.communityPicks.slice(0, 6).map((t, i) => (
+          <TrackRow key={t.id} track={t} index={i} context={data.communityPicks} />
+        ))}
+      </div>
+
+      <div className="section-head">
+        <h2 className="section-title">Artists to watch</h2>
+        <Link to="/artists" className="section-link">See all</Link>
+      </div>
+      <div className="shelf">
+        {data.risingArtists.map((a) => <ArtistTile key={a.id} artist={a} />)}
       </div>
 
       {data.collections.length > 0 && (
         <>
           <div className="section-head">
             <h2 className="section-title">Collections</h2>
-            <Link to="/collections" className="section-link">All collections</Link>
+            <Link to="/collections" className="section-link">See all</Link>
           </div>
-          <div className="collection-grid">
-            {data.collections.slice(0, 3).map((c) => <CollectionTile key={c.id} collection={c} />)}
+          <div className="shelf">
+            {data.collections.map((c) => <CollectionTile key={c.id} collection={c} />)}
           </div>
         </>
       )}

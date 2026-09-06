@@ -46,28 +46,21 @@ export default function Originals() {
 
   return (
     <div className="page">
-      <div className="hero">
-        <div className="hero-inner">
-          <div style={{ marginBottom: 10 }}><OriginalBadge /></div>
-          <h2>Music released<br /><em>by the platform itself.</em></h2>
-          <p>
-            ResonTune Originals is our own catalog — artists who release
-            directly through ResonTune, hosted by us, free to stream for
-            everyone, with clear licensing on every track.
+      <div className="catalog-head">
+        <div>
+          <div style={{ marginBottom: 6 }}><OriginalBadge /></div>
+          <h1 className="page-title">Originals</h1>
+          <p className="page-sub" style={{ marginBottom: 0 }}>
+            Released directly through ResonTune — hosted here, free to stream, clear licensing.
           </p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button className="btn primary" onClick={playTop}>
-              <IconPlay width={15} height={15} /> Play the essentials
-            </button>
-            <button className="btn" onClick={() => void startRadio()}>
-              <IconWave width={15} height={15} /> Originals Radio
-            </button>
-          </div>
         </div>
-        <div className="hero-art" aria-hidden>
-          {data.releases.slice(0, 2).map((al) => (
-            al.artworkUrl ? <img key={al.id} src={al.artworkUrl} alt="" /> : null
-          ))}
+        <div className="catalog-actions">
+          <button className="btn primary" onClick={playTop}>
+            <IconPlay width={14} height={14} /> Play
+          </button>
+          <button className="btn" onClick={() => void startRadio()}>
+            <IconWave width={14} height={14} /> Radio
+          </button>
         </div>
       </div>
 
@@ -82,7 +75,7 @@ export default function Originals() {
       <div className="section-head">
         <h2 className="section-title">Founding artists</h2>
       </div>
-      <div className="card-row">
+      <div className="shelf">
         {data.artists.map((a) => <ArtistTile key={a.id} artist={a} />)}
       </div>
 

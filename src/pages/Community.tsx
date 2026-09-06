@@ -40,27 +40,20 @@ export default function Community() {
 
   return (
     <div className="page">
-      <div className="hero">
-        <div className="hero-inner">
-          <h2>Released by<br /><em>independent artists.</em></h2>
-          <p>
-            Every release here was submitted by its artist, reviewed by
-            moderators, and published with the rights the artist declared.
-            Your music could be next.
+      <div className="catalog-head">
+        <div>
+          <h1 className="page-title">Community</h1>
+          <p className="page-sub" style={{ marginBottom: 0 }}>
+            Submitted by independent artists, reviewed, and published with the rights they declared.
           </p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <Link to="/submit" className="btn primary">
-              <IconSubmit width={15} height={15} /> Submit your music
-            </Link>
-            <button className="btn" onClick={() => void startRadio()}>
-              <IconWave width={15} height={15} /> Community Radio
-            </button>
-          </div>
         </div>
-        <div className="hero-art" aria-hidden>
-          {data.releases.slice(0, 2).map((al) => (
-            al.artworkUrl ? <img key={al.id} src={al.artworkUrl} alt="" /> : null
-          ))}
+        <div className="catalog-actions">
+          <button className="btn primary" onClick={() => void startRadio()}>
+            <IconWave width={14} height={14} /> Radio
+          </button>
+          <Link to="/submit" className="btn">
+            <IconSubmit width={14} height={14} /> Submit music
+          </Link>
         </div>
       </div>
 
@@ -74,7 +67,7 @@ export default function Community() {
       <div className="section-head">
         <h2 className="section-title">Community artists</h2>
       </div>
-      <div className="card-row">
+      <div className="shelf">
         {data.artists.map((a) => <ArtistTile key={a.id} artist={a} />)}
       </div>
 

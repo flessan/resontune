@@ -6,6 +6,7 @@ import { SeekBar } from './SeekBar';
 import { Artwork } from '@/components/Artwork';
 import { SourceChip } from '@/components/Provenance';
 import { MiniSpectrum } from './MiniSpectrum';
+import { extractAccent, applyAccent } from '@/lib/artworkColor';
 import {
   IconPlay, IconPause, IconPrev, IconNext, IconShuffle, IconRepeat,
   IconRepeatOne, IconVolume, IconMute, IconExpand, IconWave,
@@ -32,6 +33,18 @@ export function PlayerBar() {
     });
   }, []);
 
+  /* The whole interface quietly follows the playing record: extract a
+     tasteful accent from the current artwork and let CSS pick it up. */
+  useEffect(() => {
+    let alive = true;
+    if (item?.artworkUrl) {
+      void extractAccent(item.artworkUrl).then((hex) => { if (alive) applyAccent(hex); });
+    } else {
+      applyAccent(null);
+    }
+    return () => { alive = false; };
+  }, [item?.queueId, item?.artworkUrl]);
+
   const openExpanded = () => setView('expanded');
 
   return (
@@ -50,7 +63,7 @@ export function PlayerBar() {
       <div className="pb-now" key={item?.queueId ?? 'idle'}>
         {item ? (
           <>
-            <button className="pb-art" onClick={openExpanded} aria-label="Open player" style={{ padding: 0, border: '1px solid var(--line)' }}>
+            <button className="pb-art" onClick={openExpanded} aria-label="Open player" style={{ padding: 0, border: 'none' }}>
               <Artwork src={item.artworkUrl} alt="" />
             </button>
             <div className="pb-meta">
@@ -82,6 +95,8 @@ export function PlayerBar() {
                 )}
               </div>
             </div>
+            {/* The spectrum shares the row with the metadata — ambient, not boxed. */}
+            <MiniSpectrum className="pb-spectrum" />
           </>
         ) : (
           <div className="pb-meta">
@@ -124,8 +139,7 @@ export function PlayerBar() {
       </div>
 
       <div className="pb-right">
-        {item && <MiniSpectrum className="mini-spectrum desktop-only" />}
-        <button className="icon-btn desktop-only" onClick={() => setView('immersive')} aria-label="Open visualizer" disabled={!item}>
+        <button className="icon-btn desktop-only" onClick={() => setView('immersive')} aria-label="Full screen player" disabled={!item}>
           <IconWave width={17} height={17} />
         </button>
         <div className="vol-wrap desktop-only">

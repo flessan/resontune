@@ -59,7 +59,13 @@ export const LocalTrackRow = memo(function LocalTrackRow({ track, index, context
   };
 
   return (
-    <div className={`track-row ${isCurrent ? 'playing' : ''}`}>
+    <div
+      className={`track-row ${isCurrent ? 'playing' : ''}`}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest('button, a')) return;
+        void handlePlay();
+      }}
+    >
       <div className="idx">
         <span>{index != null ? index + 1 : ''}</span>
         <button className="row-play" onClick={() => void handlePlay()} aria-label={isCurrent && playing ? `Pause ${track.title}` : `Play ${track.title}`}>

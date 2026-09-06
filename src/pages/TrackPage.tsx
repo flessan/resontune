@@ -1,5 +1,4 @@
 import { useParams, Link } from 'react-router-dom';
-import { useEffect } from 'react';
 import { useFetch } from '@/lib/useFetch';
 import type { Track } from '@/lib/types';
 import { usePlayer } from '@/player/store';
@@ -8,7 +7,6 @@ import { trackToQueueItem } from '@/providers';
 import { TrackRow } from '@/components/TrackRow';
 import { Artwork } from '@/components/Artwork';
 import { formatDuration, formatCount, formatDate } from '@/lib/format';
-import { extractAccent, applyAccent } from '@/lib/artworkColor';
 import { toast } from '@/stores/toast';
 import { IconPlay, IconPause, IconHeart, IconQueue, IconWave } from '@/components/Icons';
 import { OriginalBadge, SourceChip, provenanceLabel } from '@/components/Provenance';
@@ -27,13 +25,6 @@ export default function TrackPage() {
   const playing = usePlayer((s) => s.playing);
   const user = useAuth((s) => s.user);
   const isFav = useAuth((s) => (data ? s.favoriteIds.has(data.track.id) : false));
-
-  useEffect(() => {
-    if (data?.track.artworkUrl) {
-      void extractAccent(data.track.artworkUrl).then(applyAccent);
-    }
-    return () => applyAccent(null);
-  }, [data?.track.artworkUrl]);
 
   if (loading) return <div className="loading-page"><span className="spin" /></div>;
   if (error || !data) {

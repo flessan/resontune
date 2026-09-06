@@ -63,7 +63,14 @@ export const TrackRow = memo(function TrackRow({ track, index, context, showArt 
   };
 
   return (
-    <div className={`track-row ${isCurrent ? 'playing' : ''}`}>
+    <div
+      className={`track-row ${isCurrent ? 'playing' : ''}`}
+      onClick={(e) => {
+        // Primary row area plays the track; links and buttons keep their jobs.
+        if ((e.target as HTMLElement).closest('button, a')) return;
+        handlePlay();
+      }}
+    >
       <div className="idx">
         <span>{index != null ? index + 1 : ''}</span>
         <button

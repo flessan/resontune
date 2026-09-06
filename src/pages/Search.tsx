@@ -63,9 +63,7 @@ export default function Search() {
 
   return (
     <div className="page">
-      <h1 className="page-title">Search</h1>
-      <p className="page-sub">Search the community catalog and your local library at once.</p>
-      <form onSubmit={submit} role="search" style={{ marginBottom: 28 }}>
+      <form onSubmit={submit} role="search" style={{ marginBottom: 26 }}>
         <input
           type="search"
           value={input}
@@ -73,7 +71,7 @@ export default function Search() {
           placeholder="Tracks, artists, releases, playlists…"
           aria-label="Search query"
           autoFocus
-          style={{ width: '100%', maxWidth: 560, padding: '12px 18px', fontSize: 16, border: '1px solid var(--line-strong)', borderRadius: 999, background: 'var(--bg-raised)' }}
+          className="search-hero"
         />
       </form>
 
@@ -110,7 +108,7 @@ export default function Search() {
       {results && results.artists.length > 0 && (
         <>
           <div className="section-head"><h2 className="section-title">Artists</h2></div>
-          <div className="card-row">
+          <div className="shelf">
             {results.artists.map((a) => <ArtistTile key={a.id} artist={a} />)}
           </div>
         </>
@@ -119,7 +117,7 @@ export default function Search() {
       {results && results.albums.length > 0 && (
         <>
           <div className="section-head"><h2 className="section-title">Releases</h2></div>
-          <div className="card-row">
+          <div className="shelf">
             {results.albums.map((al) => <AlbumTile key={al.id} album={al} />)}
           </div>
         </>
@@ -128,7 +126,7 @@ export default function Search() {
       {results && results.playlists.length > 0 && (
         <>
           <div className="section-head"><h2 className="section-title">Playlists</h2></div>
-          <div className="card-row">
+          <div className="shelf">
             {results.playlists.map((p) => <PlaylistTile key={p.id} playlist={p} />)}
           </div>
         </>

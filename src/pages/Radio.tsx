@@ -49,12 +49,8 @@ export default function Radio() {
 
   return (
     <div className="page">
-      <div className="section-head" style={{ marginTop: 6 }}>
-        <h1 className="section-title" style={{ fontSize: 30 }}>Radio</h1>
-        <span className="section-note">
-          continuous queues built from genre, provenance and popularity — no algorithmic profiling
-        </span>
-      </div>
+      <h1 className="page-title">Radio</h1>
+      <p className="page-sub">Continuous listening — stations built from genre, provenance and popularity. No profiling.</p>
 
       {nowPlaying && (
         <p className="note-card" style={{ marginBottom: 22 }}>

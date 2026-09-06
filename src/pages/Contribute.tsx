@@ -14,10 +14,8 @@ export default function Contribute() {
 
   return (
     <div className="page">
-      <div className="section-head" style={{ marginTop: 6 }}>
-        <h1 className="section-title" style={{ fontSize: 30 }}>Contribute</h1>
-        <span className="section-note">musicians, listeners, designers, developers — there's a path for each</span>
-      </div>
+      <h1 className="page-title">Contribute</h1>
+      <p className="page-sub">Musicians, listeners, designers, developers — there's a path for each.</p>
 
       <div className="about-grid">
         <section className="about-card">

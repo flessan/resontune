@@ -21,18 +21,17 @@ import {
 type Tab = 'queue' | 'lyrics' | 'about';
 
 /**
- * Live visualizer strip inside the expanded player — the same engine and
- * mode registry as the immersive view, rendered into a wide panel under
- * the artwork, with a compact control surface (mode + three sliders).
- * Settings persist through the settings store (localStorage).
+ * Ambient visualizer layer for the expanded player. Not a panel — a
+ * full-width canvas that lives on the sheet surface itself, behind the
+ * controls, fading upward so the music's motion feels like part of the
+ * room rather than a component. Same engine and mode registry as the
+ * immersive view; settings persist through the settings store.
  */
-function VisualizerStrip({ item }: { item: { artworkUrl: string | null; title: string; artistName: string; queueId: string } }) {
+function AmbientVisualizer({ item }: { item: { artworkUrl: string | null; title: string; artistName: string; queueId: string } }) {
   const modeId = useSettings((s) => s.visualizerMode);
   const vSettings = useSettings((s) => s.visualizer);
-  const { setVisualizerMode, updateVisualizer } = useSettings.getState();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runnerRef = useRef<VisualizerRunner | null>(null);
-  const [showTuning, setShowTuning] = useState(false);
 
   const modes = listModes();
   const mode = modes.find((m) => m.id === modeId) ?? modes[0];
@@ -41,6 +40,9 @@ function VisualizerStrip({ item }: { item: { artworkUrl: string | null; title: s
     if (!canvasRef.current) return;
     engine.ensureAnalysis();
     const runner = new VisualizerRunner(canvasRef.current, mode, vSettings, () => engine.readFrame());
+    // Draw with the theme's ink so the layer sits naturally on the sheet.
+    const ink = getComputedStyle(document.documentElement).getPropertyValue('--ink-faint').trim();
+    if (ink) runner.setPaper(ink);
     runnerRef.current = runner;
     runner.start();
     return () => runner.destroy();
@@ -62,38 +64,50 @@ function VisualizerStrip({ item }: { item: { artworkUrl: string | null; title: s
     }
   }, [item.queueId, item.artworkUrl, item.title, item.artistName]);
 
+  return <canvas ref={canvasRef} className="ps-ambient" aria-hidden="true" />;
+}
+
+/**
+ * Contextual visualizer control — a small popover off the player controls.
+ * Mode + the three quick dials. The visualizer itself never gets a box;
+ * only its settings do, and only while open.
+ */
+function VisualizerControl() {
+  const modeId = useSettings((s) => s.visualizerMode);
+  const vSettings = useSettings((s) => s.visualizer);
+  const { setVisualizerMode, updateVisualizer } = useSettings.getState();
+  const [open, setOpen] = useState(false);
+  const modes = listModes();
+
   return (
-    <div className="ps-vis">
-      <canvas ref={canvasRef} className="ps-vis-canvas" aria-hidden="true" />
-      <div className="ps-vis-controls">
-        <label className="visually-hidden" htmlFor="ps-vis-mode">Visualizer mode</label>
-        <select
-          id="ps-vis-mode"
-          className="ps-vis-select"
-          value={mode.id}
-          onChange={(e) => setVisualizerMode(e.target.value)}
-        >
-          {modes.map((m) => (
-            <option key={m.id} value={m.id}>{m.name}</option>
-          ))}
-        </select>
-        <button
-          className={`icon-btn ${showTuning ? 'active' : ''}`}
-          onClick={() => setShowTuning((v) => !v)}
-          aria-label="Visualizer tuning"
-          aria-expanded={showTuning}
-        >
-          <IconWave width={14} height={14} />
-        </button>
-      </div>
-      {showTuning && (
-        <div className="ps-vis-tuning">
+    <div style={{ position: 'relative' }}>
+      <button
+        className={`icon-btn ${open ? 'active' : ''}`}
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Visualizer"
+        aria-expanded={open}
+      >
+        <IconWave width={17} height={17} />
+      </button>
+      {open && (
+        <div className="ps-vis-pop" role="group" aria-label="Visualizer settings">
+          <label className="visually-hidden" htmlFor="ps-vis-mode">Visualizer mode</label>
+          <select
+            id="ps-vis-mode"
+            className="ps-vis-select"
+            value={modeId}
+            onChange={(e) => setVisualizerMode(e.target.value)}
+          >
+            {modes.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
           {([
             ['Sensitivity', 'sensitivity', 0.4, 2],
             ['Intensity', 'intensity', 0.4, 2],
             ['Speed', 'speed', 0.3, 2],
           ] as const).map(([label, key, min, max]) => (
-            <label key={key}>
+            <label key={key} className="ps-vis-dial">
               <span>{label}</span>
               <input
                 type="range"
@@ -141,6 +155,27 @@ export function ExpandedPlayer() {
     }
   }, [item?.queueId, item?.origin, item?.trackSlug]);
 
+  /* Barely-perceptible audio-responsive breath on the artwork. Direct DOM
+     transform in its own rAF loop — no React state per frame. Skipped
+     entirely under prefers-reduced-motion. */
+  const artRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let raf: number;
+    let level = 0;
+    const tick = () => {
+      raf = requestAnimationFrame(tick);
+      const frame = engine.readFrame();
+      const target = frame ? frame.bass : 0;
+      level += (target - level) * 0.12;
+      if (artRef.current) {
+        artRef.current.style.transform = `scale(${1 + level * 0.008})`;
+      }
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   if (!item) return null;
 
   const lyrics = detail?.lyrics?.body;
@@ -151,6 +186,10 @@ export function ExpandedPlayer() {
         {item.artworkUrl && <img src={item.artworkUrl} alt="" />}
       </div>
 
+      {/* Ambient audio-reactive layer: spans the lower half of the sheet,
+          fades upward, sits behind everything interactive. */}
+      <AmbientVisualizer item={item} />
+
       <div className="ps-topbar">
         <button className="icon-btn" onClick={() => setView('compact')} aria-label="Close expanded player">
           <IconClose />
@@ -158,14 +197,14 @@ export function ExpandedPlayer() {
         <span style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-faint)' }}>
           Now playing {item.origin === 'local' ? '· local file' : ''}
         </span>
-        <button className="icon-btn" onClick={() => setView('immersive')} aria-label="Open visualizer">
+        <button className="icon-btn" onClick={() => setView('immersive')} aria-label="Full screen">
           <IconWave />
         </button>
       </div>
 
       <div className="ps-body">
         <div className="ps-left">
-          <div className="ps-art">
+          <div className="ps-art" ref={artRef}>
             <Artwork src={item.artworkUrl} alt={`Artwork for ${item.title}`} />
           </div>
           <div className="ps-titleblock">
@@ -181,7 +220,6 @@ export function ExpandedPlayer() {
               {item.albumTitle ? <> — {item.albumTitle}</> : null}
             </p>
           </div>
-          <VisualizerStrip item={item} />
         </div>
 
         <div className="ps-right">
@@ -311,6 +349,7 @@ export function ExpandedPlayer() {
           <button className={`icon-btn ${repeat !== 'off' ? 'active' : ''}`} onClick={cycleRepeat} aria-label={`Repeat: ${repeat}`}>
             {repeat === 'one' ? <IconRepeatOne /> : <IconRepeat />}
           </button>
+          <VisualizerControl />
         </div>
       </div>
     </div>
