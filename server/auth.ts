@@ -1,28 +1,59 @@
 /**
- * Authentication.
+ * Authentication — Neon Auth.
  *
  * ResonTune never requires an account for listening. Accounts unlock cloud
- * features (synced playlists, favorites, history, submissions).
+ * features (synced playlists, favorites, history).
  *
- * Two real providers:
- *  - GitHub OAuth   — activated when GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET
- *                     are configured (see .env.example). Standard
- *                     authorization-code flow, server-side only.
- *  - Dev sign-in    — local development fallback (no external service
- *                     needed). Explicitly disabled when GitHub OAuth is
- *                     configured unless ALLOW_DEV_LOGIN=true.
+ * Architecture:
+ *   Neon Auth (managed Better Auth) is the single authentication authority.
+ *   The frontend signs in against the Neon Auth endpoint directly and sends
+ *   the issued JWT as `Authorization: Bearer <token>` on every API call.
+ *   This server verifies the token cryptographically against the Neon Auth
+ *   JWKS (EdDSA/Ed25519) — signatures, expiry and issuer are all checked;
+ *   payloads are never trusted un-verified.
  *
- * Sessions are opaque random ids stored server-side (sessions table) and
- * delivered as an httpOnly cookie. No JWTs, no secrets in the browser.
+ * Identity mapping:
+ *   The verified `sub` claim (the Neon Auth user id) maps onto ResonTune's
+ *   users table via (auth_provider='neon', auth_subject=sub). Rows are
+ *   created on first verified request. Nothing client-supplied — no ids,
+ *   no emails, no roles — ever selects the account.
+ *
+ * Authorization stays ResonTune's own:
+ *   listener / moderator / admin roles live server-side. Production roles
+ *   come from ADMIN_USER_IDS / MODERATOR_USER_IDS env allowlists (ResonTune
+ *   user ids) overriding the users.role column. The client is never asked.
  */
 import type { Request, Response, NextFunction } from 'express';
 import { Router } from 'express';
-import { z } from 'zod';
+import { createLocalJWKSet, createRemoteJWKSet, jwtVerify } from 'jose';
 import { getDb, uuid } from './db/index.ts';
 import { asyncRoute, HttpError } from './util/http.ts';
 
-const SESSION_COOKIE = 'resontune_session';
-const SESSION_DAYS = 30;
+/** Base URL of the Neon Auth deployment (…/neondb/auth). */
+const NEON_AUTH_URL = (process.env.NEON_AUTH_URL ?? '').replace(/\/+$/, '');
+/** JWKS endpoint — overridable, defaults to the well-known path. */
+const NEON_AUTH_JWKS_URL =
+  process.env.NEON_AUTH_JWKS_URL ?? (NEON_AUTH_URL ? `${NEON_AUTH_URL}/.well-known/jwks.json` : '');
+
+const authConfigured = () => Boolean(NEON_AUTH_URL && NEON_AUTH_JWKS_URL);
+
+/**
+ * JWKS key source. Normally fetched from the Neon Auth well-known endpoint
+ * (with jose's built-in caching/cooldown). NEON_AUTH_JWKS_JSON optionally
+ * pins the key set inline — same cryptographic verification, no network —
+ * for restricted environments. Created lazily so a server without auth
+ * configured still starts (anonymous listening works).
+ */
+let jwks: ReturnType<typeof createRemoteJWKSet> | ReturnType<typeof createLocalJWKSet> | null = null;
+function getJwks() {
+  if (!jwks) {
+    const inline = process.env.NEON_AUTH_JWKS_JSON;
+    jwks = inline
+      ? createLocalJWKSet(JSON.parse(inline))
+      : createRemoteJWKSet(new URL(NEON_AUTH_JWKS_URL));
+  }
+  return jwks;
+}
 
 export interface SessionUser {
   id: string;
@@ -42,16 +73,13 @@ declare global {
   }
 }
 
+/* ----------------------------- authorization ----------------------------- */
+
 /**
- * Server-side role resolution.
- *
- * Roles are controlled exclusively on the server:
- *  - ADMIN_USER_IDS / MODERATOR_USER_IDS env vars (comma-separated user ids)
- *    are the production mechanism — they override whatever is in the DB row,
- *    so a compromised write to users.role cannot mint an admin.
- *  - The users.role column remains as a secondary store for roles granted
- *    by an existing admin.
- * Nothing the client sends (headers, body, localStorage) ever affects this.
+ * Server-side role resolution. ADMIN_USER_IDS / MODERATOR_USER_IDS
+ * (comma-separated ResonTune user ids) override the users.role column, so a
+ * compromised write to users.role cannot mint an admin. Nothing the client
+ * sends ever affects this.
  */
 function envRoleFor(userId: string): 'admin' | 'moderator' | null {
   const admins = (process.env.ADMIN_USER_IDS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -68,18 +96,100 @@ function effectiveRole(user: SessionUser): SessionUser['role'] {
   return user.role;
 }
 
+/* ------------------------------ verification ----------------------------- */
+
+interface VerifiedIdentity {
+  subject: string;           // Neon Auth user id (stable)
+  name: string | null;
+  email: string | null;
+  image: string | null;
+}
+
+/**
+ * Cryptographically verify a Neon Auth JWT. Rejects malformed tokens, bad
+ * signatures, expired tokens and wrong issuers. Neon Auth signs with
+ * EdDSA (Ed25519) and sets `iss` to the origin of the auth URL.
+ */
+async function verifyToken(token: string): Promise<VerifiedIdentity | null> {
+  if (!authConfigured()) return null;
+  try {
+    const { payload } = await jwtVerify(token, getJwks(), {
+      issuer: new URL(NEON_AUTH_URL).origin,
+      algorithms: ['EdDSA'],
+    });
+    if (!payload.sub || typeof payload.sub !== 'string') return null;
+    return {
+      subject: payload.sub,
+      name: typeof payload.name === 'string' ? payload.name : null,
+      email: typeof payload.email === 'string' ? payload.email : null,
+      image: typeof payload.picture === 'string' ? payload.picture
+        : typeof payload.image === 'string' ? payload.image : null,
+    };
+  } catch {
+    return null; // invalid signature / expired / malformed → anonymous
+  }
+}
+
+/* ------------------------------ user mapping ----------------------------- */
+
+function handleFrom(identity: VerifiedIdentity): string {
+  const base = (identity.name ?? identity.email?.split('@')[0] ?? 'listener')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9_.-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 20);
+  return base || 'listener';
+}
+
+/** Find or create the ResonTune user for a verified Neon Auth identity. */
+async function userForIdentity(identity: VerifiedIdentity): Promise<SessionUser> {
+  const db = await getDb();
+  const rows = await db.query<SessionUser>(
+    `SELECT id, handle, display_name, avatar_url, role, created_at
+       FROM users WHERE auth_provider = 'neon' AND auth_subject = $1`,
+    [identity.subject],
+  );
+  if (rows[0]) return rows[0];
+
+  const id = uuid();
+  const base = handleFrom(identity);
+  let handle = base;
+  for (let i = 0; i < 6; i++) {
+    const clash = await db.query(`SELECT 1 FROM users WHERE handle = $1`, [handle]);
+    if (!clash.length) break;
+    handle = `${base}-${Math.floor(Math.random() * 10000)}`;
+  }
+  const created = await db.query<SessionUser>(
+    `INSERT INTO users (id, handle, display_name, avatar_url, auth_provider, auth_subject)
+     VALUES ($1, $2, $3, $4, 'neon', $5)
+     ON CONFLICT (auth_provider, auth_subject) WHERE auth_subject IS NOT NULL DO NOTHING
+     RETURNING id, handle, display_name, avatar_url, role, created_at`,
+    [id, handle, identity.name ?? handle, identity.image, identity.subject],
+  );
+  if (created[0]) return created[0];
+  // concurrent first request created it — read it back
+  const again = await db.query<SessionUser>(
+    `SELECT id, handle, display_name, avatar_url, role, created_at
+       FROM users WHERE auth_provider = 'neon' AND auth_subject = $1`,
+    [identity.subject],
+  );
+  if (!again[0]) throw new HttpError(500, 'Account mapping failed.');
+  return again[0];
+}
+
+/* ------------------------------- middleware ------------------------------ */
+
 export async function attachUser(req: Request, _res: Response, next: NextFunction) {
   try {
-    const sid = req.cookies?.[SESSION_COOKIE];
-    if (sid && /^[0-9a-f-]{36}$/.test(sid)) {
-      const db = await getDb();
-      const rows = await db.query<SessionUser>(
-        `SELECT u.id, u.handle, u.display_name, u.avatar_url, u.role, u.created_at
-           FROM sessions s JOIN users u ON u.id = s.user_id
-          WHERE s.id = $1 AND s.expires_at > now()`,
-        [sid],
-      );
-      if (rows[0]) req.user = { ...rows[0], role: effectiveRole(rows[0]) };
+    const header = req.headers.authorization;
+    if (header?.startsWith('Bearer ')) {
+      const identity = await verifyToken(header.slice(7));
+      if (identity) {
+        const user = await userForIdentity(identity);
+        req.user = { ...user, role: effectiveRole(user) };
+      }
     }
   } catch {
     /* treat as anonymous */
@@ -108,22 +218,7 @@ export function requireAdmin(req: Request, _res: Response, next: NextFunction) {
   next();
 }
 
-async function createSession(res: Response, userId: string) {
-  const db = await getDb();
-  const sid = uuid();
-  const expires = new Date(Date.now() + SESSION_DAYS * 86400_000);
-  await db.query(
-    `INSERT INTO sessions (id, user_id, expires_at) VALUES ($1, $2, $3)`,
-    [sid, userId, expires.toISOString()],
-  );
-  res.cookie(SESSION_COOKIE, sid, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: SESSION_DAYS * 86400_000,
-    path: '/',
-  });
-}
+/* --------------------------------- routes -------------------------------- */
 
 function publicUser(u: SessionUser) {
   return {
@@ -136,165 +231,20 @@ function publicUser(u: SessionUser) {
   };
 }
 
-const githubConfigured = () =>
-  Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET);
-
-// Dev sign-in is a development convenience. In production it is disabled
-// unless explicitly re-enabled AND GitHub OAuth is absent.
-const devLoginEnabled = () => {
-  if (process.env.NODE_ENV === 'production') return process.env.ALLOW_DEV_LOGIN === 'true';
-  return !githubConfigured() || process.env.ALLOW_DEV_LOGIN === 'true';
-};
-
 export function authRouter(): Router {
   const r = Router();
 
+  /**
+   * Who am I, according to my verified token? Also tells the client whether
+   * Neon Auth is configured (and where), so the sign-in UI can point at it.
+   */
   r.get(
     '/me',
     asyncRoute(async (req, res) => {
       res.json({
         user: req.user ? publicUser(req.user) : null,
-        providers: {
-          github: githubConfigured(),
-          dev: devLoginEnabled(),
-        },
+        auth: { configured: authConfigured(), url: authConfigured() ? NEON_AUTH_URL : null },
       });
-    }),
-  );
-
-  /* ------------------------- dev sign-in (local) ------------------------- */
-
-  const devLoginSchema = z.object({
-    handle: z
-      .string()
-      .trim()
-      .min(2)
-      .max(24)
-      .regex(/^[a-zA-Z0-9_.-]+$/, 'Letters, numbers, dots, dashes and underscores only.'),
-  });
-
-  r.post(
-    '/dev-login',
-    asyncRoute(async (req, res) => {
-      if (!devLoginEnabled()) throw new HttpError(403, 'Dev sign-in is disabled on this server.');
-      const parsed = devLoginSchema.safeParse(req.body);
-      if (!parsed.success) throw new HttpError(400, parsed.error.issues[0]?.message ?? 'Invalid handle.');
-      const handle = parsed.data.handle.toLowerCase();
-      const db = await getDb();
-      let rows = await db.query<SessionUser>(
-        `SELECT id, handle, display_name, avatar_url, role, created_at
-           FROM users WHERE auth_provider = 'dev' AND handle = $1`,
-        [handle],
-      );
-      if (!rows[0]) {
-        const id = uuid();
-        // DEVELOPMENT ONLY: on a fresh local database the first account
-        // becomes admin so the moderation queue is reachable. This never
-        // applies in production — dev-login itself is disabled there unless
-        // explicitly re-enabled, and production roles come from
-        // ADMIN_USER_IDS / MODERATOR_USER_IDS (see effectiveRole).
-        let role = 'listener';
-        if (process.env.NODE_ENV !== 'production') {
-          const count = await db.query<{ n: string }>(`SELECT count(*)::text AS n FROM users`);
-          if (count[0]?.n === '0') role = 'admin';
-        }
-        rows = await db.query<SessionUser>(
-          `INSERT INTO users (id, handle, display_name, role, auth_provider)
-           VALUES ($1, $2, $3, $4, 'dev')
-           RETURNING id, handle, display_name, avatar_url, role, created_at`,
-          [id, handle, parsed.data.handle, role],
-        );
-      }
-      await createSession(res, rows[0].id);
-      res.json({ user: publicUser(rows[0]) });
-    }),
-  );
-
-  /* --------------------------- GitHub OAuth ------------------------------ */
-
-  r.get(
-    '/github',
-    asyncRoute(async (req, res) => {
-      if (!githubConfigured()) throw new HttpError(404, 'GitHub OAuth is not configured.');
-      const state = uuid();
-      res.cookie('resontune_oauth_state', state, {
-        httpOnly: true, sameSite: 'lax', maxAge: 10 * 60_000, path: '/',
-      });
-      const params = new URLSearchParams({
-        client_id: process.env.GITHUB_CLIENT_ID!,
-        redirect_uri: `${process.env.APP_ORIGIN ?? ''}/api/auth/github/callback`,
-        scope: 'read:user',
-        state,
-      });
-      res.redirect(`https://github.com/login/oauth/authorize?${params}`);
-    }),
-  );
-
-  r.get(
-    '/github/callback',
-    asyncRoute(async (req, res) => {
-      if (!githubConfigured()) throw new HttpError(404, 'GitHub OAuth is not configured.');
-      const { code, state } = req.query as Record<string, string>;
-      if (!code || !state || state !== req.cookies?.resontune_oauth_state) {
-        throw new HttpError(400, 'Invalid OAuth state.');
-      }
-      const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          client_id: process.env.GITHUB_CLIENT_ID,
-          client_secret: process.env.GITHUB_CLIENT_SECRET,
-          code,
-        }),
-      });
-      const token = (await tokenRes.json()) as { access_token?: string };
-      if (!token.access_token) throw new HttpError(502, 'GitHub token exchange failed.');
-      const ghUserRes = await fetch('https://api.github.com/user', {
-        headers: { Authorization: `Bearer ${token.access_token}`, 'User-Agent': 'resontune' },
-      });
-      const gh = (await ghUserRes.json()) as {
-        id: number; login: string; name?: string; avatar_url?: string;
-      };
-      if (!gh.id) throw new HttpError(502, 'GitHub profile fetch failed.');
-
-      const db = await getDb();
-      let rows = await db.query<SessionUser>(
-        `SELECT id, handle, display_name, avatar_url, role, created_at
-           FROM users WHERE auth_provider = 'github' AND auth_subject = $1`,
-        [String(gh.id)],
-      );
-      if (!rows[0]) {
-        const id = uuid();
-        const base = gh.login.toLowerCase().replace(/[^a-z0-9_.-]/g, '').slice(0, 20) || 'listener';
-        // ensure unique handle
-        let handle = base;
-        for (let i = 0; i < 5; i++) {
-          const clash = await db.query(`SELECT 1 FROM users WHERE handle = $1`, [handle]);
-          if (!clash.length) break;
-          handle = `${base}-${Math.floor(Math.random() * 1000)}`;
-        }
-        rows = await db.query<SessionUser>(
-          `INSERT INTO users (id, handle, display_name, avatar_url, auth_provider, auth_subject)
-           VALUES ($1, $2, $3, $4, 'github', $5)
-           RETURNING id, handle, display_name, avatar_url, role, created_at`,
-          [id, handle, gh.name || gh.login, gh.avatar_url ?? null, String(gh.id)],
-        );
-      }
-      await createSession(res, rows[0].id);
-      res.redirect('/');
-    }),
-  );
-
-  r.post(
-    '/logout',
-    asyncRoute(async (req, res) => {
-      const sid = req.cookies?.[SESSION_COOKIE];
-      if (sid) {
-        const db = await getDb();
-        await db.query(`DELETE FROM sessions WHERE id = $1`, [sid]).catch(() => {});
-      }
-      res.clearCookie(SESSION_COOKIE, { path: '/' });
-      res.json({ ok: true });
     }),
   );
 

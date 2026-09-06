@@ -70,6 +70,9 @@ export default function Home() {
   if (error || !data) return <div className="page"><div className="empty"><h3>Couldn't load the catalog</h3><p>{error}</p></div></div>;
 
   const feat = data.featuredRelease;
+  const catalogEmpty =
+    !feat && !data.originals.length && !data.trending.length &&
+    !data.newReleases.length && !data.communityPicks.length;
 
   const hour = new Date().getHours();
   const greeting = hour < 5 ? 'Late night listening' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
@@ -77,6 +80,18 @@ export default function Home() {
   return (
     <div className="page">
       <h1 className="home-greeting">{greeting}</h1>
+
+      {catalogEmpty && (
+        <div className="empty" style={{ marginTop: 26 }}>
+          <h3>No music yet</h3>
+          <p>
+            ResonTune is ready for its first releases.<br />
+            Explore <Link to="/library">locally stored music</Link>, or{' '}
+            <Link to="/submit">release music</Link> through the community.
+          </p>
+        </div>
+      )}
+
       {feat && (
         <section className="featured" aria-label="Featured release">
           {feat.artworkUrl && (
@@ -115,51 +130,71 @@ export default function Home() {
         </>
       )}
 
-      <div className="section-head">
-        <h2 className="section-title">ResonTune Originals</h2>
-        <Link to="/originals" className="section-link">See all</Link>
-      </div>
-      <div className="shelf">
-        {data.originals.slice(0, 10).map((t) => (
-          <TrackTile key={t.id} track={t} context={data.originals} />
-        ))}
-      </div>
+      {data.originals.length > 0 && (
+        <>
+          <div className="section-head">
+            <h2 className="section-title">ResonTune Originals</h2>
+            <Link to="/originals" className="section-link">See all</Link>
+          </div>
+          <div className="shelf">
+            {data.originals.slice(0, 10).map((t) => (
+              <TrackTile key={t.id} track={t} context={data.originals} />
+            ))}
+          </div>
+        </>
+      )}
 
-      <div className="section-head">
-        <h2 className="section-title">From the community</h2>
-        <Link to="/community" className="section-link">See all</Link>
-      </div>
-      <div className="tracklist home-tracklist">
-        {data.communityPicks.slice(0, 6).map((t, i) => (
-          <TrackRow key={t.id} track={t} index={i} context={data.communityPicks} />
-        ))}
-      </div>
+      {data.communityPicks.length > 0 && (
+        <>
+          <div className="section-head">
+            <h2 className="section-title">From the community</h2>
+            <Link to="/community" className="section-link">See all</Link>
+          </div>
+          <div className="tracklist home-tracklist">
+            {data.communityPicks.slice(0, 6).map((t, i) => (
+              <TrackRow key={t.id} track={t} index={i} context={data.communityPicks} />
+            ))}
+          </div>
+        </>
+      )}
 
-      <div className="section-head">
-        <h2 className="section-title">Trending</h2>
-        <span className="section-note">most played in the last two weeks</span>
-      </div>
-      <div className="tracklist home-tracklist">
-        {data.trending.slice(0, 8).map((t, i) => (
-          <TrackRow key={t.id} track={t} index={i} context={data.trending} />
-        ))}
-      </div>
+      {data.trending.length > 0 && (
+        <>
+          <div className="section-head">
+            <h2 className="section-title">Trending</h2>
+            <span className="section-note">most played in the last two weeks</span>
+          </div>
+          <div className="tracklist home-tracklist">
+            {data.trending.slice(0, 8).map((t, i) => (
+              <TrackRow key={t.id} track={t} index={i} context={data.trending} />
+            ))}
+          </div>
+        </>
+      )}
 
-      <div className="section-head">
-        <h2 className="section-title">New releases</h2>
-        <Link to="/albums" className="section-link">See all</Link>
-      </div>
-      <div className="shelf">
-        {data.newReleases.map((al) => <AlbumTile key={al.id} album={al} />)}
-      </div>
+      {data.newReleases.length > 0 && (
+        <>
+          <div className="section-head">
+            <h2 className="section-title">New releases</h2>
+            <Link to="/albums" className="section-link">See all</Link>
+          </div>
+          <div className="shelf">
+            {data.newReleases.map((al) => <AlbumTile key={al.id} album={al} />)}
+          </div>
+        </>
+      )}
 
-      <div className="section-head">
-        <h2 className="section-title">Artists to watch</h2>
-        <Link to="/artists" className="section-link">See all</Link>
-      </div>
-      <div className="shelf">
-        {data.risingArtists.map((a) => <ArtistTile key={a.id} artist={a} />)}
-      </div>
+      {!catalogEmpty && data.risingArtists.length > 0 && (
+        <>
+          <div className="section-head">
+            <h2 className="section-title">Artists to watch</h2>
+            <Link to="/artists" className="section-link">See all</Link>
+          </div>
+          <div className="shelf">
+            {data.risingArtists.map((a) => <ArtistTile key={a.id} artist={a} />)}
+          </div>
+        </>
+      )}
 
       {data.collections.length > 0 && (
         <>

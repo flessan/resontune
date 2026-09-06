@@ -9,16 +9,19 @@ import { IconSun, IconMoon, IconSettings as IconSys, IconWave } from '@/componen
 
 /** Admin-only: edit the public support links without redeploying. */
 function SupportConfigEditor() {
-  const [form, setForm] = useState({ githubSponsorsUrl: '', sociabuzzUrl: '', qrisImageUrl: '', supporters: '' });
+  const [form, setForm] = useState({ githubSponsorsUrl: '', sociabuzzUrl: '', qrisImageUrl: '', discordUrl: '', telegramUrl: '', whatsappUrl: '', supporters: '' });
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.get<{ githubSponsorsUrl: string | null; sociabuzzUrl: string | null; qrisImageUrl: string | null; supporters: string[] }>('/site/config')
+    api.get<{ githubSponsorsUrl: string | null; sociabuzzUrl: string | null; qrisImageUrl: string | null; discordUrl: string | null; telegramUrl: string | null; whatsappUrl: string | null; supporters: string[] }>('/site/config')
       .then((c) => setForm({
         githubSponsorsUrl: c.githubSponsorsUrl ?? '',
         sociabuzzUrl: c.sociabuzzUrl ?? '',
         qrisImageUrl: c.qrisImageUrl ?? '',
+        discordUrl: c.discordUrl ?? '',
+        telegramUrl: c.telegramUrl ?? '',
+        whatsappUrl: c.whatsappUrl ?? '',
         supporters: c.supporters.join('\n'),
       }))
       .catch(() => {});
@@ -32,6 +35,9 @@ function SupportConfigEditor() {
         githubSponsorsUrl: form.githubSponsorsUrl.trim() || null,
         sociabuzzUrl: form.sociabuzzUrl.trim() || null,
         qrisImageUrl: form.qrisImageUrl.trim() || null,
+        discordUrl: form.discordUrl.trim() || null,
+        telegramUrl: form.telegramUrl.trim() || null,
+        whatsappUrl: form.whatsappUrl.trim() || null,
         supporters: form.supporters.split('\n').map((s) => s.trim()).filter(Boolean),
       });
       setStatus('saved');
@@ -44,17 +50,20 @@ function SupportConfigEditor() {
 
   return (
     <>
-      <div className="section-head"><h2 className="section-title">Support page (admin)</h2></div>
+      <div className="section-head"><h2 className="section-title">Site links (admin)</h2></div>
       <p style={{ color: 'var(--ink-muted)', fontSize: 13.5, marginTop: 0, maxWidth: 560 }}>
-        Public links shown on the Support page. Leave a field empty to hide that
-        method. Supporter names are listed only with each person's permission —
-        one name per line.
+        Public links shown on the Support and Release-music pages. Leave a field
+        empty to hide that method. Supporter names are listed only with each
+        person's permission — one name per line.
       </p>
       <div style={{ display: 'grid', gap: 12, maxWidth: 560 }}>
         {([
           ['githubSponsorsUrl', 'GitHub Sponsors URL', 'https://github.com/sponsors/…'],
           ['sociabuzzUrl', 'Sociabuzz URL', 'https://sociabuzz.com/…'],
           ['qrisImageUrl', 'QRIS image URL', '/media/qris.png or https://…'],
+          ['discordUrl', 'Community Discord URL', 'https://discord.gg/…'],
+          ['telegramUrl', 'Community Telegram URL', 'https://t.me/…'],
+          ['whatsappUrl', 'Community WhatsApp URL', 'https://chat.whatsapp.com/…'],
         ] as const).map(([key, label, placeholder]) => (
           <label key={key} style={{ display: 'grid', gap: 4, fontSize: 12.5, color: 'var(--ink-muted)' }}>
             {label}

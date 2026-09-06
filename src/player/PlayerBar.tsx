@@ -49,10 +49,11 @@ export function PlayerBar() {
 
   return (
     <div
-      /* `has-item` is keyed so the entrance animation runs once — when the
-         first track arrives — and NOT again on later track changes. */
+      /* The bar is hidden while nothing is queued and *transitions* in when
+         the first track arrives (and back out when the queue empties).
+         One persistent element — never remounted, so enter and exit both
+         actually play and track changes never re-animate the bar. */
       className={`player-bar ${item ? 'has-item' : ''}`}
-      key={item ? 'live' : 'idle'}
       role="region"
       aria-label="Player"
       onClick={(e) => {

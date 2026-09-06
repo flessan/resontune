@@ -22,9 +22,11 @@ const BASE_STATIONS = [
 ];
 
 export default function Radio() {
-  const { data: genreData } = useFetch<{ genres: GenreInfo[] }>('/genres');
+  const { data: genreData, loading } = useFetch<{ genres: GenreInfo[] }>('/genres');
+  const { data: catalog } = useFetch<{ tracks: { id: string }[] }>('/tracks?limit=1');
   const [starting, setStarting] = useState<string | null>(null);
   const [nowPlaying, setNowPlaying] = useState<string | null>(null);
+  const catalogHasMusic = (catalog?.tracks.length ?? 0) > 0;
 
   const start = async (station: string) => {
     setStarting(station);
@@ -34,7 +36,7 @@ export default function Radio() {
       );
       const items = r.tracks.map(trackToQueueItem).filter(Boolean) as NonNullable<ReturnType<typeof trackToQueueItem>>[];
       if (!items.length) {
-        toast('This station has nothing to play yet.');
+        toast("There isn't enough music for this station yet.");
         return;
       }
       await usePlayer.getState().playQueue(items, 0);
@@ -52,6 +54,13 @@ export default function Radio() {
       <h1 className="page-title">Radio</h1>
       <p className="page-sub">Continuous listening — stations built from genre, provenance and popularity. No profiling.</p>
 
+      {!loading && !catalogHasMusic && (
+        <div className="empty" style={{ marginTop: 24 }}>
+          <h3>There isn't enough music for radio yet</h3>
+          <p>Stations build themselves from the published catalog. As music is released, they light up here.</p>
+        </div>
+      )}
+
       {nowPlaying && (
         <p className="note-card" style={{ marginBottom: 22 }}>
           <IconWave width={14} height={14} /> Now playing <strong>{nowPlaying}</strong> — the queue
@@ -59,6 +68,7 @@ export default function Radio() {
         </p>
       )}
 
+      {catalogHasMusic && (
       <div className="station-grid" style={{ marginBottom: 30 }}>
         {BASE_STATIONS.map((s) => (
           <button
@@ -73,7 +83,10 @@ export default function Radio() {
           </button>
         ))}
       </div>
+      )}
 
+      {catalogHasMusic && (genreData?.genres ?? []).some((g) => g.trackCount > 0) && (
+      <>
       <div className="section-head">
         <h2 className="section-title">Genre stations</h2>
       </div>
@@ -90,11 +103,15 @@ export default function Radio() {
           </button>
         ))}
       </div>
+      </>
+      )}
 
-      <p style={{ marginTop: 34, fontSize: 12.5, color: 'var(--ink-faint)', maxWidth: '60ch', lineHeight: 1.6 }}>
-        You can also start a station from any artist or track page — Artist Radio
-        blends their catalog with tracks that share their genres.
-      </p>
+      {catalogHasMusic && (
+        <p style={{ marginTop: 34, fontSize: 12.5, color: 'var(--ink-faint)', maxWidth: '60ch', lineHeight: 1.6 }}>
+          You can also start a station from any artist or track page — Artist Radio
+          blends their catalog with tracks that share their genres.
+        </p>
+      )}
     </div>
   );
 }

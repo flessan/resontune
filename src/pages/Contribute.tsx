@@ -21,18 +21,16 @@ export default function Contribute() {
         <section className="about-card">
           <h3>Release your music</h3>
           <p>
-            Independent artists publish on ResonTune through the community
-            program: you submit a track with its license and rights
-            declaration, moderators review it, and approved music becomes a
-            real catalog release with an artist page, artwork and radio
-            support.
+            Independent artists publish on ResonTune through the community:
+            reach the team on the community channels, talk rights and
+            licensing, and approved music becomes a real catalog release
+            with an artist page, artwork and radio support.
           </p>
           <p style={{ fontSize: 12.5, color: 'var(--ink-faint)' }}>
-            Submission is a review process, not an upload button — it doesn't
-            guarantee publication, and you must hold the rights to what you
-            submit.
+            Publication follows a human conversation and a rights check —
+            you must hold the rights to the music you release.
           </p>
-          <Link to="/submit" className="btn small primary"><IconSubmit width={14} height={14} /> Submit music</Link>
+          <Link to="/submit" className="btn small primary"><IconSubmit width={14} height={14} /> Release music</Link>
         </section>
 
         <section className="about-card">
@@ -98,7 +96,7 @@ export default function Contribute() {
           <p style={{ fontSize: 12.5, color: 'var(--ink-faint)' }}>
             Development setup is two commands: <code>npm install</code>, then
             <code> npm run dev:server</code> + <code>npm run dev</code>. The
-            embedded database seeds itself — no external services needed.
+            embedded database migrates itself — no external services needed.
           </p>
         </section>
 

@@ -11,7 +11,7 @@ Artists, releases and tracks carry a `source_type`:
 | value | meaning |
 | --- | --- |
 | `original` | Released and distributed by **ResonTune Originals** — hosted by the platform, with the rights actually held by the platform. Shown with the `RESONTUNE ORIGINAL` wordmark. |
-| `community` | Published by an independent artist through the submission → review → publication pipeline. Shown with the `Community` chip. |
+| `community` | Released by an independent artist through the community channels and published by catalog administrators. Shown with the `Community` chip. |
 | `external` | Discovery-only entries whose playback happens through an official external provider. Shown with the `External` chip. |
 
 Local device files are a fourth world that never touches the server — they
@@ -53,20 +53,14 @@ Rules:
 - Originals are marked as officially distributed because the platform
   actually holds those rights (see below).
 
-## Content states vs. submission states
+## Content states
 
-These are separate machines:
-
-- **Submission**: `pending → reviewing → approved → published` (or
-  `rejected`). `approved` records the decision; `published` materializes
-  catalog rows and links `resulting_track_id`. Every transition is appended
-  to `moderation_events` with actor, public note and internal note — the
-  history is never rewritten. Internal notes are only readable inside the
-  moderation authz boundary.
-- **Content**: `published | unlisted | taken_down | archived` on tracks and
-  albums. Takedowns block playback (410) and discovery (404) while
-  preserving all metadata, and each state change is recorded in the
-  `takedowns` audit table with reason and actor.
+`published | unlisted | taken_down | archived` on tracks and albums.
+Takedowns block playback (410) and discovery (404) while preserving all
+metadata, and each state change is recorded in the `takedowns` audit table
+with reason and actor. (Music intake happens in the external community
+channels — there is no submission state machine in the database; see
+[moderation.md](moderation.md).)
 
 This separation is what makes revisions, takedowns, re-publications and
 rights changes possible without corrupting the review history.
@@ -91,13 +85,3 @@ All privileged actions are authorized server-side per request:
 - Nothing client-side (localStorage, hidden UI, role fields in requests) is
   ever trusted; hitting a moderation endpoint without a server-verified
   moderator session returns 401/403 regardless of what the UI shows.
-
-## About the launch catalog
-
-The **ResonTune Originals — Founding Catalog** (five artists, seven
-releases) and the two community-side artists are fictional label identities
-created for launch. All audio is original music composed and rendered by
-`scripts/generate-audio.cjs` and released under CC0, so the platform
-genuinely holds the rights it claims. None of these artists represent real
-people, and the product UI presents them as the launch catalog — not as
-"demo data" — while this documentation stays honest about their origin.

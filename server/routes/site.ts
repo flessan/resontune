@@ -20,6 +20,10 @@ interface SupportConfig {
   qrisImageUrl: string | null;
   supporters: string[];        // names explicitly provided for public listing
   repoUrl: string;
+  /** External community channels — the music release/intake path. */
+  discordUrl: string | null;
+  telegramUrl: string | null;
+  whatsappUrl: string | null;
 }
 
 async function readSetting<T>(key: string): Promise<T | null> {
@@ -41,6 +45,9 @@ export async function getSupportConfig(): Promise<SupportConfig> {
     qrisImageUrl: stored.qrisImageUrl ?? process.env.QRIS_IMAGE_URL ?? null,
     supporters: Array.isArray(stored.supporters) ? stored.supporters.slice(0, 200) : [],
     repoUrl: process.env.REPO_URL ?? 'https://github.com/flessan/resontune',
+    discordUrl: stored.discordUrl ?? process.env.COMMUNITY_DISCORD_URL ?? null,
+    telegramUrl: stored.telegramUrl ?? process.env.COMMUNITY_TELEGRAM_URL ?? null,
+    whatsappUrl: stored.whatsappUrl ?? process.env.COMMUNITY_WHATSAPP_URL ?? null,
   };
 }
 
@@ -62,6 +69,9 @@ export function siteRouter(): Router {
     githubSponsorsUrl: urlField,
     sociabuzzUrl: urlField,
     qrisImageUrl: urlField,
+    discordUrl: urlField,
+    telegramUrl: urlField,
+    whatsappUrl: urlField,
     supporters: z.array(z.string().trim().min(1).max(80)).max(200).optional(),
   });
 
@@ -76,6 +86,9 @@ export function siteRouter(): Router {
         ['GitHub Sponsors URL', patch.githubSponsorsUrl],
         ['Sociabuzz URL', patch.sociabuzzUrl],
         ['QRIS image URL', patch.qrisImageUrl],
+        ['Discord URL', patch.discordUrl],
+        ['Telegram URL', patch.telegramUrl],
+        ['WhatsApp URL', patch.whatsappUrl],
       ] as const) {
         if (value) {
           const err = validateMediaUrl(value, { allowRelative: true });
@@ -87,6 +100,9 @@ export function siteRouter(): Router {
       if ('githubSponsorsUrl' in patch) merged.githubSponsorsUrl = patch.githubSponsorsUrl ?? null;
       if ('sociabuzzUrl' in patch) merged.sociabuzzUrl = patch.sociabuzzUrl ?? null;
       if ('qrisImageUrl' in patch) merged.qrisImageUrl = patch.qrisImageUrl ?? null;
+      if ('discordUrl' in patch) merged.discordUrl = patch.discordUrl ?? null;
+      if ('telegramUrl' in patch) merged.telegramUrl = patch.telegramUrl ?? null;
+      if ('whatsappUrl' in patch) merged.whatsappUrl = patch.whatsappUrl ?? null;
       if (patch.supporters) merged.supporters = patch.supporters;
       const db = await getDb();
       await db.query(

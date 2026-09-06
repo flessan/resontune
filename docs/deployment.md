@@ -4,7 +4,6 @@
 
 ```bash
 npm install
-npm run seed:audio          # optional: launch-catalog audio (CC0, generated)
 npm run build               # client → dist/
 NODE_ENV=production npm start
 ```
@@ -21,9 +20,11 @@ See [.env.example](../.env.example):
 | --- | --- |
 | `DATABASE_URL` | Neon Postgres. Unset → embedded PGlite (dev only) |
 | `API_PORT` / `PORT` | listen port |
-| `APP_ORIGIN` | public origin, used for OAuth callbacks |
-| `GITHUB_CLIENT_ID/SECRET` | GitHub OAuth (optional) |
-| `ALLOW_DEV_LOGIN` | keep dev sign-in when OAuth is configured (dev only; always off in production unless explicitly true) |
+| `NEON_AUTH_URL` | Neon Auth base URL (…/neondb/auth) — the single authentication authority |
+| `NEON_AUTH_JWKS_URL` | optional override; defaults to `{NEON_AUTH_URL}/.well-known/jwks.json` |
+| `NEON_AUTH_JWKS_JSON` | optional inline JWKS (public keys) to pin keys / skip the fetch |
+| `VITE_NEON_AUTH_URL` | same base URL for the client bundle (public by design) |
+| `COMMUNITY_DISCORD_URL` / `COMMUNITY_TELEGRAM_URL` / `COMMUNITY_WHATSAPP_URL` | Release-music channel links (optional; admin-editable at runtime) |
 | `ADMIN_USER_IDS` / `MODERATOR_USER_IDS` | comma-separated user ids granted roles server-side — the only way to bootstrap the first production admin |
 | `AUDIO_CDN_BASE` | base URL for hosted-audio object keys (default `/media/audio`) |
 | `GITHUB_SPONSORS_URL` / `SOCIABUZZ_URL` / `QRIS_IMAGE_URL` | support-page links (all optional; admin-editable at runtime via `PUT /api/site/config/support`, which overrides env) |
@@ -31,25 +32,37 @@ See [.env.example](../.env.example):
 
 Secrets live only in server env. The client bundle contains none.
 
+## Authentication (Neon Auth)
+
+Neon Auth is the single authentication authority. Enable Auth on your Neon
+project, copy the Base URL into `NEON_AUTH_URL` + `VITE_NEON_AUTH_URL`, and
+the app's sign-in dialog works against it directly. The API verifies every
+bearer token cryptographically against the JWKS (EdDSA signatures, expiry,
+issuer) — payloads are never trusted un-verified; invalid or expired tokens
+are treated as anonymous. Identity providers (GitHub, Google, …) are
+configured **inside Neon Auth**, not in this codebase. Without the env vars
+the app runs fully anonymous: browsing, playback, radio and local music
+never require an account.
+
 ## Roles in production
 
-"First account becomes admin" is a development-only convenience and is
-disabled under `NODE_ENV=production`. To bootstrap moderation in
-production: deploy, sign in once (GitHub OAuth), read your user id from the
-`users` table (or `/api/auth/me`), set `ADMIN_USER_IDS=<that id>`, restart.
-Environment role grants override the `users.role` column and are evaluated
-per request on the server; nothing client-side is ever trusted.
+To bootstrap moderation: deploy, sign in once (Neon Auth), read your
+ResonTune user id from the `users` table (or `/api/auth/me`), set
+`ADMIN_USER_IDS=<that id>`, restart. Environment role grants override the
+`users.role` column and are evaluated per request on the server; nothing
+client-side is ever trusted.
 
 ## Database
 
 Point `DATABASE_URL` at a Neon project. The schema applies itself on boot
-(idempotent `IF NOT EXISTS` DDL). Seeding only happens when the tracks table
-is empty, so a production database is never overwritten.
+(idempotent `IF NOT EXISTS` DDL + tracked migrations). The catalog starts
+**empty** — there is no seeded music. Every surface has an honest empty
+state, and the catalog grows as real music is published.
 
 ## Audio storage
 
-Development serves the generated launch-catalog audio from `media/audio`
-with HTTP Range support. Hosted sources are stored as **object keys**;
+Hosted audio in `media/audio` is served with HTTP Range support.
+Hosted sources are stored as **object keys**;
 the playback resolver (`GET /api/play/:trackId`) prefixes them with
 `AUDIO_CDN_BASE`. Moving audio to object storage (S3, Cloudflare R2, Neon
 Object Storage) is therefore: upload the files, set `AUDIO_CDN_BASE` to the

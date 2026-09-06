@@ -1,4 +1,9 @@
-/** Thin fetch wrapper for the ResonTune API. Relative URLs only. */
+/**
+ * Thin fetch wrapper for the ResonTune API. Relative URLs only.
+ * Attaches the Neon Auth bearer token when a session exists — the server
+ * verifies it cryptographically; anonymous requests simply omit it.
+ */
+import { getToken } from './authClient';
 
 export class ApiError extends Error {
   status: number;
@@ -9,10 +14,13 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (init?.body) headers['Content-Type'] = 'application/json';
+  const token = await getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`/api${path}`, {
-    credentials: 'same-origin',
-    headers: init?.body ? { 'Content-Type': 'application/json' } : undefined,
     ...init,
+    headers: { ...headers, ...(init?.headers as Record<string, string> | undefined) },
   });
   if (!res.ok) {
     // Human copy in the UI; status codes and bodies go to the console only.

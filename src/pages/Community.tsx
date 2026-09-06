@@ -1,6 +1,6 @@
 /**
- * Community — releases published by independent artists through the
- * submission → review → publication pipeline.
+ * Community — releases published by independent artists. Intake happens in
+ * the external community channels; only real published records show here.
  */
 import { Link } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
@@ -38,13 +38,30 @@ export default function Community() {
   if (loading) return <div className="loading-page"><span className="spin" /></div>;
   if (error || !data) return <div className="page"><div className="empty"><h3>Couldn't load the community catalog</h3><p>{error}</p></div></div>;
 
+  const empty = !data.releases.length && !data.artists.length && !data.latestTracks.length && !data.picks.length;
+  if (empty) {
+    return (
+      <div className="page">
+        <h1 className="page-title">Community</h1>
+        <p className="page-sub">Music released by independent artists, published with the rights they declared.</p>
+        <div className="empty" style={{ marginTop: 24 }}>
+          <h3>No community releases yet</h3>
+          <p>
+            Want to release music on ResonTune?{' '}
+            <Link to="/submit">Join the community and contact us.</Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page">
       <div className="catalog-head">
         <div>
           <h1 className="page-title">Community</h1>
           <p className="page-sub" style={{ marginBottom: 0 }}>
-            Submitted by independent artists, reviewed, and published with the rights they declared.
+            Music released by independent artists, published with the rights they declared.
           </p>
         </div>
         <div className="catalog-actions">
@@ -52,24 +69,32 @@ export default function Community() {
             <IconWave width={14} height={14} /> Radio
           </button>
           <Link to="/submit" className="btn">
-            <IconSubmit width={14} height={14} /> Submit music
+            <IconSubmit width={14} height={14} /> Release music
           </Link>
         </div>
       </div>
 
-      <div className="section-head">
-        <h2 className="section-title">Latest community releases</h2>
-      </div>
-      <div className="card-row">
-        {data.releases.map((al) => <AlbumTile key={al.id} album={al} />)}
-      </div>
+      {data.releases.length > 0 && (
+        <>
+          <div className="section-head">
+            <h2 className="section-title">Latest community releases</h2>
+          </div>
+          <div className="card-row">
+            {data.releases.map((al) => <AlbumTile key={al.id} album={al} />)}
+          </div>
+        </>
+      )}
 
-      <div className="section-head">
-        <h2 className="section-title">Community artists</h2>
-      </div>
-      <div className="shelf">
-        {data.artists.map((a) => <ArtistTile key={a.id} artist={a} />)}
-      </div>
+      {data.artists.length > 0 && (
+        <>
+          <div className="section-head">
+            <h2 className="section-title">Community artists</h2>
+          </div>
+          <div className="shelf">
+            {data.artists.map((a) => <ArtistTile key={a.id} artist={a} />)}
+          </div>
+        </>
+      )}
 
       {data.picks.length > 0 && (
         <>
@@ -88,14 +113,18 @@ export default function Community() {
         </>
       )}
 
-      <div className="section-head">
-        <h2 className="section-title">Just published</h2>
-      </div>
-      <div className="tracklist">
-        {data.latestTracks.map((t, i) => (
-          <TrackRow key={t.id} track={t} index={i} context={data.latestTracks} />
-        ))}
-      </div>
+      {data.latestTracks.length > 0 && (
+        <>
+          <div className="section-head">
+            <h2 className="section-title">Just published</h2>
+          </div>
+          <div className="tracklist">
+            {data.latestTracks.map((t, i) => (
+              <TrackRow key={t.id} track={t} index={i} context={data.latestTracks} />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

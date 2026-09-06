@@ -1,6 +1,7 @@
 /**
- * ResonTune Originals — the platform's own catalog. Releases (chronological),
- * founding artists, and the most-played Originals tracks.
+ * ResonTune Originals — music actually published through the ResonTune
+ * catalog itself. Releases (chronological), artists, most-played tracks.
+ * May legitimately be empty until the first real release.
  */
 import { Link } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
@@ -44,6 +45,21 @@ export default function Originals() {
   if (loading) return <div className="loading-page"><span className="spin" /></div>;
   if (error || !data) return <div className="page"><div className="empty"><h3>Couldn't load Originals</h3><p>{error}</p></div></div>;
 
+  const empty = !data.releases.length && !data.artists.length && !data.topTracks.length;
+  if (empty) {
+    return (
+      <div className="page">
+        <div style={{ marginBottom: 6 }}><OriginalBadge /></div>
+        <h1 className="page-title">Originals</h1>
+        <p className="page-sub">Released directly through ResonTune — hosted here, free to stream, clear licensing.</p>
+        <div className="empty" style={{ marginTop: 24 }}>
+          <h3>No ResonTune Originals yet</h3>
+          <p>When music is published directly through ResonTune, it appears here.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page">
       <div className="catalog-head">
@@ -64,30 +80,42 @@ export default function Originals() {
         </div>
       </div>
 
-      <div className="section-head">
-        <h2 className="section-title">Releases</h2>
-        <span className="section-note">newest first</span>
-      </div>
-      <div className="card-row">
-        {data.releases.map((al) => <AlbumTile key={al.id} album={{ ...al, sourceType: 'original' }} />)}
-      </div>
+      {data.releases.length > 0 && (
+        <>
+          <div className="section-head">
+            <h2 className="section-title">Releases</h2>
+            <span className="section-note">newest first</span>
+          </div>
+          <div className="card-row">
+            {data.releases.map((al) => <AlbumTile key={al.id} album={{ ...al, sourceType: 'original' }} />)}
+          </div>
+        </>
+      )}
 
-      <div className="section-head">
-        <h2 className="section-title">Founding artists</h2>
-      </div>
-      <div className="shelf">
-        {data.artists.map((a) => <ArtistTile key={a.id} artist={a} />)}
-      </div>
+      {data.artists.length > 0 && (
+        <>
+          <div className="section-head">
+            <h2 className="section-title">Artists</h2>
+          </div>
+          <div className="shelf">
+            {data.artists.map((a) => <ArtistTile key={a.id} artist={a} />)}
+          </div>
+        </>
+      )}
 
-      <div className="section-head">
-        <h2 className="section-title">Most played</h2>
-        <Link to="/discover" className="section-link">Discover more</Link>
-      </div>
-      <div className="tracklist">
-        {data.topTracks.map((t, i) => (
-          <TrackRow key={t.id} track={t} index={i} context={data.topTracks} />
-        ))}
-      </div>
+      {data.topTracks.length > 0 && (
+        <>
+          <div className="section-head">
+            <h2 className="section-title">Most played</h2>
+            <Link to="/discover" className="section-link">Discover more</Link>
+          </div>
+          <div className="tracklist">
+            {data.topTracks.map((t, i) => (
+              <TrackRow key={t.id} track={t} index={i} context={data.topTracks} />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

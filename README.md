@@ -22,9 +22,10 @@ Release · Share*:
    directly through ResonTune, hosted by the platform, free to stream, with
    clear licensing on every track. Marked everywhere with the
    `RESONTUNE ORIGINAL` wordmark.
-2. **Community catalog** — independent artists publish through a real
-   pipeline: submission → review → approval → publication, with declared
-   rights recorded verbatim and full moderation history.
+2. **Community catalog** — independent artists release through the
+   community: reach the team on the community channels (Discord / Telegram /
+   WhatsApp), talk rights and licensing, and approved music is published
+   with the declared rights recorded verbatim.
 3. **Radio** — continuous listening: ResonTune Radio, Originals Radio,
    Community Radio, plus genre/artist/track stations. Deterministic seeded
    queues, no recommender system, no profiling.
@@ -64,42 +65,35 @@ git clone https://github.com/flessan/resontune
 cd resontune
 npm install
 
-# 1. Render the demo catalog's audio (original, procedurally composed, CC0)
-npm run seed:audio
-
-# 2. Start the API (embedded PGlite Postgres — zero external services)
+# 1. Start the API (embedded PGlite Postgres — zero external services)
 npm run dev:server
 
-# 3. In another terminal, start the web app
+# 2. In another terminal, start the web app
 npm run dev
 ```
 
-Open http://localhost:5173. The database migrates and seeds itself on first
-boot. Sign in with any handle (dev sign-in) — on a fresh **development**
-database the first account becomes admin so you can try the moderation
-queue. In production, roles come only from `ADMIN_USER_IDS` /
-`MODERATOR_USER_IDS` (see `.env.example`).
+Open http://localhost:5173. The database migrates itself on first boot and
+**starts empty** — ResonTune is comfortable with an empty catalog; every
+surface has an honest empty state, and local music playback works
+immediately. The catalog grows as real music is published.
 
-> **About the launch catalog.** The "ResonTune Originals — Founding Catalog"
-> (five artists, seven releases) and the two community-side artists are
-> fictional label identities created for launch; they do not represent real
-> people. All twenty-two tracks are original instrumental music composed
-> procedurally by `scripts/generate-audio.cjs` (chords, bass, arps, leads,
-> percussion) and dedicated to the public domain (CC0) — so the platform
-> genuinely holds the rights it claims. This keeps the repository livable,
-> licensing-clean and honest: no fake `<audio>` tags pointing at nothing, no
-> third-party copyrighted files.
+**Authentication is Neon Auth.** Set `NEON_AUTH_URL` (server) and
+`VITE_NEON_AUTH_URL` (client) to your Neon Auth base URL to enable sign-in;
+without them the app runs fully anonymous (browsing, playback and local
+music never require an account). Identity providers like GitHub are
+configured inside Neon Auth, not in this codebase. Roles come only from
+`ADMIN_USER_IDS` / `MODERATOR_USER_IDS` (see `.env.example`).
 
-### Production (Neon Postgres + GitHub OAuth)
+### Production (Neon Postgres + Neon Auth)
 
 ```bash
-cp .env.example .env       # fill in DATABASE_URL, GITHUB_CLIENT_ID, …
+cp .env.example .env       # fill in DATABASE_URL, NEON_AUTH_URL, …
 npm run build              # builds the client into dist/
 npm start                  # serves API + client on $PORT
 ```
 
-With `DATABASE_URL` set, the same schema runs on Neon Postgres. With GitHub
-OAuth configured, dev sign-in disables itself automatically.
+With `DATABASE_URL` set, the same schema runs on Neon Postgres — dev and
+production execute identical DDL.
 
 ## Documentation
 
@@ -111,15 +105,15 @@ OAuth configured, dev sign-in disables itself automatically.
 | [docs/radio.md](docs/radio.md) | Radio stations and deterministic selection |
 | [docs/providers.md](docs/providers.md) | Provider adapters and their rules |
 | [docs/visualizers.md](docs/visualizers.md) | Writing a visualizer mode |
-| [docs/moderation.md](docs/moderation.md) | Submission workflow and moderation states |
+| [docs/moderation.md](docs/moderation.md) | Catalog administration and content states |
 | [docs/deployment.md](docs/deployment.md) | Deployment, env vars, security posture |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
 | [SECURITY.md](SECURITY.md) | Reporting vulnerabilities |
 
 ## Contributing & support
 
-There's a contribution path for everyone — musicians (submit through the
-in-app community program), listeners (metadata and rights reports,
+There's a contribution path for everyone — musicians (release through the
+community channels), listeners (metadata and rights reports,
 translations, docs), and developers (fork → branch → change → PR; see
 [CONTRIBUTING.md](CONTRIBUTING.md)). The in-app **Contribute** page
 summarizes all of them.
@@ -154,6 +148,6 @@ hand-built (`src/styles/global.css`).
 
 ## License
 
-[MIT](LICENSE). Launch-catalog audio: CC0. Music submitted by the community
+[MIT](LICENSE). Music released by the community
 remains the property of its rights holders — see track pages for per-track
 licensing.

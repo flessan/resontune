@@ -39,3 +39,10 @@ ORDER BY ('x' || substr(md5(t.id::text || $seed), 1, 8))::bit(32)::int::float
 The response is `{ station, label, seed, tracks[] }`; the client turns the
 tracks into a normal queue. There is no live broadcasting, no server-side
 listening session — deliberately.
+
+## Empty and small catalogs
+
+Stations never fabricate content. With zero eligible tracks the endpoint
+returns an empty `tracks` array and the client shows an honest empty state;
+with only a handful of tracks the station simply plays what exists. Queues
+grow naturally as the real catalog grows.

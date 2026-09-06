@@ -880,6 +880,32 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
 
 .about-grid.three { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 
+/* Release Music: link-only intake */
+.release-hero { text-align: center; max-width: 560px; margin: 24px auto 30px; color: var(--on-surface-variant); }
+.channel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.channel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 16px;
+  border-radius: var(--shape-md);
+  background: var(--surface-container);
+  border: 1px solid var(--outline);
+  text-decoration: none;
+  transition: background var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
+}
+.channel-card:hover { background: var(--state-hover); }
+.channel-card:active { transform: scale(0.99); }
+.channel-name { font-weight: 600; font-size: 14.5px; color: var(--on-surface); display: inline-flex; align-items: center; gap: 6px; }
+.channel-desc { font-size: 12.5px; color: var(--on-surface-muted); line-height: 1.5; }
+.plain-list { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.7; color: var(--on-surface-variant); }
+
 .about-card {
   display: flex;
   flex-direction: column;
@@ -1038,6 +1064,18 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
 
 /* ---------------------------------------------------------------- forms */
 
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .field { margin-bottom: 16px; }
 .field label {
   display: block;
@@ -1049,7 +1087,7 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
 .field .hint { font-size: 12px; color: var(--on-surface-faint); margin-top: 4px; }
 /* M3 outlined text fields */
 .field input[type='text'], .field input[type='url'], .field input[type='email'],
-.field textarea, .field select {
+.field input[type='password'], .field textarea, .field select {
   width: 100%;
   padding: 10px 14px;
   border: 1px solid var(--outline);
@@ -1228,12 +1266,23 @@ textarea.input { resize: vertical; }
   .pb-controls .icon-btn[aria-label='Previous track'] { display: none; }
 }
 
-/* First track: the player enters the app naturally (runs once, when
-   the bar first gains content — not on every track change). */
-.player-bar.has-item { animation: player-in var(--dur-standard) var(--ease-emphasized); }
-@keyframes player-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: none; }
+/* No music → no player. The bar is one persistent element that
+   *transitions* in when the first track arrives and back out when the
+   queue empties — both directions actually play because the element is
+   never unmounted. Track changes never re-animate the bar itself. */
+.player-bar {
+  transition:
+    background 0.6s var(--ease-standard),
+    transform var(--dur-standard) var(--ease-emphasized),
+    opacity var(--dur-standard) var(--ease-emphasized),
+    height var(--dur-standard) var(--ease-emphasized);
+}
+.player-bar:not(.has-item) {
+  height: 0;
+  opacity: 0;
+  transform: translateY(14px);
+  overflow: hidden;
+  pointer-events: none;
 }
 
 /* Track change: quiet crossfade + 2px settle. The bar itself stays
@@ -1244,7 +1293,7 @@ textarea.input { resize: vertical; }
   to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .pb-now, .player-bar.has-item { animation: none; }
+  .pb-now { animation: none; }
 }
 
 /* Play/pause icon swap: the incoming icon scales in — a morph-feel
@@ -1727,6 +1776,23 @@ textarea.input { resize: vertical; }
 
 /* M3 filter chips */
 .pill-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Catalog administration */
+.mod-list { display: flex; flex-direction: column; gap: 10px; }
+.mod-card {
+  background: var(--surface-container);
+  border: 1px solid var(--outline);
+  border-radius: var(--shape-md);
+  padding: 14px 16px;
+}
+.mod-card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; }
+.status-chip {
+  font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: var(--shape-full);
+  background: var(--state-hover); color: var(--on-surface-variant); white-space: nowrap;
+}
+.status-chip.status-published { background: color-mix(in srgb, var(--primary) 16%, transparent); color: var(--primary); }
+.status-chip.status-taken_down { background: color-mix(in srgb, #d66 22%, transparent); }
 .pill {
   display: inline-flex;
   align-items: center;
@@ -1762,6 +1828,12 @@ textarea.input { resize: vertical; }
   flex-direction: column;
   animation: menu-pop var(--dur-quick) var(--ease-emphasized);
   transform-origin: top right;
+}
+/* exit: shrink back toward the ⋮ that opened it */
+.menu.closing { animation: menu-pop-out var(--dur-micro) var(--ease-exit) forwards; }
+@keyframes menu-pop-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.95); }
 }
 @keyframes menu-pop {
   from { opacity: 0; transform: scale(0.95); }

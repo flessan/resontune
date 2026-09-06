@@ -14,24 +14,39 @@ import { IconDots } from './Icons';
  */
 export function TrackMenu({ track, onAddToPlaylist }: { track: Track; onAddToPlaylist: () => void }) {
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigate = useNavigate();
   const user = useAuth((s) => s.user);
   const isFav = useAuth((s) => s.favoriteIds.has(track.id));
 
+  /* Exit plays before unmount: the menu stays in the DOM for the short
+     scale/fade-out, then leaves. Instant under reduced motion. */
+  const close = () => {
+    if (!open || closing) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) { setOpen(false); return; }
+    setClosing(true);
+    closeTimer.current = setTimeout(() => { setOpen(false); setClosing(false); }, 120);
+  };
+
+  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
+
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+      if (!wrapRef.current?.contains(e.target as Node)) close();
     };
-    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
     document.addEventListener('mousedown', onDoc);
     document.addEventListener('keydown', onEsc);
     return () => {
       document.removeEventListener('mousedown', onDoc);
       document.removeEventListener('keydown', onEsc);
     };
-  }, [open]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, closing]);
 
   const item = () => trackToQueueItem(track);
 
@@ -87,18 +102,18 @@ export function TrackMenu({ track, onAddToPlaylist }: { track: Track; onAddToPla
         aria-label={`More options for ${track.title}`}
         aria-expanded={open}
         aria-haspopup="menu"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => (open ? close() : setOpen(true))}
       >
         <IconDots width={16} height={16} />
       </button>
       {open && (
-        <div className="menu" role="menu">
+        <div className={`menu ${closing ? 'closing' : ''}`} role="menu">
           {actions.map((a) => (
             <button
               key={a.label}
               role="menuitem"
               className="menu-item"
-              onClick={() => { setOpen(false); a.run(); }}
+              onClick={() => { setOpen(false); setClosing(false); a.run(); }}
             >
               {a.label}
             </button>

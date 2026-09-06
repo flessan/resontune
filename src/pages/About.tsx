@@ -70,12 +70,12 @@ export default function About() {
           <div style={{ marginBottom: 10 }}><SourceChip sourceType="community" /></div>
           <h3>Community</h3>
           <p>
-            Independent creators publish through a real pipeline: submission →
-            moderation review → rights verification → publication. The artist
-            declares the license and permissions; ResonTune records them
-            verbatim and never invents rights. Community releases get the same
-            artwork, artist pages, radio and playlist treatment as Originals —
-            the distinction is provenance, not quality.
+            Independent creators release music through the community: a human
+            conversation, a rights check, then publication. The artist declares
+            the license and permissions; ResonTune records them verbatim and
+            never invents rights. Community releases get the same artwork,
+            artist pages, radio and playlist treatment as Originals — the
+            distinction is provenance, not quality.
           </p>
           <Link to="/community" className="btn small">Browse Community</Link>
         </section>
@@ -129,7 +129,6 @@ export default function About() {
             The whole platform — player, visualizer, catalog, moderation — is
             MIT-licensed and developed in the open
             on <a href={repo} target="_blank" rel="noreferrer">GitHub</a>.
-            The launch catalog itself is CC0.
           </p>
         </section>
       </div>
@@ -139,7 +138,7 @@ export default function About() {
         <section className="about-card">
           <h3>Contribute</h3>
           <p>
-            Submit music, report metadata problems, improve documentation, fix
+            Release music, report metadata problems, improve documentation, fix
             bugs, design better flows. There's a path for musicians and
             non-musicians, developers and non-developers.
           </p>

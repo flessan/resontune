@@ -1,14 +1,23 @@
+/**
+ * Auth state. Neon Auth owns authentication (who you are); the ResonTune
+ * API owns authorization (what you may do). `refresh()` asks the API who
+ * the current verified token belongs to — the API's answer (including the
+ * server-side role) is the only identity the app trusts.
+ */
 import { create } from 'zustand';
 import { api } from '@/lib/api';
+import { authClient, clearToken, NEON_AUTH_URL } from '@/lib/authClient';
 import type { User } from '@/lib/types';
 
 interface AuthState {
   user: User | null;
   loaded: boolean;
-  providers: { github: boolean; dev: boolean };
+  /** Whether Neon Auth is configured for this deployment. */
+  available: boolean;
   favoriteIds: Set<string>;
   refresh: () => Promise<void>;
-  devLogin: (handle: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   toggleFavorite: (trackId: string) => Promise<boolean>;
 }
@@ -16,13 +25,13 @@ interface AuthState {
 export const useAuth = create<AuthState>((set, get) => ({
   user: null,
   loaded: false,
-  providers: { github: false, dev: true },
+  available: Boolean(NEON_AUTH_URL),
   favoriteIds: new Set(),
 
   refresh: async () => {
     try {
-      const res = await api.get<{ user: User | null; providers: { github: boolean; dev: boolean } }>('/auth/me');
-      set({ user: res.user, providers: res.providers, loaded: true });
+      const res = await api.get<{ user: User | null }>('/auth/me');
+      set({ user: res.user, loaded: true });
       if (res.user) {
         const favs = await api.get<{ ids: string[] }>('/me/favorites/ids');
         set({ favoriteIds: new Set(favs.ids) });
@@ -34,15 +43,29 @@ export const useAuth = create<AuthState>((set, get) => ({
     }
   },
 
-  devLogin: async (handle) => {
-    const res = await api.post<{ user: User }>('/auth/dev-login', { handle });
-    set({ user: res.user });
+  signIn: async (email, password) => {
+    if (!authClient) throw new Error('Sign-in is not configured on this deployment.');
+    const res = await authClient.signIn.email({ email, password });
+    if (res.error) throw new Error(res.error.message ?? 'Sign in failed.');
+    clearToken();
+    await get().refresh();
+  },
+
+  signUp: async (name, email, password) => {
+    if (!authClient) throw new Error('Sign-in is not configured on this deployment.');
+    const res = await authClient.signUp.email({ name, email, password });
+    if (res.error) throw new Error(res.error.message ?? 'Sign up failed.');
+    clearToken();
     await get().refresh();
   },
 
   logout: async () => {
-    await api.post('/auth/logout');
-    set({ user: null, favoriteIds: new Set() });
+    try {
+      await authClient?.signOut();
+    } finally {
+      clearToken();
+      set({ user: null, favoriteIds: new Set() });
+    }
   },
 
   toggleFavorite: async (trackId) => {

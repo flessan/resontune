@@ -15,11 +15,9 @@ collections and moderation history.
 ## Entities
 
 ```
-users ─┬─ sessions
-       ├─ playlists ── playlist_tracks ── tracks
+users ─┬─ playlists ── playlist_tracks ── tracks
        ├─ favorites ───────────────────── tracks
-       ├─ play_history ────────────────── tracks
-       └─ submissions ─(approval)──────── tracks
+       └─ play_history ────────────────── tracks
 
 artists ─┬─ artist_links
          ├─ albums ── tracks
@@ -33,7 +31,6 @@ community_picks ── tracks
 play_events (anonymous, drives trending)
 
 collections ── collection_items ──(track|album|artist)
-submissions ── moderation_events (full decision history)
 takedowns (content-state audit trail)
 ```
 
@@ -51,12 +48,11 @@ takedowns (content-state audit trail)
   hosted stream *and* an external link fallback.
 - **`play_events` vs `play_history`.** Events are anonymous and power
   trending; history is per-user and only written for signed-in listeners.
-- **Submission state ≠ content state.** `submissions.status`
-  (`pending → reviewing → approved → published / rejected`) tracks review;
-  `tracks.status` / `albums.status`
+- **Content state.** `tracks.status` / `albums.status`
   (`published | unlisted | taken_down | archived`) tracks catalog
-  visibility. `moderation_events` and `takedowns` keep the full audit
-  history; takedowns never destroy data.
+  visibility. `takedowns` keeps the full audit history; takedowns never
+  destroy data. There are no submission tables — music intake happens in
+  external community channels.
 - **Rights are columns, not vibes**: `rights_holder`, `license_id`,
   `attribution_text`, `distribution_permission`, `streaming_permission`,
   `territory`, `rights_notes` (see docs/catalog-model.md).
@@ -93,5 +89,5 @@ The application cannot assume PGlite behavior. What we verify and how:
 Production boot refuses to run without `DATABASE_URL`
 (`NODE_ENV=production` + no URL → hard error), so the embedded database can
 never silently ship to production. Full production validation (migrate →
-seed → start → run the API smoke suite against Neon) is the deploy
+migrate → start → run the API smoke suite against Neon) is the deploy
 checklist in [deployment.md](deployment.md).

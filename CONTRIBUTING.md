@@ -19,24 +19,27 @@ documentation, design, curation and moderation all count as contributions.
 
 ```bash
 npm install
-npm run seed:audio     # once — renders demo audio locally
 npm run dev:server     # API on :8787 (embedded Postgres via PGlite)
 npm run dev            # Vite on :5173 (proxies /api and /media)
 ```
+
+The database migrates itself and starts **empty** — that's by design; every
+surface has an honest empty state. Use local music (Library page) for
+playback during development, or publish test rows through SQL if you're
+working on catalog features.
 
 `npm run typecheck` must pass before you open a PR.
 
 ## Project layout
 
 ```
-server/          Express API, schema, seed (Neon Postgres / PGlite)
+server/          Express API, schema, migrations (Neon Postgres / PGlite)
 src/player/      engine (audio element + Web Audio graph), store, UI
 src/visualizer/  engine + modes/ (one file per visualizer)
 src/providers/   provider abstraction (hosted, local, external)
 src/local/       IndexedDB library + importer
 src/pages/       route components
 docs/            architecture & operations documentation
-scripts/         seed-audio generator
 ```
 
 ## Adding things
