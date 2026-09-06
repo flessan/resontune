@@ -46,10 +46,14 @@ export function MiniSpectrum({ bars = BARS, className }: { bars?: number; classN
     obs.observe(canvas);
     resize();
 
+    /* The spectrum lives on the player surface, so it follows the dynamic
+       player tone (from the playing artwork) rather than the app primary. */
     const accent = () =>
-      getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#d97f4e';
+      getComputedStyle(document.documentElement).getPropertyValue('--player-tint').trim()
+      || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()
+      || '#d97f4e';
     const ink = () =>
-      getComputedStyle(document.documentElement).getPropertyValue('--ink-faint').trim() || '#9a938a';
+      getComputedStyle(document.documentElement).getPropertyValue('--outline').trim() || '#9a938a';
 
     const draw = () => {
       const w = canvas.width;

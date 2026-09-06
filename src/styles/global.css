@@ -1,68 +1,141 @@
 /* ============================================================
-   ResonTune visual language — "Signal"
-   A music application, not a publication. Hierarchy comes from
-   spacing, artwork, scale and contrast — not from boxes and
-   borders. One warm accent that adapts to the playing artwork.
+   ResonTune Material system — Material You 3, ResonTune brand.
+   Semantic color roles, tonal surface layering (surfaces do the
+   hierarchy work, not borders), an intentional shape scale, an
+   app-first type scale and state layers. Dynamic color from the
+   playing artwork tints PLAYER surfaces only (--player-tint);
+   the application identity stays stable while the song changes.
    ============================================================ */
 
 :root {
   color-scheme: light;
 
-  /* paper */
-  --bg: #f5f2ec;
-  --bg-raised: #fbf9f4;
-  --bg-sunken: #ede8df;
-  --line: #ddd5c7;
-  --line-strong: #c9bfae;
+  /* ---- M3 color roles · light (seed: ResonTune warm sienna) ---- */
+  --primary: #8f4a2b;
+  --on-primary: #ffffff;
+  --primary-container: #ffdbc9;
+  --on-primary-container: #390c00;
 
-  /* ink */
-  --ink: #201d18;
-  --ink-soft: #4c463d;
-  --ink-muted: #7d766a;
-  --ink-faint: #a49c8e;
+  --secondary: #77574a;
+  --on-secondary: #ffffff;
+  --secondary-container: #ffdbc9;
+  --on-secondary-container: #2c160b;
 
-  /* signal (accent) — overridden live from artwork */
-  --accent: #b0512a;
-  --accent-ink: #fff6ef;
-  --accent-soft: rgba(176, 81, 42, 0.12);
+  --tertiary: #675f31;
+  --on-tertiary: #ffffff;
+  --tertiary-container: #efe3a9;
+  --on-tertiary-container: #201c00;
 
-  --danger: #a43823;
+  --surface: #fff8f5;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #fef1ec;
+  --surface-container: #f9ebe4;
+  --surface-container-high: #f3e5de;
+  --surface-container-highest: #eddfd8;
+  --on-surface: #221a15;
+  --on-surface-variant: #52443c;
+
+  --outline: #85736b;
+  --outline-variant: #d7c2b8;
+
+  --error: #ba1a1a;
+  --on-error: #ffffff;
+  --error-container: #ffdad6;
+  --on-error-container: #410002;
+
   --ok: #4a6741;
 
-  --radius: 6px;
-  --radius-lg: 10px;
-  --art-radius: 6px;
+  /* Dynamic color from the playing artwork — player surfaces ONLY. */
+  --player-tint: var(--primary);
+  --player-tint-soft: color-mix(in srgb, var(--player-tint) 10%, transparent);
+
+  /* ---- legacy aliases mapped onto the M3 roles ------------------ */
+  --bg: var(--surface);
+  --bg-raised: var(--surface-container-low);
+  --bg-sunken: var(--surface-container);
+  --line: var(--outline-variant);
+  --line-strong: color-mix(in srgb, var(--outline) 50%, transparent);
+  --ink: var(--on-surface);
+  --ink-soft: var(--on-surface-variant);
+  --ink-muted: color-mix(in srgb, var(--on-surface-variant) 72%, transparent);
+  --ink-faint: color-mix(in srgb, var(--on-surface-variant) 48%, transparent);
+  --accent: var(--primary);
+  --accent-ink: var(--on-primary);
+  --accent-soft: color-mix(in srgb, var(--primary) 12%, transparent);
+  --danger: var(--error);
+
+  /* ---- shape scale ---------------------------------------------- */
+  --shape-xs: 4px;
+  --shape-sm: 8px;
+  --shape-md: 12px;
+  --shape-lg: 16px;
+  --shape-xl: 28px;
+  --shape-full: 999px;
+  --radius: var(--shape-sm);
+  --radius-lg: var(--shape-lg);
+  --art-radius: var(--shape-sm);
+
+  /* ---- state layers (M3: 8% hover, 12% press) -------------------- */
+  --state-hover: color-mix(in srgb, var(--on-surface) 8%, transparent);
+  --state-press: color-mix(in srgb, var(--on-surface) 12%, transparent);
+
+  /* ---- motion ----------------------------------------------------- */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.3, 0, 0, 1);
 
   --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
-  --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-ui: 'Inter', 'Roboto', system-ui, -apple-system, sans-serif;
 
   --player-h: 76px;
   --sidebar-w: 232px;
 
-  --shadow-pop: 0 8px 32px rgba(32, 29, 24, 0.16);
+  --elev-1: 0 1px 2px rgb(0 0 0 / 0.1), 0 1px 3px rgb(0 0 0 / 0.06);
+  --elev-2: 0 1px 3px rgb(0 0 0 / 0.12), 0 2px 8px rgb(0 0 0 / 0.08);
+  --elev-3: 0 4px 12px rgb(0 0 0 / 0.14), 0 1px 4px rgb(0 0 0 / 0.1);
+  --shadow-pop: var(--elev-3);
 }
 
 [data-theme='dark'] {
   color-scheme: dark;
-  --bg: #16140f;
-  --bg-raised: #1e1b15;
-  --bg-sunken: #100e0a;
-  --line: #2e2a21;
-  --line-strong: #453f32;
 
-  --ink: #ece7dc;
-  --ink-soft: #c9c2b4;
-  --ink-muted: #948c7c;
-  --ink-faint: #6b6355;
+  /* ---- M3 color roles · dark (layered surfaces, never pure black) */
+  --primary: #ffb693;
+  --on-primary: #552004;
+  --primary-container: #713518;
+  --on-primary-container: #ffdbc9;
 
-  --accent: #d97f4e;
-  --accent-ink: #1c120b;
-  --accent-soft: rgba(217, 127, 78, 0.16);
+  --secondary: #e7bead;
+  --on-secondary: #442a1e;
+  --secondary-container: #5d4033;
+  --on-secondary-container: #ffdbc9;
 
-  --danger: #d96a52;
+  --tertiary: #d2c78f;
+  --on-tertiary: #373106;
+  --tertiary-container: #4e471b;
+  --on-tertiary-container: #efe3a9;
+
+  --surface: #1a120d;
+  --surface-container-lowest: #140d09;
+  --surface-container-low: #221a15;
+  --surface-container: #271e18;
+  --surface-container-high: #322822;
+  --surface-container-highest: #3d332c;
+  --on-surface: #f0dfd7;
+  --on-surface-variant: #d7c2b8;
+
+  --outline: #a08d83;
+  --outline-variant: #52443c;
+
+  --error: #ffb4ab;
+  --on-error: #690005;
+  --error-container: #93000a;
+  --on-error-container: #ffdad6;
+
   --ok: #8aa982;
 
-  --shadow-pop: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --elev-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.2);
+  --elev-2: 0 1px 3px rgb(0 0 0 / 0.4), 0 2px 8px rgb(0 0 0 / 0.3);
+  --elev-3: 0 4px 14px rgb(0 0 0 / 0.5), 0 1px 4px rgb(0 0 0 / 0.4);
 }
 
 * { box-sizing: border-box; }
@@ -130,16 +203,19 @@ input, textarea, select { font-family: inherit; color: inherit; }
   }
 }
 
-/* ---------------------------------------------------------------- sidebar */
+/* ------------------------------------------- navigation drawer (desktop)
+   M3 standard navigation drawer: a tonal surface-container layer, items
+   as full-round "pill" destinations with a secondary-container active
+   indicator. */
 
 .sidebar {
   grid-area: sidebar;
-  padding: 20px 14px;
+  padding: 20px 12px;
   display: flex;
   flex-direction: column;
   gap: 2px;
   overflow-y: auto;
-  background: var(--bg-sunken);
+  background: var(--surface-container-low);
 }
 @media (max-width: 860px) { .sidebar { display: none; } }
 
@@ -177,24 +253,27 @@ input, textarea, select { font-family: inherit; color: inherit; }
 .nav-link {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px 10px;
-  border-radius: var(--radius);
-  color: var(--ink-soft);
+  gap: 12px;
+  padding: 9px 14px;
+  border-radius: var(--shape-full);
+  color: var(--on-surface-variant);
   font-size: 14px;
+  font-weight: 500;
   border: none;
   background: none;
   width: 100%;
   text-align: left;
+  transition: background 0.12s var(--ease-standard);
 }
-.nav-link svg { flex-shrink: 0; opacity: 0.75; }
-.nav-link:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); color: var(--ink); }
+.nav-link svg { flex-shrink: 0; opacity: 0.8; }
+.nav-link:hover { background: var(--state-hover); color: var(--on-surface); }
+.nav-link:active { background: var(--state-press); }
 .nav-link.active {
-  background: var(--accent-soft);
-  color: var(--ink);
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
   font-weight: 600;
 }
-.nav-link.active svg { color: var(--accent); opacity: 1; }
+.nav-link.active svg { color: var(--on-secondary-container); opacity: 1; }
 
 /* ---------------------------------------------------------------- main */
 
@@ -218,7 +297,7 @@ input, textarea, select { font-family: inherit; color: inherit; }
 }
 @media (max-width: 640px) { .page { padding: 18px 16px 48px; } }
 
-/* topbar */
+/* M3 top app bar: surface color, blends with content until scrolled. */
 .topbar {
   position: sticky;
   top: 0;
@@ -227,11 +306,12 @@ input, textarea, select { font-family: inherit; color: inherit; }
   align-items: center;
   gap: 12px;
   padding: 12px 32px 10px;
-  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
   backdrop-filter: blur(14px);
 }
 @media (max-width: 640px) { .topbar { padding: 10px 16px; } }
 
+/* M3 search bar: full-round field on surface-container-high. */
 .search-box {
   flex: 1;
   max-width: 460px;
@@ -239,31 +319,34 @@ input, textarea, select { font-family: inherit; color: inherit; }
 }
 .search-box input {
   width: 100%;
-  padding: 9px 14px 9px 38px;
+  padding: 10px 16px 10px 40px;
   border: none;
-  border-radius: 999px;
-  background: var(--bg-sunken);
+  border-radius: var(--shape-full);
+  background: var(--surface-container-high);
+  color: var(--on-surface);
   font-size: 14px;
-  transition: background 0.15s ease, box-shadow 0.15s ease;
+  transition: background 0.15s var(--ease-standard), box-shadow 0.15s var(--ease-standard);
 }
+.search-box input::placeholder { color: var(--on-surface-variant); opacity: 0.8; }
 .search-box input:focus {
-  background: var(--bg-raised);
+  background: var(--surface-container-highest);
   box-shadow: 0 0 0 2px var(--accent-soft);
   outline: none;
 }
-/* Large search input on the Search page — prominent, borderless. */
+/* Large search bar on the Search page. */
 .search-hero {
   width: 100%;
   max-width: 560px;
-  padding: 13px 20px;
+  padding: 14px 22px;
   font-size: 16px;
   border: none;
-  border-radius: 999px;
-  background: var(--bg-sunken);
-  transition: background 0.15s ease, box-shadow 0.15s ease;
+  border-radius: var(--shape-full);
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+  transition: background 0.15s var(--ease-standard), box-shadow 0.15s var(--ease-standard);
 }
 .search-hero:focus {
-  background: var(--bg-raised);
+  background: var(--surface-container-highest);
   box-shadow: 0 0 0 2px var(--accent-soft);
   outline: none;
 }
@@ -276,13 +359,19 @@ input, textarea, select { font-family: inherit; color: inherit; }
   pointer-events: none;
 }
 
-/* ---------------------------------------------------------------- type */
+/* ------------------------------------------------------- type scale (M3)
+   Display  — immersive/expanded track titles (serif identity moments)
+   Headline — page titles (h1.page-title)
+   Title    — section headers, dialog titles, list-item primaries
+   Body     — running text
+   Label    — buttons, chips, meta                                        */
 
 h1.page-title {
-  font-weight: 750;
-  font-size: clamp(22px, 3.2vw, 30px);
-  letter-spacing: -0.02em;
-  line-height: 1.1;
+  /* headline-large */
+  font-weight: 640;
+  font-size: clamp(24px, 3.2vw, 32px);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
   margin: 0 0 6px;
 }
 .page-sub { color: var(--ink-muted); margin: 0 0 24px; max-width: 62ch; font-size: 13.5px; }
@@ -296,9 +385,10 @@ h1.page-title {
 }
 .section-head:first-child { margin-top: 0; }
 .section-title {
-  font-weight: 700;
+  /* title-large */
+  font-weight: 600;
   font-size: 17px;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   margin: 0;
 }
 .section-note { font-size: 12.5px; color: var(--ink-faint); }
@@ -422,7 +512,7 @@ h1.page-title {
 .track-row { cursor: pointer; }
 .track-row:hover { background: var(--bg-sunken); }
 .track-row:active { background: color-mix(in srgb, var(--ink) 8%, transparent); }
-.track-row.playing { background: var(--accent-soft); }
+.track-row.playing { background: color-mix(in srgb, var(--player-tint) 10%, transparent); }
 .track-row .idx {
   color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
@@ -440,7 +530,7 @@ h1.page-title {
 .track-row:hover .idx span { display: none; }
 .track-row:hover .row-play { display: grid; }
 .track-row.playing .idx span { display: none; }
-.track-row.playing .row-play { display: grid; color: var(--accent); }
+.track-row.playing .row-play { display: grid; color: var(--player-tint); }
 
 .track-row .art {
   width: 40px; height: 40px;
@@ -457,7 +547,7 @@ h1.page-title {
   font-size: 14px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.track-row.playing .t-title { color: var(--accent); }
+.track-row.playing .t-title { color: color-mix(in srgb, var(--player-tint) 80%, var(--on-surface)); }
 .track-row .t-sub {
   font-size: 12.5px;
   color: var(--ink-muted);
@@ -482,7 +572,7 @@ h1.page-title {
   text-align: right;
 }
 
-/* Provenance labels — quiet, informative, never bureaucratic. */
+/* Provenance chips — quiet tonal M3 chips, informative not bureaucratic. */
 .source-chip {
   display: inline-flex;
   align-items: center;
@@ -491,26 +581,26 @@ h1.page-title {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  padding: 1.5px 5px;
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--ink) 7%, transparent);
-  color: var(--ink-muted);
+  padding: 2px 7px;
+  border-radius: var(--shape-full);
+  background: var(--surface-container-highest);
+  color: var(--on-surface-variant);
   vertical-align: 2px;
   margin-left: 8px;
 }
 .source-chip.local {
-  background: color-mix(in srgb, var(--ok) 12%, transparent);
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
   color: var(--ok);
 }
 
 .source-chip.community {
-  background: color-mix(in srgb, var(--accent) 11%, transparent);
-  color: color-mix(in srgb, var(--accent) 82%, var(--ink));
+  background: var(--tertiary-container);
+  color: var(--on-tertiary-container);
 }
 
 .source-chip.external {
   background: transparent;
-  box-shadow: inset 0 0 0 1px var(--line-strong);
+  box-shadow: inset 0 0 0 1px var(--outline-variant);
 }
 
 /* "RESONTUNE ORIGINAL" — identity through typography and spacing, nothing
@@ -536,23 +626,25 @@ h1.page-title {
   letter-spacing: 0.14em;
 }
 
-/* Featured release — artwork-led banner, no frame. The artwork itself and
-   an extracted tint carry the moment; text sits directly on the page. */
+/* Featured release — compact M3 tonal container: artwork, title, artist,
+   play. Music above the fold; never an editorial hero. */
 .featured {
   display: grid;
-  grid-template-columns: 168px 1fr;
-  gap: 24px;
+  grid-template-columns: 148px 1fr;
+  gap: 22px;
   align-items: center;
   margin: 4px 0 8px;
   position: relative;
+  background: var(--surface-container);
+  border-radius: var(--shape-lg);
+  padding: 18px;
 }
 
 .featured img {
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
-  border-radius: var(--art-radius);
-  box-shadow: 0 10px 28px rgb(0 0 0 / 0.2);
+  border-radius: var(--shape-md);
 }
 
 .featured .kicker {
@@ -581,8 +673,8 @@ h1.page-title {
 .featured p.blurb { display: none; }
 
 @media (max-width: 640px) {
-  .featured { grid-template-columns: 116px 1fr; gap: 16px; }
-  .featured h2 { font-size: 20px; }
+  .featured { grid-template-columns: 104px 1fr; gap: 14px; padding: 14px; }
+  .featured h2 { font-size: 19px; }
 }
 
 /* Collection tile: wider than a track tile */
@@ -628,17 +720,17 @@ h1.page-title {
 
 .station-card {
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--shape-lg);
   padding: 18px;
   text-align: left;
-  background: var(--bg-sunken);
+  background: var(--surface-container);
   cursor: pointer;
   font: inherit;
   color: inherit;
-  transition: background 0.15s ease, transform 0.12s ease;
+  transition: background 0.15s var(--ease-standard), transform 0.12s var(--ease-standard);
 }
 
-.station-card:hover { background: var(--accent-soft); }
+.station-card:hover { background: var(--surface-container-high); }
 .station-card:active { transform: scale(0.985); }
 
 .station-card .station-name {
@@ -649,11 +741,12 @@ h1.page-title {
 
 .station-card .station-desc { font-size: 12.5px; color: var(--ink-muted); line-height: 1.45; }
 
-/* About / Contribute / Support — plain sections, not framed cards */
+/* About / Contribute / Support — native M3 destinations: sections on
+   quiet tonal containers, no editorial framing. */
 .about-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 28px 40px;
+  gap: 16px;
   margin-bottom: 36px;
 }
 
@@ -664,16 +757,19 @@ h1.page-title {
   flex-direction: column;
   gap: 9px;
   align-items: flex-start;
+  background: var(--surface-container-low);
+  border-radius: var(--shape-lg);
+  padding: 20px;
 }
 
 .about-card h3 {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   margin: 0;
 }
 
 .about-card p { margin: 0; font-size: 13.5px; line-height: 1.65; color: var(--ink-soft); }
-.about-card.slim { padding: 0; }
+.about-card.slim { padding: 20px; background: var(--surface-container-low); }
 .about-card a { color: var(--accent); }
 .about-card .btn { color: inherit; }
 .about-card code {
@@ -767,42 +863,51 @@ h1.page-title {
 
 /* ---------------------------------------------------------------- buttons */
 
+/* M3 buttons — default is the TONAL button (secondary container);
+   `.primary` is the FILLED button, used sparingly for the single most
+   important action on a surface. */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 8px 16px;
-  border-radius: 999px;
+  padding: 9px 18px;
+  border-radius: var(--shape-full);
   border: none;
-  background: var(--bg-sunken);
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
   font-size: 13px;
   font-weight: 600;
-  transition: background 0.15s ease, transform 0.1s ease;
+  letter-spacing: 0.01em;
+  transition: background 0.15s var(--ease-standard), transform 0.1s var(--ease-standard), box-shadow 0.15s var(--ease-standard);
 }
-.btn:hover { background: color-mix(in srgb, var(--ink) 10%, var(--bg-sunken)); }
+.btn:hover { background: color-mix(in srgb, var(--on-secondary-container) 8%, var(--secondary-container)); }
 .btn:active { transform: scale(0.97); }
 .btn.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
+  background: var(--primary);
+  color: var(--on-primary);
 }
-.btn.primary:hover { filter: brightness(1.06); }
-.btn.small { padding: 5px 12px; font-size: 12.5px; }
-.btn.danger { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+.btn.primary:hover {
+  background: color-mix(in srgb, var(--on-primary) 8%, var(--primary));
+  box-shadow: var(--elev-1);
+}
+.btn.small { padding: 6px 14px; font-size: 12.5px; }
+.btn.danger { color: var(--on-error-container); background: var(--error-container); }
+.btn.danger:hover { background: color-mix(in srgb, var(--on-error-container) 8%, var(--error-container)); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .icon-btn {
   display: inline-grid;
   place-items: center;
-  width: 34px; height: 34px;
-  border-radius: 50%;
+  width: 36px; height: 36px;
+  border-radius: var(--shape-full);
   border: none;
   background: none;
   color: var(--ink-muted);
-  transition: color 0.12s ease, background 0.12s ease;
+  transition: color 0.12s var(--ease-standard), background 0.12s var(--ease-standard);
 }
-.icon-btn:hover { background: var(--bg-sunken); color: var(--ink); }
+.icon-btn:hover { background: var(--state-hover); color: var(--ink); }
+.icon-btn:active { background: var(--state-press); }
 .icon-btn.active { color: var(--accent); }
 .icon-btn:disabled { opacity: 0.35; cursor: default; }
 .icon-btn:disabled:hover { background: none; color: var(--ink-muted); }
@@ -818,48 +923,53 @@ h1.page-title {
   color: var(--ink-soft);
 }
 .field .hint { font-size: 12px; color: var(--ink-faint); margin-top: 4px; }
+/* M3 outlined text fields */
 .field input[type='text'], .field input[type='url'], .field input[type='email'],
 .field textarea, .field select {
   width: 100%;
-  padding: 9px 12px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
-  background: var(--bg-raised);
+  padding: 10px 14px;
+  border: 1px solid var(--outline);
+  border-radius: var(--shape-xs);
+  background: transparent;
+  color: var(--on-surface);
   font-size: 14px;
+  transition: border-color 0.12s var(--ease-standard), box-shadow 0.12s var(--ease-standard);
 }
 .field textarea { resize: vertical; min-height: 90px; }
 /* Standalone input (outside a .field wrapper) */
 .input {
   width: 100%;
-  padding: 9px 12px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
-  background: var(--bg-raised);
+  padding: 10px 14px;
+  border: 1px solid var(--outline);
+  border-radius: var(--shape-xs);
+  background: transparent;
   font-size: 14px;
-  color: var(--ink);
+  color: var(--on-surface);
+  transition: border-color 0.12s var(--ease-standard), box-shadow 0.12s var(--ease-standard);
 }
-.input:focus { border-color: var(--accent); outline: none; }
+.input:focus { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); outline: none; }
 textarea.input { resize: vertical; }
 .field input:focus, .field textarea:focus, .field select:focus {
-  border-color: var(--accent);
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
   outline: none;
 }
 .field-check { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; }
-.field-check input { margin-top: 3px; accent-color: var(--accent); }
+.field-check input { margin-top: 3px; accent-color: var(--primary); }
 
 .form-error {
-  background: color-mix(in srgb, var(--danger) 10%, transparent);
-  color: var(--danger);
+  background: var(--error-container);
+  color: var(--on-error-container);
   padding: 10px 14px;
-  border-radius: var(--radius);
+  border-radius: var(--shape-md);
   font-size: 13.5px;
   margin-bottom: 16px;
 }
 .form-ok {
-  background: color-mix(in srgb, var(--ok) 12%, transparent);
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
   color: var(--ok);
   padding: 10px 14px;
-  border-radius: var(--radius);
+  border-radius: var(--shape-md);
   font-size: 13.5px;
   margin-bottom: 16px;
 }
@@ -870,15 +980,12 @@ textarea.input { resize: vertical; }
    inside the composition (no box), and progress is a hairline on the
    surface itself. */
 
+/* M3 media surface: a tonal container whose tint follows the playing
+   artwork (--player-tint). Only this surface adapts — the app doesn't. */
 .player-bar {
   grid-area: player;
   height: var(--player-h);
-  background:
-    linear-gradient(
-      to top,
-      color-mix(in srgb, var(--accent) 7%, var(--bg-raised)),
-      var(--bg-raised) 82%
-    );
+  background: color-mix(in srgb, var(--player-tint) 8%, var(--surface-container));
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(280px, 4fr) minmax(0, 3fr);
   align-items: center;
@@ -886,8 +993,7 @@ textarea.input { resize: vertical; }
   padding: 0 16px;
   position: relative;
   z-index: 40;
-  box-shadow: 0 -1px 0 color-mix(in srgb, var(--ink) 8%, transparent);
-  transition: background 0.6s ease;
+  transition: background 0.6s var(--ease-standard);
 }
 @media (max-width: 860px) {
   .player-bar {
@@ -895,9 +1001,9 @@ textarea.input { resize: vertical; }
     height: 62px;
     padding: 0 12px;
     cursor: pointer;
-    margin: 0 8px 6px;
-    border-radius: var(--radius-lg);
-    box-shadow: 0 4px 18px rgb(0 0 0 / 0.14);
+    margin: 0 10px 8px;
+    border-radius: var(--shape-lg);
+    box-shadow: var(--elev-2);
   }
 }
 
@@ -936,13 +1042,15 @@ textarea.input { resize: vertical; }
 @media (max-width: 860px) { .pb-center .pb-seek { display: none; } }
 
 .pb-controls { display: flex; align-items: center; gap: 4px; }
+/* Play/Pause: M3 filled icon button on the dynamic player tone. */
 .pb-play {
-  width: 38px; height: 38px;
-  border-radius: 50%;
+  width: 40px; height: 40px;
+  border-radius: var(--shape-full);
   border: none;
-  background: var(--ink);
-  color: var(--bg);
+  background: color-mix(in srgb, var(--player-tint) 70%, var(--on-surface));
+  color: var(--surface);
   display: grid; place-items: center;
+  transition: background 0.6s var(--ease-standard), transform 0.1s var(--ease-standard);
   margin: 0 6px;
   transition: transform 0.1s ease;
 }
@@ -978,7 +1086,7 @@ textarea.input { resize: vertical; }
   background: var(--line-strong);
   overflow: hidden;
 }
-.seek-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+.seek-fill { height: 100%; background: var(--player-tint); border-radius: 2px; transition: background 0.6s var(--ease-standard); }
 .seek-track:hover .seek-rail { height: 6px; }
 
 .pb-right {
@@ -1040,7 +1148,8 @@ textarea.input { resize: vertical; }
   -webkit-mask-image: linear-gradient(to top, #000 30%, transparent 96%);
 }
 
-/* Contextual visualizer control popover (opens off the player controls). */
+/* Contextual visualizer menu (M3 menu surface, opens off the player
+   controls — never a persistent settings panel). */
 .ps-vis-pop {
   position: absolute;
   bottom: calc(100% + 10px);
@@ -1048,23 +1157,29 @@ textarea.input { resize: vertical; }
   transform: translateX(50%);
   width: 232px;
   padding: 14px;
-  border-radius: var(--radius-lg);
-  background: var(--bg-raised);
-  box-shadow: var(--shadow-pop);
+  border-radius: var(--shape-lg);
+  background: var(--surface-container-high);
+  box-shadow: var(--elev-3);
   display: flex;
   flex-direction: column;
   gap: 10px;
   z-index: 5;
+  animation: menu-in 0.16s var(--ease-emphasized);
+  transform-origin: bottom center;
+}
+@keyframes menu-in {
+  from { opacity: 0; transform: translateX(50%) scale(0.94); }
+  to { opacity: 1; transform: translateX(50%) scale(1); }
 }
 
 .ps-vis-select {
   width: 100%;
-  padding: 6px 8px;
+  padding: 7px 10px;
   font-size: 12.5px;
-  border-radius: 7px;
-  border: 1px solid var(--line);
-  background: var(--bg);
-  color: var(--ink);
+  border-radius: var(--shape-sm);
+  border: 1px solid var(--outline-variant);
+  background: var(--surface-container);
+  color: var(--on-surface);
 }
 
 .ps-vis-dial {
@@ -1089,7 +1204,7 @@ textarea.input { resize: vertical; }
   position: absolute;
   top: 0; left: 0;
   height: 2px;
-  background: var(--accent);
+  background: var(--player-tint);
   z-index: 41;
   border-radius: 0 2px 2px 0;
 }
@@ -1097,13 +1212,49 @@ textarea.input { resize: vertical; }
   .pb-miniprogress { top: auto; bottom: 0; left: 10px; right: 10px; max-width: calc(100% - 20px); }
 }
 
-/* ---------------------------------------------------------------- tabs (mobile) */
+/* ------------------------------------------------ M3 tabs (Library)
+   Secondary tabs: text labels on the surface with an active primary
+   underline indicator. */
+.seg-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 2px 0 20px;
+  border-bottom: 1px solid var(--outline-variant);
+}
+.seg-tabs a {
+  padding: 10px 16px 11px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--on-surface-variant);
+  position: relative;
+  border-radius: var(--shape-sm) var(--shape-sm) 0 0;
+  transition: background 0.12s var(--ease-standard), color 0.12s var(--ease-standard);
+}
+.seg-tabs a:hover { background: var(--state-hover); color: var(--on-surface); }
+.seg-tabs a.active { color: var(--primary); font-weight: 600; }
+.seg-tabs a.active::after {
+  content: '';
+  position: absolute;
+  left: 12px; right: 12px; bottom: -1px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--primary);
+}
+@media (max-width: 640px) {
+  .seg-tabs { overflow-x: auto; scrollbar-width: none; margin: 0 -16px 18px; padding: 0 12px; }
+  .seg-tabs::-webkit-scrollbar { display: none; }
+  .seg-tabs a { white-space: nowrap; }
+}
+
+/* ----------------------------------------- M3 Navigation Bar (mobile)
+   Tonal surface-container bar; active destination gets the M3 pill
+   indicator behind its icon plus a stronger label. */
 
 .tabbar {
   grid-area: tabs;
   display: none;
-  background: var(--bg);
-  padding: 2px 0 max(6px, env(safe-area-inset-bottom));
+  background: var(--surface-container);
+  padding: 6px 0 max(8px, env(safe-area-inset-bottom));
 }
 @media (max-width: 860px) { .tabbar { display: flex; } }
 .tabbar a {
@@ -1111,27 +1262,59 @@ textarea.input { resize: vertical; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  font-size: 10px;
-  color: var(--ink-muted);
-  padding: 6px 0 2px;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--on-surface-variant);
+  padding: 4px 0 2px;
+  -webkit-tap-highlight-color: transparent;
 }
-.tabbar a.active { color: var(--accent); }
+.tabbar a svg {
+  border-radius: var(--shape-full);
+  padding: 3px 14px;
+  box-sizing: content-box;
+  transition: background 0.15s var(--ease-standard);
+}
+.tabbar a.active { color: var(--on-surface); font-weight: 600; }
+.tabbar a.active svg {
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+}
 
 /* ---------------------------------------------------------------- expanded player */
 
+/* M3 bottom-sheet expansion of the player: slides up from the mini
+   player, rounded top corners, drag-handle affordance, and a tonal
+   surface that carries the dynamic player tint. */
 .player-sheet {
   position: fixed;
   inset: 0;
   z-index: 90;
-  background: var(--bg);
+  background: color-mix(in srgb, var(--player-tint) 5%, var(--surface));
+  border-radius: var(--shape-xl) var(--shape-xl) 0 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  animation: sheet-in 0.28s cubic-bezier(0.3, 0.9, 0.3, 1);
+  animation: sheet-in 0.3s var(--ease-emphasized);
+  transition: background 0.6s var(--ease-standard);
 }
 @keyframes sheet-in {
-  from { transform: translateY(24px); opacity: 0; }
+  from { transform: translateY(48px); opacity: 0.4; }
   to { transform: none; opacity: 1; }
+}
+/* drag handle */
+.player-sheet::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 4px;
+  border-radius: var(--shape-full);
+  background: color-mix(in srgb, var(--on-surface-variant) 40%, transparent);
+  z-index: 5;
+  pointer-events: none;
 }
 
 .ps-backdrop {
@@ -1178,10 +1361,10 @@ textarea.input { resize: vertical; }
 .ps-art {
   width: min(360px, 72vw, 42vh);
   aspect-ratio: 1;
-  border-radius: var(--art-radius);
+  border-radius: var(--shape-md);
   overflow: hidden;
   box-shadow: 0 18px 48px rgb(0 0 0 / 0.28);
-  background: var(--bg-sunken);
+  background: var(--surface-container);
 }
 .ps-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ps-art .art-fallback {
@@ -1253,16 +1436,20 @@ textarea.input { resize: vertical; }
   gap: 10px;
   margin-top: 8px;
 }
+/* Primary control of the expanded player: large M3 filled button whose
+   tone follows the playing artwork. Squircle-to-circle shape morph on
+   press is the one playful M3 gesture we keep. */
 .ps-play {
-  width: 58px; height: 58px;
-  border-radius: 50%;
+  width: 60px; height: 60px;
+  border-radius: var(--shape-lg);
   border: none;
-  background: var(--ink);
-  color: var(--bg);
+  background: color-mix(in srgb, var(--player-tint) 70%, var(--on-surface));
+  color: var(--surface);
   display: grid; place-items: center;
-  transition: transform 0.1s ease;
+  transition: transform 0.1s var(--ease-standard), border-radius 0.2s var(--ease-emphasized), background 0.6s var(--ease-standard);
 }
 .ps-play:hover { transform: scale(1.04); }
+.ps-play:active { border-radius: var(--shape-full); transform: scale(0.96); }
 
 .ps-topbar {
   position: relative;
@@ -1286,7 +1473,7 @@ textarea.input { resize: vertical; }
   text-align: left;
 }
 .queue-row:hover { background: var(--bg-sunken); }
-.queue-row.current { background: var(--accent-soft); }
+.queue-row.current { background: color-mix(in srgb, var(--player-tint) 10%, transparent); }
 .queue-row .q-art {
   width: 36px; height: 36px;
   border-radius: 4px;
@@ -1297,7 +1484,7 @@ textarea.input { resize: vertical; }
 .queue-row .q-art img { width: 100%; height: 100%; object-fit: cover; }
 .queue-row .q-meta { min-width: 0; flex: 1; }
 .queue-row .q-title { font-size: 13px; font-weight: 540; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.queue-row.current .q-title { color: var(--accent); }
+.queue-row.current .q-title { color: color-mix(in srgb, var(--player-tint) 80%, var(--on-surface)); }
 .queue-row .q-sub { font-size: 11.5px; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---------------------------------------------------------------- immersive */
@@ -1360,18 +1547,26 @@ textarea.input { resize: vertical; }
 
 /* ---------------------------------------------------------------- misc */
 
+/* M3 filter chips */
 .pill-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .pill {
   display: inline-flex;
+  align-items: center;
   padding: 6px 14px;
-  border-radius: 999px;
+  border-radius: var(--shape-sm);
   border: none;
   font-size: 13px;
-  background: var(--bg-sunken);
-  transition: background 0.12s ease;
+  font-weight: 500;
+  color: var(--on-surface-variant);
+  background: var(--surface-container-high);
+  transition: background 0.12s var(--ease-standard), color 0.12s var(--ease-standard);
 }
-.pill:hover { background: var(--accent-soft); color: var(--accent); }
-.pill.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.pill:hover { background: color-mix(in srgb, var(--on-surface) 8%, var(--surface-container-high)); color: var(--on-surface); }
+.pill.active {
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+  font-weight: 600;
+}
 
 .empty {
   padding: 48px 24px;
@@ -1403,13 +1598,11 @@ textarea.input { resize: vertical; }
   padding: 3px 9px;
   border-radius: 4px;
 }
-.status-badge.pending { background: color-mix(in srgb, #b8860b 15%, transparent); color: #9a7209; }
-.status-badge.reviewing { background: color-mix(in srgb, #2d6a9a 15%, transparent); color: #2d6a9a; }
+.status-badge.pending { background: var(--tertiary-container); color: var(--on-tertiary-container); }
+.status-badge.reviewing { background: var(--secondary-container); color: var(--on-secondary-container); }
 .status-badge.approved { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
 .status-badge.published { background: color-mix(in srgb, var(--ok) 25%, transparent); color: var(--ok); }
-.status-badge.rejected { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
-[data-theme='dark'] .status-badge.pending { color: #d4af37; }
-[data-theme='dark'] .status-badge.reviewing { color: #6ba3cc; }
+.status-badge.rejected { background: var(--error-container); color: var(--on-error-container); }
 
 /* Catalog page heads (Originals / Community): title + inline actions. */
 .catalog-head {
@@ -1422,27 +1615,6 @@ textarea.input { resize: vertical; }
 }
 .catalog-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-/* Page intro (About / Support) — plain text on the page, no frame. */
-.hero {
-  position: relative;
-  margin-bottom: 36px;
-}
-.hero-inner {
-  position: relative;
-  z-index: 1;
-  padding: 10px 0 0;
-  max-width: 560px;
-}
-.hero h2 {
-  font-family: var(--font-display);
-  font-size: clamp(24px, 3.6vw, 34px);
-  font-weight: 680;
-  letter-spacing: -0.02em;
-  line-height: 1.08;
-  margin: 0 0 10px;
-}
-.hero h2 em { font-style: italic; color: var(--accent); }
-.hero p { color: var(--ink-soft); margin: 0 0 18px; font-size: 14px; }
 /* detail headers */
 .detail-head {
   display: flex;
@@ -1505,14 +1677,19 @@ textarea.input { resize: vertical; }
   padding: 20px;
 }
 .dialog {
-  background: var(--bg-raised);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-pop);
+  background: var(--surface-container-high);
+  border-radius: var(--shape-xl);
+  box-shadow: var(--elev-3);
   width: 100%;
   max-width: 440px;
   max-height: 85dvh;
   overflow-y: auto;
   padding: 24px;
+  animation: dialog-in 0.2s var(--ease-emphasized);
+}
+@keyframes dialog-in {
+  from { transform: scale(0.96); opacity: 0; }
+  to { transform: none; opacity: 1; }
 }
 .dialog h3 { margin: 0 0 4px; font-size: 17px; font-weight: 700; }
 .dialog .dialog-sub { color: var(--ink-muted); font-size: 13px; margin: 0 0 18px; }
@@ -1530,14 +1707,15 @@ textarea.input { resize: vertical; }
   align-items: center;
   pointer-events: none;
 }
+/* M3 snackbar: inverse surface */
 .toast {
-  background: var(--ink);
-  color: var(--bg);
+  background: var(--on-surface);
+  color: var(--surface-container-low);
   font-size: 13px;
-  padding: 9px 18px;
-  border-radius: 999px;
-  box-shadow: var(--shadow-pop);
-  animation: toast-in 0.25s ease;
+  padding: 10px 18px;
+  border-radius: var(--shape-sm);
+  box-shadow: var(--elev-3);
+  animation: toast-in 0.25s var(--ease-standard);
 }
 @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; } }
 
@@ -1577,12 +1755,11 @@ textarea.input { resize: vertical; }
 }
 
 .note-card {
-  border-left: 3px solid var(--accent);
-  background: var(--bg-raised);
-  border-radius: 0 var(--radius) var(--radius) 0;
-  padding: 10px 14px;
+  background: var(--surface-container);
+  border-radius: var(--shape-md);
+  padding: 12px 16px;
   font-size: 13px;
-  color: var(--ink-soft);
+  color: var(--on-surface-variant);
   font-style: italic;
 }
 

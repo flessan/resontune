@@ -14,6 +14,7 @@ import { trackToQueueItem } from '@/providers';
 import { IconPlay } from '@/components/Icons';
 import { api } from '@/lib/api';
 import { toast } from '@/stores/toast';
+import { useAuth } from '@/stores/auth';
 
 interface FeaturedRelease extends Album {
   description?: string | null;
@@ -31,8 +32,24 @@ interface HomeData {
 
 export default function Home() {
   const { data, loading, error } = useFetch<HomeData>('/home');
+  const user = useAuth((s) => s.user);
+  const { data: hist } = useFetch<{ history: { playedAt: string; track: Track }[] }>(
+    user ? '/me/history' : null, [user?.id],
+  );
   const hasQueue = usePlayer((s) => s.queue.length > 0);
   const playing = usePlayer((s) => s.playing);
+
+  /* Recently played: de-duplicated by track, newest first. */
+  const recent: Track[] = [];
+  if (hist?.history) {
+    const seen = new Set<string>();
+    for (const h of hist.history) {
+      if (seen.has(h.track.id)) continue;
+      seen.add(h.track.id);
+      recent.push(h.track);
+      if (recent.length >= 10) break;
+    }
+  }
 
   const playFeatured = async (slug: string) => {
     try {
@@ -82,13 +99,17 @@ export default function Home() {
         </section>
       )}
 
-      <div className="section-head">
-        <h2 className="section-title">New releases</h2>
-        <Link to="/albums" className="section-link">See all</Link>
-      </div>
-      <div className="shelf">
-        {data.newReleases.map((al) => <AlbumTile key={al.id} album={al} />)}
-      </div>
+      {recent.length > 0 && (
+        <>
+          <div className="section-head">
+            <h2 className="section-title">Recently played</h2>
+            <Link to="/history" className="section-link">History</Link>
+          </div>
+          <div className="shelf">
+            {recent.map((t) => <TrackTile key={t.id} track={t} context={recent} />)}
+          </div>
+        </>
+      )}
 
       <div className="section-head">
         <h2 className="section-title">ResonTune Originals</h2>
@@ -97,6 +118,16 @@ export default function Home() {
       <div className="shelf">
         {data.originals.slice(0, 10).map((t) => (
           <TrackTile key={t.id} track={t} context={data.originals} />
+        ))}
+      </div>
+
+      <div className="section-head">
+        <h2 className="section-title">From the community</h2>
+        <Link to="/community" className="section-link">See all</Link>
+      </div>
+      <div className="tracklist home-tracklist">
+        {data.communityPicks.slice(0, 6).map((t, i) => (
+          <TrackRow key={t.id} track={t} index={i} context={data.communityPicks} />
         ))}
       </div>
 
@@ -111,13 +142,11 @@ export default function Home() {
       </div>
 
       <div className="section-head">
-        <h2 className="section-title">From the community</h2>
-        <Link to="/community" className="section-link">See all</Link>
+        <h2 className="section-title">New releases</h2>
+        <Link to="/albums" className="section-link">See all</Link>
       </div>
-      <div className="tracklist home-tracklist">
-        {data.communityPicks.slice(0, 6).map((t, i) => (
-          <TrackRow key={t.id} track={t} index={i} context={data.communityPicks} />
-        ))}
+      <div className="shelf">
+        {data.newReleases.map((al) => <AlbumTile key={al.id} album={al} />)}
       </div>
 
       <div className="section-head">

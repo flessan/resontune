@@ -3,6 +3,7 @@ import { useFetch } from '@/lib/useFetch';
 import type { Track } from '@/lib/types';
 import { useAuth } from '@/stores/auth';
 import { TrackRow } from '@/components/TrackRow';
+import { LibraryTabs } from '@/components/LibraryTabs';
 import { formatDate } from '@/lib/format';
 import { toast } from '@/stores/toast';
 
@@ -13,8 +14,9 @@ export function Favorites() {
 
   return (
     <div className="page">
-      <h1 className="page-title">Favorites</h1>
+      <h1 className="page-title">Library</h1>
       <p className="page-sub">Tracks you've saved from the community catalog.</p>
+      <LibraryTabs />
       {!user ? (
         <div className="empty">
           <h3>Sign in to sync favorites</h3>
@@ -41,8 +43,9 @@ export function History() {
 
   return (
     <div className="page">
-      <h1 className="page-title">Listening history</h1>
+      <h1 className="page-title">Library</h1>
       <p className="page-sub">What you've played, most recent first.</p>
+      <LibraryTabs />
       {!user ? (
         <div className="empty"><h3>Sign in to keep history</h3><p>Anonymous listening is never tracked to your identity.</p></div>
       ) : loading ? (

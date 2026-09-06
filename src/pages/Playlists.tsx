@@ -6,6 +6,7 @@ import { useAuth } from '@/stores/auth';
 import { api } from '@/lib/api';
 import { toast } from '@/stores/toast';
 import { IconPlus } from '@/components/Icons';
+import { LibraryTabs } from '@/components/LibraryTabs';
 
 export default function Playlists() {
   const user = useAuth((s) => s.user);
@@ -30,8 +31,9 @@ export default function Playlists() {
 
   return (
     <div className="page">
-      <h1 className="page-title">Playlists</h1>
-      <p className="page-sub">Editorial collections and playlists shared by the community.</p>
+      <h1 className="page-title">Library</h1>
+      <p className="page-sub">Your playlists and playlists shared by the community.</p>
+      <LibraryTabs />
 
       {user && (
         <>

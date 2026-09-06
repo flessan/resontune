@@ -1,8 +1,8 @@
 /**
  * Extract a tasteful accent color from artwork. Downsamples the image and
  * picks the most saturated mid-lightness cluster, then clamps it into the
- * ResonTune palette range (warm, ink-friendly). Applied as --accent so the
- * whole UI quietly follows the playing record.
+ * ResonTune palette range (warm, ink-friendly). Applied as --player-tint so
+ * the player surfaces quietly follow the playing record.
  */
 
 const cache = new Map<string, string>();
@@ -37,15 +37,18 @@ export async function extractAccent(src: string): Promise<string | null> {
   }
 }
 
+/**
+ * Material-You dynamic color: the playing artwork influences tonal PLAYER
+ * surfaces (via --player-tint) — it never recolors the application. The
+ * app's own primary/navigation/typography identity stays stable.
+ */
 export function applyAccent(hex: string | null): void {
   const root = document.documentElement;
   if (!hex) {
-    root.style.removeProperty('--accent');
-    root.style.removeProperty('--accent-soft');
+    root.style.removeProperty('--player-tint');
     return;
   }
-  root.style.setProperty('--accent', hex);
-  root.style.setProperty('--accent-soft', hex + '1f');
+  root.style.setProperty('--player-tint', hex);
 }
 
 export function loadImage(src: string): Promise<HTMLImageElement> {

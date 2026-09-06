@@ -40,8 +40,9 @@ function AmbientVisualizer({ item }: { item: { artworkUrl: string | null; title:
     if (!canvasRef.current) return;
     engine.ensureAnalysis();
     const runner = new VisualizerRunner(canvasRef.current, mode, vSettings, () => engine.readFrame());
-    // Draw with the theme's ink so the layer sits naturally on the sheet.
-    const ink = getComputedStyle(document.documentElement).getPropertyValue('--ink-faint').trim();
+    // Draw with the theme's outline tone so the layer sits naturally on the
+    // sheet (plain hex — canvas-safe, unlike the color-mix() aliases).
+    const ink = getComputedStyle(document.documentElement).getPropertyValue('--outline').trim();
     if (ink) runner.setPaper(ink);
     runnerRef.current = runner;
     runner.start();

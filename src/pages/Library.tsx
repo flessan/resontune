@@ -8,6 +8,7 @@ import { localTrackToQueueItem, resolveLocalArtworkUrl } from '@/providers';
 import { formatBytes } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { IconPlay, IconUpload, IconDownload } from '@/components/Icons';
+import { LibraryTabs } from '@/components/LibraryTabs';
 
 type Filter = 'all' | 'favorites';
 
@@ -81,11 +82,12 @@ export default function Library() {
 
   return (
     <div className="page">
-      <h1 className="page-title">Local library</h1>
+      <h1 className="page-title">Library</h1>
       <p className="page-sub">
         Your files, your device. Music you add here is stored in your browser
         (IndexedDB) and is never uploaded anywhere.
       </p>
+      <LibraryTabs />
 
       <div
         className={`dropzone ${over ? 'over' : ''}`}

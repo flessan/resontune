@@ -1,6 +1,6 @@
 /**
  * About — what ResonTune is, how music works here, and how to take part.
- * Same design system as the rest of the product: hero, sections, tiles.
+ * Native M3 destination: page title, tonal sections, list items.
  */
 import { Link } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
@@ -14,20 +14,16 @@ export default function About() {
 
   return (
     <div className="page">
-      <div className="hero">
-        <div className="hero-inner">
-          <h2>Open music.<br /><em>For everyone.</em></h2>
-          <p>
-            ResonTune is an open, community-driven music platform built to make
-            listening and discovering music accessible without unnecessary
-            subscription barriers. No account is needed to listen. No
-            algorithm decides what you hear.
-          </p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <Link to="/" className="btn primary">Start listening</Link>
-            <Link to="/support" className="btn">Support ResonTune</Link>
-          </div>
-        </div>
+      <h1 className="page-title">About ResonTune</h1>
+      <p className="page-sub">
+        An open, community-driven music platform built to make listening and
+        discovering music accessible without unnecessary subscription
+        barriers. No account is needed to listen. No algorithm decides what
+        you hear.
+      </p>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 32 }}>
+        <Link to="/" className="btn primary">Start listening</Link>
+        <Link to="/support" className="btn">Support ResonTune</Link>
       </div>
 
       <div className="about-grid">

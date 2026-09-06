@@ -8,8 +8,8 @@ import { ExpandedPlayer } from '@/player/ExpandedPlayer';
 import { ImmersivePlayer } from '@/player/ImmersivePlayer';
 import { engine } from '@/player/engine';
 import {
-  IconHome, IconSearch, IconLibrary, IconMic, IconDisc, IconPlaylist,
-  IconHeart, IconSubmit, IconUser, IconSettings, IconShield, IconWave, IconQueue,
+  IconHome, IconSearch, IconLibrary, IconMic, IconDisc,
+  IconSubmit, IconUser, IconSettings, IconShield, IconWave,
 } from './Icons';
 import { SignInDialog } from './SignInDialog';
 import { Footer } from './Footer';
@@ -71,12 +71,14 @@ export function Layout() {
         <NavLink to="/originals" className={nav}><IconDisc width={17} height={17} /> Originals</NavLink>
         <NavLink to="/community" className={nav}><IconMic width={17} height={17} /> Community</NavLink>
         <NavLink to="/radio" className={nav}><IconWave width={17} height={17} /> Radio</NavLink>
-
-        <div className="nav-section">Your music</div>
-        <NavLink to="/library" className={nav}><IconLibrary width={17} height={17} /> Local library</NavLink>
-        <NavLink to="/playlists" className={nav}><IconPlaylist width={17} height={17} /> Playlists</NavLink>
-        <NavLink to="/favorites" className={nav}><IconHeart width={17} height={17} /> Favorites</NavLink>
-        <NavLink to="/history" className={nav}><IconQueue width={17} height={17} /> History</NavLink>
+        <NavLink
+          to="/playlists"
+          className={({ isActive }) =>
+            `nav-link ${isActive || ['/library', '/favorites', '/history'].some((p) => location.pathname.startsWith(p)) ? 'active' : ''}`
+          }
+        >
+          <IconLibrary width={17} height={17} /> Library
+        </NavLink>
 
         <div className="nav-section">Create</div>
         <NavLink to="/submit" className={nav}><IconSubmit width={17} height={17} /> Release music</NavLink>
@@ -132,7 +134,14 @@ export function Layout() {
         <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}><IconHome width={20} height={20} />Home</NavLink>
         <NavLink to="/discover" className={({ isActive }) => (isActive ? 'active' : '')}><IconSearch width={20} height={20} />Discover</NavLink>
         <NavLink to="/radio" className={({ isActive }) => (isActive ? 'active' : '')}><IconWave width={20} height={20} />Radio</NavLink>
-        <NavLink to="/library" className={({ isActive }) => (isActive ? 'active' : '')}><IconLibrary width={20} height={20} />Library</NavLink>
+        <NavLink
+          to="/playlists"
+          className={({ isActive }) =>
+            isActive || ['/library', '/favorites', '/history'].some((p) => location.pathname.startsWith(p)) ? 'active' : ''
+          }
+        >
+          <IconLibrary width={20} height={20} />Library
+        </NavLink>
         <NavLink to={user ? '/profile' : '/settings'} className={({ isActive }) => (isActive ? 'active' : '')}><IconUser width={20} height={20} />{user ? 'You' : 'More'}</NavLink>
       </nav>
 

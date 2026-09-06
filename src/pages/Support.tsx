@@ -26,22 +26,15 @@ export default function Support() {
 
   return (
     <div className="page">
-      <div className="hero">
-        <div className="hero-inner">
-          <h2>Keep the music<br /><em>playing.</em></h2>
-          <p>
-            ResonTune has no subscriptions and no ads. What it does have:
-            hosting, audio storage, bandwidth, a CDN, a domain, moderation
-            time, and ongoing open-source development. Community support is
-            what carries those costs — every contribution goes to running and
-            improving the platform.
-          </p>
-          <p style={{ fontSize: 12.5, color: 'var(--ink-faint)' }}>
-            Supporting is entirely optional. Everything on ResonTune stays
-            free to listen to either way.
-          </p>
-        </div>
-      </div>
+      <h1 className="page-title">Support ResonTune</h1>
+      <p className="page-sub">
+        ResonTune has no subscriptions and no ads. What it does have: hosting,
+        audio storage, bandwidth, a CDN, a domain, moderation time, and
+        ongoing open-source development. Community support carries those
+        costs — every contribution goes to running and improving the
+        platform. Supporting is entirely optional; everything on ResonTune
+        stays free to listen to either way.
+      </p>
 
       {!anyMethod && (
         <div className="empty">
