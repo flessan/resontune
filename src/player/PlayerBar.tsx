@@ -4,6 +4,7 @@ import { usePlayer } from './store';
 import { engine } from './engine';
 import { SeekBar } from './SeekBar';
 import { Artwork } from '@/components/Artwork';
+import { SourceChip } from '@/components/Provenance';
 import {
   IconPlay, IconPause, IconPrev, IconNext, IconShuffle, IconRepeat,
   IconRepeatOne, IconVolume, IconMute, IconExpand, IconWave,
@@ -57,7 +58,7 @@ export function PlayerBar() {
                 ) : (
                   item.title
                 )}
-                {item.origin === 'local' && <span className="source-chip local">Local</span>}
+                <SourceChip origin={item.origin} sourceType={item.sourceType} />
               </div>
               <div className="pb-sub">
                 {item.origin === 'remote' && item.artistSlug ? (

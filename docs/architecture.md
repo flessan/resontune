@@ -20,7 +20,7 @@ client from `dist/` — one deployable unit.
 src/
   player/       playback engine + state + player UIs
   visualizer/   analysis-driven render engine + modes/
-  providers/    source resolution (hosted / local / external)
+  providers/    playback resolution (server /api/play + local object URLs)
   local/        IndexedDB library, importer (music-metadata)
   stores/       auth, settings, toasts (zustand)
   components/   shared UI (rows, tiles, dialogs, icons)

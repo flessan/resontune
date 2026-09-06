@@ -10,11 +10,12 @@ interface Submission {
   status: string;
   payload: Record<string, string>;
   moderatorNote: string | null;
+  internalNote: string | null;
   submitterHandle: string | null;
   createdAt: string;
 }
 
-const STATUSES = ['pending', 'reviewing', 'approved', 'rejected'] as const;
+const STATUSES = ['pending', 'reviewing', 'approved', 'published', 'rejected'] as const;
 
 export default function Moderation() {
   const user = useAuth((s) => s.user);
@@ -25,6 +26,7 @@ export default function Moderation() {
     [status, refresh, user?.id],
   );
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [internalNotes, setInternalNotes] = useState<Record<string, string>>({});
 
   if (!user || (user.role !== 'moderator' && user.role !== 'admin')) {
     return (
@@ -37,10 +39,19 @@ export default function Moderation() {
     );
   }
 
-  const decide = async (id: string, action: 'reviewing' | 'approve' | 'reject') => {
+  const decide = async (id: string, action: 'reviewing' | 'approve' | 'publish' | 'reject') => {
     try {
-      await api.post(`/moderation/queue/${id}`, { action, note: notes[id] || undefined });
-      toast(action === 'approve' ? 'Approved and published' : action === 'reject' ? 'Rejected' : 'Marked as reviewing');
+      await api.post(`/moderation/queue/${id}`, {
+        action,
+        note: notes[id] || undefined,
+        internalNote: internalNotes[id] || undefined,
+      });
+      toast(
+        action === 'publish' ? 'Published to the catalog'
+        : action === 'approve' ? 'Approved — ready to publish'
+        : action === 'reject' ? 'Rejected'
+        : 'Marked as reviewing',
+      );
       setRefresh((n) => n + 1);
     } catch (e: any) {
       toast(e.message);
@@ -51,8 +62,9 @@ export default function Moderation() {
     <div className="page">
       <h1 className="page-title">Moderation</h1>
       <p className="page-sub">
-        Review community submissions. Approving creates the artist, release,
-        track and source records in the public catalog.
+        Review community submissions. Lifecycle: pending → reviewing → approved
+        → published. Publishing creates the artist, release, track and source
+        records in the public catalog. Internal notes never leave this page.
       </p>
 
       <div className="pill-row" style={{ marginBottom: 24 }}>
@@ -101,7 +113,7 @@ export default function Moderation() {
                   Your browser can't preview this audio.
                 </audio>
               )}
-              {(s.status === 'pending' || s.status === 'reviewing') && (
+              {(s.status === 'pending' || s.status === 'reviewing' || s.status === 'approved') && (
                 <>
                   <div className="field" style={{ marginBottom: 10 }}>
                     <label htmlFor={`note-${s.id}`}>Moderator note (sent to the submitter)</label>
@@ -113,17 +125,37 @@ export default function Moderation() {
                       onChange={(e) => setNotes((n) => ({ ...n, [s.id]: e.target.value }))}
                     />
                   </div>
+                  <div className="field" style={{ marginBottom: 10 }}>
+                    <label htmlFor={`inote-${s.id}`}>Internal note (moderation team only — never shown publicly)</label>
+                    <input
+                      id={`inote-${s.id}`}
+                      type="text"
+                      maxLength={1000}
+                      value={internalNotes[s.id] ?? ''}
+                      onChange={(e) => setInternalNotes((n) => ({ ...n, [s.id]: e.target.value }))}
+                    />
+                  </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {s.status === 'pending' && (
                       <button className="btn small" onClick={() => void decide(s.id, 'reviewing')}>Start reviewing</button>
                     )}
-                    <button className="btn primary small" onClick={() => void decide(s.id, 'approve')}>Approve & publish</button>
-                    <button className="btn small danger" onClick={() => void decide(s.id, 'reject')}>Reject</button>
+                    {(s.status === 'pending' || s.status === 'reviewing') && (
+                      <>
+                        <button className="btn small" onClick={() => void decide(s.id, 'approve')}>Approve</button>
+                        <button className="btn small danger" onClick={() => void decide(s.id, 'reject')}>Reject</button>
+                      </>
+                    )}
+                    <button className="btn primary small" onClick={() => void decide(s.id, 'publish')}>Publish to catalog</button>
                   </div>
                 </>
               )}
               {s.moderatorNote && s.status !== 'pending' && (
                 <div className="note-card" style={{ marginTop: 8 }}>“{s.moderatorNote}”</div>
+              )}
+              {s.internalNote && (
+                <div className="note-card" style={{ marginTop: 8, opacity: 0.75 }}>
+                  <strong>Internal:</strong> {s.internalNote}
+                </div>
               )}
             </div>
           ))}

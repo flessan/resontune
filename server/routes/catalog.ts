@@ -11,7 +11,7 @@ import { asyncRoute, pagination, HttpError } from '../util/http.ts';
 const TRACK_SELECT = `
   t.id, t.slug, t.title, t.track_no, t.duration_seconds, t.artwork_url,
   t.description, t.rights_holder, t.credits, t.play_count, t.like_count,
-  t.created_at,
+  t.created_at, t.source_type, t.attribution_text, t.territory,
   a.id AS artist_id, a.slug AS artist_slug, a.name AS artist_name,
   al.id AS album_id, al.slug AS album_slug, al.title AS album_title,
   al.artwork_url AS album_artwork,
@@ -31,6 +31,8 @@ interface TrackRow {
   duration_seconds: number | null; artwork_url: string | null;
   description: string | null; rights_holder: string | null; credits: string | null;
   play_count: string | number; like_count: string | number; created_at: string;
+  source_type: 'original' | 'community' | 'external';
+  attribution_text: string | null; territory: string | null;
   artist_id: string; artist_slug: string; artist_name: string;
   album_id: string | null; album_slug: string | null; album_title: string | null;
   album_artwork: string | null;
@@ -52,6 +54,9 @@ export function serializeTrack(row: TrackRow, extra?: Record<string, unknown>) {
     playCount: Number(row.play_count),
     likeCount: Number(row.like_count),
     createdAt: row.created_at,
+    sourceType: row.source_type,
+    attributionText: row.attribution_text,
+    territory: row.territory,
     artist: { id: row.artist_id, slug: row.artist_slug, name: row.artist_name },
     album: row.album_id
       ? { id: row.album_id, slug: row.album_slug, title: row.album_title, artworkUrl: row.album_artwork }
@@ -72,8 +77,10 @@ export async function loadTrackExtras(trackIds: string[]) {
   const db = await getDb();
   if (!trackIds.length) return { sources: new Map(), genres: new Map(), tags: new Map() };
   const [sources, genres, tags] = await Promise.all([
-    db.query<{ track_id: string; provider: string; kind: string; url: string; mime_type: string | null; priority: number }>(
-      `SELECT track_id, provider, kind, url, mime_type, priority
+    // NOTE: the raw url column is deliberately not selected — the client
+    // resolves playback through GET /api/play/:trackId, never from here.
+    db.query<{ track_id: string; provider: string; kind: string; mime_type: string | null; source_type: string; availability: string; priority: number }>(
+      `SELECT track_id, provider, kind, mime_type, source_type, availability, priority
          FROM track_sources WHERE track_id = ANY($1) ORDER BY priority`,
       [trackIds],
     ),
@@ -104,7 +111,8 @@ export function withExtras(rows: TrackRow[], extras: Awaited<ReturnType<typeof l
   return rows.map((row) =>
     serializeTrack(row, {
       sources: (extras.sources.get(row.id) ?? []).map((s: any) => ({
-        provider: s.provider, kind: s.kind, url: s.url, mimeType: s.mime_type,
+        provider: s.provider, kind: s.kind, mimeType: s.mime_type,
+        sourceType: s.source_type, availability: s.availability,
       })),
       genres: (extras.genres.get(row.id) ?? []).map((g: any) => ({ id: g.id, name: g.name })),
       tags: (extras.tags.get(row.id) ?? []).map((t: any) => ({ id: t.id, name: t.name })),
@@ -112,10 +120,18 @@ export function withExtras(rows: TrackRow[], extras: Awaited<ReturnType<typeof l
   );
 }
 
-export async function queryTracks(where: string, params: unknown[], orderLimit: string) {
+export async function queryTracks(
+  where: string,
+  params: unknown[],
+  orderLimit: string,
+  opts: { includeUnlisted?: boolean } = {},
+) {
   const db = await getDb();
+  const statusClause = opts.includeUnlisted
+    ? `t.status IN ('published','unlisted')`
+    : `t.status = 'published'`;
   const rows = await db.query<TrackRow>(
-    `SELECT ${TRACK_SELECT} ${TRACK_FROM} WHERE t.status = 'published' ${where} ${orderLimit}`,
+    `SELECT ${TRACK_SELECT} ${TRACK_FROM} WHERE ${statusClause} ${where} ${orderLimit}`,
     params,
   );
   const extras = await loadTrackExtras(rows.map((r) => r.id));
@@ -132,7 +148,7 @@ export function catalogRouter(): Router {
     '/home',
     asyncRoute(async (_req, res) => {
       const db = await getDb();
-      const [trending, newReleases, risingRows, picksRows] = await Promise.all([
+      const [trending, newReleases, risingRows, picksRows, featuredRows, originals, collections] = await Promise.all([
         // Trending = plays in the last 14 days (falls back to all-time below)
         queryTracks(
           `AND t.id IN (
@@ -143,10 +159,11 @@ export function catalogRouter(): Router {
           `ORDER BY t.play_count DESC LIMIT 12`,
         ),
         db.query(
-          `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on,
+          `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on, al.source_type,
                   a.name AS artist_name, a.slug AS artist_slug,
                   (SELECT count(*) FROM tracks tr WHERE tr.album_id = al.id AND tr.status='published') AS track_count
              FROM albums al JOIN artists a ON a.id = al.artist_id
+            WHERE al.status = 'published'
             ORDER BY al.released_on DESC NULLS LAST LIMIT 8`,
         ),
         // Rising artists = artists whose recent plays outpace their catalog size
@@ -162,6 +179,25 @@ export function catalogRouter(): Router {
         db.query<{ track_id: string; note: string | null }>(
           `SELECT track_id, note FROM community_picks ORDER BY created_at DESC LIMIT 8`,
         ),
+        // Featured release = most recent published Originals release
+        db.query(
+          `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on,
+                  al.description, al.catalog_no, a.name AS artist_name, a.slug AS artist_slug,
+                  (SELECT count(*) FROM tracks tr WHERE tr.album_id = al.id AND tr.status='published') AS track_count
+             FROM albums al JOIN artists a ON a.id = al.artist_id
+            WHERE al.source_type = 'original' AND al.status = 'published'
+            ORDER BY al.released_on DESC NULLS LAST LIMIT 1`,
+        ),
+        queryTracks(
+          `AND t.source_type = 'original'`, [],
+          `ORDER BY t.play_count DESC LIMIT 8`,
+        ),
+        db.query(
+          `SELECT c.id, c.slug, c.title, c.description, c.artwork_url, c.curator_name,
+                  (SELECT count(*) FROM collection_items ci WHERE ci.collection_id = c.id) AS item_count
+             FROM collections c WHERE c.status = 'published'
+            ORDER BY c.updated_at DESC LIMIT 6`,
+        ),
       ]);
 
       let trendingOut = trending;
@@ -175,12 +211,27 @@ export function catalogRouter(): Router {
         : [];
       const noteMap = new Map(picksRows.map((p: any) => [p.track_id, p.note]));
 
+      const feat: any = featuredRows[0];
       res.json({
+        featuredRelease: feat
+          ? {
+              id: feat.id, slug: feat.slug, title: feat.title, type: feat.type,
+              artworkUrl: feat.artwork_url, releasedOn: feat.released_on,
+              description: feat.description, catalogNo: feat.catalog_no,
+              trackCount: Number(feat.track_count), sourceType: 'original',
+              artist: { name: feat.artist_name, slug: feat.artist_slug },
+            }
+          : null,
+        originals,
+        collections: collections.map((c: any) => ({
+          id: c.id, slug: c.slug, title: c.title, description: c.description,
+          artworkUrl: c.artwork_url, curatorName: c.curator_name, itemCount: Number(c.item_count),
+        })),
         trending: trendingOut,
         newReleases: newReleases.map((al: any) => ({
           id: al.id, slug: al.slug, title: al.title, type: al.type,
           artworkUrl: al.artwork_url, releasedOn: al.released_on,
-          trackCount: Number(al.track_count),
+          trackCount: Number(al.track_count), sourceType: al.source_type,
           artist: { name: al.artist_name, slug: al.artist_slug },
         })),
         risingArtists: risingRows.map((a: any) => ({
@@ -198,9 +249,17 @@ export function catalogRouter(): Router {
       const { limit, offset } = pagination(req);
       const genre = typeof req.query.genre === 'string' ? req.query.genre : null;
       const tag = typeof req.query.tag === 'string' ? req.query.tag : null;
+      const source =
+        req.query.source === 'original' || req.query.source === 'community'
+          ? String(req.query.source)
+          : null;
       const sort = req.query.sort === 'plays' ? 't.play_count DESC' : 't.created_at DESC';
       let where = '';
       const params: unknown[] = [];
+      if (source) {
+        params.push(source);
+        where += ` AND t.source_type = $${params.length}`;
+      }
       if (genre) {
         params.push(genre);
         where += ` AND t.id IN (SELECT track_id FROM track_genres WHERE genre_id = $${params.length})`;
@@ -275,17 +334,30 @@ export function catalogRouter(): Router {
     asyncRoute(async (req, res) => {
       const { limit, offset } = pagination(req);
       const db = await getDb();
+      const source =
+        req.query.source === 'original' || req.query.source === 'community'
+          ? String(req.query.source)
+          : null;
+      const params: unknown[] = [];
+      let where = '';
+      if (source) {
+        params.push(source);
+        where = `WHERE a.source_type = $${params.length}`;
+      }
+      params.push(limit, offset);
       const rows = await db.query(
-        `SELECT a.id, a.slug, a.name, a.bio, a.image_url, a.location,
+        `SELECT a.id, a.slug, a.name, a.bio, a.image_url, a.location, a.source_type,
                 COALESCE(sum(t.play_count), 0) AS plays, count(t.id) AS track_count
            FROM artists a LEFT JOIN tracks t ON t.artist_id = a.id AND t.status='published'
-          GROUP BY a.id ORDER BY plays DESC, a.name LIMIT $1 OFFSET $2`,
-        [limit, offset],
+          ${where}
+          GROUP BY a.id ORDER BY plays DESC, a.name LIMIT $${params.length - 1} OFFSET $${params.length}`,
+        params,
       );
       res.json({
         artists: rows.map((a: any) => ({
           id: a.id, slug: a.slug, name: a.name, bio: a.bio, imageUrl: a.image_url,
-          location: a.location, plays: Number(a.plays), trackCount: Number(a.track_count),
+          location: a.location, sourceType: a.source_type,
+          plays: Number(a.plays), trackCount: Number(a.track_count),
         })),
       });
     }),
@@ -296,7 +368,8 @@ export function catalogRouter(): Router {
     asyncRoute(async (req, res) => {
       const db = await getDb();
       const rows = await db.query(
-        `SELECT id, slug, name, bio, image_url, location, created_at FROM artists WHERE slug = $1`,
+        `SELECT id, slug, name, bio, image_url, location, source_type, created_at
+           FROM artists WHERE slug = $1`,
         [String(req.params.slug)],
       );
       const artist: any = rows[0];
@@ -304,9 +377,10 @@ export function catalogRouter(): Router {
       const [links, albums, popular, genres] = await Promise.all([
         db.query(`SELECT kind, label, url FROM artist_links WHERE artist_id = $1`, [artist.id]),
         db.query(
-          `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on,
+          `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on, al.catalog_no,
                   (SELECT count(*) FROM tracks t WHERE t.album_id = al.id AND t.status='published') AS track_count
-             FROM albums al WHERE al.artist_id = $1 ORDER BY al.released_on DESC NULLS LAST`,
+             FROM albums al WHERE al.artist_id = $1 AND al.status = 'published'
+            ORDER BY al.released_on DESC NULLS LAST`,
           [artist.id],
         ),
         queryTracks(`AND t.artist_id = $1`, [artist.id], `ORDER BY t.play_count DESC LIMIT 10`),
@@ -321,13 +395,15 @@ export function catalogRouter(): Router {
       res.json({
         artist: {
           id: artist.id, slug: artist.slug, name: artist.name, bio: artist.bio,
-          imageUrl: artist.image_url, location: artist.location, createdAt: artist.created_at,
+          imageUrl: artist.image_url, location: artist.location,
+          sourceType: artist.source_type, createdAt: artist.created_at,
           links: links.map((l: any) => ({ kind: l.kind, label: l.label, url: l.url })),
           genres: genres.map((g: any) => ({ id: g.id, name: g.name })),
         },
         albums: albums.map((al: any) => ({
           id: al.id, slug: al.slug, title: al.title, type: al.type,
-          artworkUrl: al.artwork_url, releasedOn: al.released_on, trackCount: Number(al.track_count),
+          artworkUrl: al.artwork_url, releasedOn: al.released_on,
+          catalogNo: al.catalog_no, trackCount: Number(al.track_count),
         })),
         popularTracks: popular,
       });
@@ -341,9 +417,10 @@ export function catalogRouter(): Router {
       const db = await getDb();
       const rows = await db.query(
         `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on, al.description,
-                a.name AS artist_name, a.slug AS artist_slug,
+                al.source_type, al.catalog_no, a.name AS artist_name, a.slug AS artist_slug,
                 (SELECT count(*) FROM tracks t WHERE t.album_id = al.id AND t.status='published') AS track_count
            FROM albums al JOIN artists a ON a.id = al.artist_id
+          WHERE al.status = 'published'
           ORDER BY al.released_on DESC NULLS LAST LIMIT $1 OFFSET $2`,
         [limit, offset],
       );
@@ -351,6 +428,7 @@ export function catalogRouter(): Router {
         albums: rows.map((al: any) => ({
           id: al.id, slug: al.slug, title: al.title, type: al.type,
           artworkUrl: al.artwork_url, releasedOn: al.released_on, description: al.description,
+          sourceType: al.source_type, catalogNo: al.catalog_no,
           trackCount: Number(al.track_count),
           artist: { name: al.artist_name, slug: al.artist_slug },
         })),
@@ -369,6 +447,9 @@ export function catalogRouter(): Router {
       );
       const album: any = rows[0];
       if (!album) throw new HttpError(404, 'Album not found.');
+      if (album.status === 'taken_down' || album.status === 'archived') {
+        throw new HttpError(404, 'Album not found.');
+      }
       const tracks = await queryTracks(
         `AND t.album_id = $1`, [album.id], `ORDER BY t.track_no NULLS LAST, t.title`,
       );
@@ -376,7 +457,8 @@ export function catalogRouter(): Router {
         album: {
           id: album.id, slug: album.slug, title: album.title, type: album.type,
           artworkUrl: album.artwork_url, releasedOn: album.released_on,
-          description: album.description,
+          description: album.description, sourceType: album.source_type,
+          catalogNo: album.catalog_no,
           artist: { name: album.artist_name, slug: album.artist_slug },
         },
         tracks,
@@ -457,6 +539,258 @@ export function catalogRouter(): Router {
           ownerHandle: p.owner_handle,
         })),
       });
+    }),
+  );
+
+  /** ResonTune Originals overview: releases + artists + top tracks. */
+  r.get(
+    '/originals',
+    asyncRoute(async (_req, res) => {
+      const db = await getDb();
+      const [releases, artists, topTracks] = await Promise.all([
+        db.query(
+          `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on,
+                  al.description, al.catalog_no, a.name AS artist_name, a.slug AS artist_slug,
+                  (SELECT count(*) FROM tracks t WHERE t.album_id = al.id AND t.status='published') AS track_count
+             FROM albums al JOIN artists a ON a.id = al.artist_id
+            WHERE al.source_type = 'original' AND al.status = 'published'
+            ORDER BY al.released_on DESC NULLS LAST`,
+        ),
+        db.query(
+          `SELECT a.id, a.slug, a.name, a.bio, a.image_url, a.location,
+                  COALESCE(sum(t.play_count),0) AS plays, count(t.id) AS track_count
+             FROM artists a LEFT JOIN tracks t ON t.artist_id = a.id AND t.status='published'
+            WHERE a.source_type = 'original'
+            GROUP BY a.id ORDER BY plays DESC`,
+        ),
+        queryTracks(`AND t.source_type = 'original'`, [], `ORDER BY t.play_count DESC LIMIT 10`),
+      ]);
+      res.setHeader('Cache-Control', 'public, max-age=30');
+      res.json({
+        releases: releases.map((al: any) => ({
+          id: al.id, slug: al.slug, title: al.title, type: al.type,
+          artworkUrl: al.artwork_url, releasedOn: al.released_on,
+          description: al.description, catalogNo: al.catalog_no,
+          trackCount: Number(al.track_count),
+          artist: { name: al.artist_name, slug: al.artist_slug },
+        })),
+        artists: artists.map((a: any) => ({
+          id: a.id, slug: a.slug, name: a.name, bio: a.bio, imageUrl: a.image_url,
+          location: a.location, plays: Number(a.plays), trackCount: Number(a.track_count),
+        })),
+        topTracks,
+      });
+    }),
+  );
+
+  /** Community catalog overview: published community releases + latest tracks. */
+  r.get(
+    '/community',
+    asyncRoute(async (_req, res) => {
+      const db = await getDb();
+      const [releases, artists, latest, picksRows] = await Promise.all([
+        db.query(
+          `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on, al.description,
+                  a.name AS artist_name, a.slug AS artist_slug,
+                  (SELECT count(*) FROM tracks t WHERE t.album_id = al.id AND t.status='published') AS track_count
+             FROM albums al JOIN artists a ON a.id = al.artist_id
+            WHERE al.source_type = 'community' AND al.status = 'published'
+            ORDER BY al.released_on DESC NULLS LAST LIMIT 24`,
+        ),
+        db.query(
+          `SELECT a.id, a.slug, a.name, a.bio, a.image_url, a.location,
+                  COALESCE(sum(t.play_count),0) AS plays, count(t.id) AS track_count
+             FROM artists a LEFT JOIN tracks t ON t.artist_id = a.id AND t.status='published'
+            WHERE a.source_type = 'community'
+            GROUP BY a.id ORDER BY plays DESC LIMIT 12`,
+        ),
+        queryTracks(`AND t.source_type = 'community'`, [], `ORDER BY t.created_at DESC LIMIT 12`),
+        db.query<{ track_id: string; note: string | null }>(
+          `SELECT track_id, note FROM community_picks ORDER BY created_at DESC LIMIT 6`,
+        ),
+      ]);
+      const pickIds = picksRows.map((p: any) => p.track_id);
+      const picks = pickIds.length ? await queryTracks(`AND t.id = ANY($1)`, [pickIds], '') : [];
+      const noteMap = new Map(picksRows.map((p: any) => [p.track_id, p.note]));
+      res.setHeader('Cache-Control', 'public, max-age=30');
+      res.json({
+        releases: releases.map((al: any) => ({
+          id: al.id, slug: al.slug, title: al.title, type: al.type,
+          artworkUrl: al.artwork_url, releasedOn: al.released_on, description: al.description,
+          trackCount: Number(al.track_count),
+          artist: { name: al.artist_name, slug: al.artist_slug },
+        })),
+        artists: artists.map((a: any) => ({
+          id: a.id, slug: a.slug, name: a.name, bio: a.bio, imageUrl: a.image_url,
+          location: a.location, plays: Number(a.plays), trackCount: Number(a.track_count),
+        })),
+        latestTracks: latest,
+        picks: picks.map((t: any) => ({ ...t, pickNote: noteMap.get(t.id) ?? null })),
+      });
+    }),
+  );
+
+  /** Published editorial collections. */
+  r.get(
+    '/collections',
+    asyncRoute(async (_req, res) => {
+      const db = await getDb();
+      const rows = await db.query(
+        `SELECT c.id, c.slug, c.title, c.description, c.artwork_url, c.curator_name, c.updated_at,
+                (SELECT count(*) FROM collection_items ci WHERE ci.collection_id = c.id) AS item_count
+           FROM collections c WHERE c.status = 'published'
+          ORDER BY c.updated_at DESC LIMIT 50`,
+      );
+      res.setHeader('Cache-Control', 'public, max-age=30');
+      res.json({
+        collections: rows.map((c: any) => ({
+          id: c.id, slug: c.slug, title: c.title, description: c.description,
+          artworkUrl: c.artwork_url, curatorName: c.curator_name,
+          itemCount: Number(c.item_count), updatedAt: c.updated_at,
+        })),
+      });
+    }),
+  );
+
+  /** A collection with its ordered mixed items (tracks, albums, artists). */
+  r.get(
+    '/collections/:slug',
+    asyncRoute(async (req, res) => {
+      const db = await getDb();
+      const rows = await db.query(
+        `SELECT id, slug, title, description, artwork_url, curator_name, status, updated_at
+           FROM collections WHERE slug = $1`,
+        [String(req.params.slug)],
+      );
+      const col: any = rows[0];
+      if (!col || col.status !== 'published') throw new HttpError(404, 'Collection not found.');
+      const items = await db.query<{ position: number; item_kind: string; item_id: string; note: string | null }>(
+        `SELECT position, item_kind, item_id, note FROM collection_items
+          WHERE collection_id = $1 ORDER BY position`,
+        [col.id],
+      );
+      const trackIds = items.filter((i) => i.item_kind === 'track').map((i) => i.item_id);
+      const albumIds = items.filter((i) => i.item_kind === 'album').map((i) => i.item_id);
+      const artistIds = items.filter((i) => i.item_kind === 'artist').map((i) => i.item_id);
+      const [tracks, albums, artists] = await Promise.all([
+        trackIds.length ? queryTracks(`AND t.id = ANY($1)`, [trackIds], '') : Promise.resolve([]),
+        albumIds.length
+          ? db.query(
+              `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on, al.source_type,
+                      a.name AS artist_name, a.slug AS artist_slug,
+                      (SELECT count(*) FROM tracks t WHERE t.album_id = al.id AND t.status='published') AS track_count
+                 FROM albums al JOIN artists a ON a.id = al.artist_id
+                WHERE al.id = ANY($1) AND al.status = 'published'`,
+              [albumIds],
+            )
+          : Promise.resolve([]),
+        artistIds.length
+          ? db.query(
+              `SELECT id, slug, name, bio, image_url, location, source_type FROM artists WHERE id = ANY($1)`,
+              [artistIds],
+            )
+          : Promise.resolve([]),
+      ]);
+      const trackMap = new Map(tracks.map((t: any) => [t.id, t]));
+      const albumMap = new Map(
+        albums.map((al: any) => [
+          al.id,
+          {
+            id: al.id, slug: al.slug, title: al.title, type: al.type,
+            artworkUrl: al.artwork_url, releasedOn: al.released_on,
+            sourceType: al.source_type, trackCount: Number(al.track_count),
+            artist: { name: al.artist_name, slug: al.artist_slug },
+          },
+        ]),
+      );
+      const artistMap = new Map(
+        artists.map((a: any) => [
+          a.id,
+          { id: a.id, slug: a.slug, name: a.name, bio: a.bio, imageUrl: a.image_url, location: a.location, sourceType: a.source_type },
+        ]),
+      );
+      res.setHeader('Cache-Control', 'public, max-age=30');
+      res.json({
+        collection: {
+          id: col.id, slug: col.slug, title: col.title, description: col.description,
+          artworkUrl: col.artwork_url, curatorName: col.curator_name, updatedAt: col.updated_at,
+        },
+        items: items
+          .map((i) => ({
+            kind: i.item_kind,
+            note: i.note,
+            track: i.item_kind === 'track' ? trackMap.get(i.item_id) ?? null : undefined,
+            album: i.item_kind === 'album' ? albumMap.get(i.item_id) ?? null : undefined,
+            artist: i.item_kind === 'artist' ? artistMap.get(i.item_id) ?? null : undefined,
+          }))
+          .filter((i) => i.track || i.album || i.artist),
+      });
+    }),
+  );
+
+  /**
+   * Radio: a deterministic continuous queue, no AI involved.
+   * station = originals | community | all | genre:<id> | artist:<slug> | track:<slug>
+   * Selection = seeded shuffle over eligible published tracks, weighted
+   * toward play_count, deterministic for a given (station, seed) so the
+   * client can page through the same station queue.
+   */
+  r.get(
+    '/radio',
+    asyncRoute(async (req, res) => {
+      const station = String(req.query.station ?? 'all').slice(0, 80);
+      const seedParam = Number.parseInt(String(req.query.seed ?? ''), 10);
+      const seed = Number.isFinite(seedParam) ? Math.abs(seedParam) % 1_000_000 : Math.floor(Math.random() * 1_000_000);
+      const db = await getDb();
+
+      let where = '';
+      const params: unknown[] = [];
+      let label = 'ResonTune Radio';
+      if (station === 'originals') {
+        where = `AND t.source_type = 'original'`;
+        label = 'Originals Radio';
+      } else if (station === 'community') {
+        where = `AND t.source_type = 'community'`;
+        label = 'Community Radio';
+      } else if (station.startsWith('genre:')) {
+        const genreId = station.slice(6).slice(0, 40);
+        params.push(genreId);
+        where = `AND t.id IN (SELECT track_id FROM track_genres WHERE genre_id = $${params.length})`;
+        const g = await db.query<{ name: string }>(`SELECT name FROM genres WHERE id = $1`, [genreId]);
+        label = g[0] ? `${g[0].name} Radio` : 'Genre Radio';
+      } else if (station.startsWith('artist:')) {
+        const slug = station.slice(7).slice(0, 64);
+        const a = await db.query<{ id: string; name: string }>(`SELECT id, name FROM artists WHERE slug = $1`, [slug]);
+        if (!a[0]) throw new HttpError(404, 'Artist not found.');
+        // Artist radio = the artist plus tracks sharing any of their genres.
+        params.push(a[0].id);
+        where = `AND (t.artist_id = $${params.length} OR t.id IN (
+                   SELECT tg2.track_id FROM track_genres tg2 WHERE tg2.genre_id IN (
+                     SELECT tg.genre_id FROM track_genres tg JOIN tracks tr ON tr.id = tg.track_id
+                      WHERE tr.artist_id = $${params.length})))`;
+        label = `${a[0].name} Radio`;
+      } else if (station.startsWith('track:')) {
+        const slug = station.slice(6).slice(0, 80);
+        const t0 = await db.query<{ id: string; title: string }>(`SELECT id, title FROM tracks WHERE slug = $1`, [slug]);
+        if (!t0[0]) throw new HttpError(404, 'Track not found.');
+        params.push(t0[0].id);
+        where = `AND (t.id = $${params.length} OR t.id IN (
+                   SELECT tg2.track_id FROM track_genres tg2 WHERE tg2.genre_id IN (
+                     SELECT genre_id FROM track_genres WHERE track_id = $${params.length})))`;
+        label = `Radio from “${t0[0].title}”`;
+      }
+
+      // Deterministic per-seed shuffle: hash the track id with the seed.
+      // md5 is available in both Postgres and PGlite; weight by log(plays).
+      params.push(String(seed));
+      const tracks = await queryTracks(
+        where,
+        params,
+        `ORDER BY ('x' || substr(md5(t.id::text || $${params.length}), 1, 8))::bit(32)::int::float
+                  / 2147483647.0 - ln(t.play_count + 2) / 40.0
+         LIMIT 30`,
+      );
+      res.json({ station, label, seed, tracks });
     }),
   );
 

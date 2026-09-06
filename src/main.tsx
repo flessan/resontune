@@ -24,6 +24,12 @@ import Moderation from './pages/Moderation';
 import Settings from './pages/Settings';
 import { ArtistsPage, AlbumsPage, GenresPage, GenrePage, TagPage } from './pages/BrowsePages';
 import { Favorites, History, Profile } from './pages/UserPages';
+import Discover from './pages/Discover';
+import Originals from './pages/Originals';
+import Community from './pages/Community';
+import Radio from './pages/Radio';
+import Collections from './pages/Collections';
+import CollectionPage from './pages/CollectionPage';
 
 import { useAuth } from './stores/auth';
 import { restorePlayerState, setupMediaSession } from './player/store';
@@ -34,6 +40,12 @@ const router = createBrowserRouter([
     element: <Layout />,
     children: [
       { path: '/', element: <Home /> },
+      { path: '/discover', element: <Discover /> },
+      { path: '/originals', element: <Originals /> },
+      { path: '/community', element: <Community /> },
+      { path: '/radio', element: <Radio /> },
+      { path: '/collections', element: <Collections /> },
+      { path: '/collection/:slug', element: <CollectionPage /> },
       { path: '/search', element: <Search /> },
       { path: '/library', element: <Library /> },
       { path: '/track/:slug', element: <TrackPage /> },

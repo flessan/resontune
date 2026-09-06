@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import type { Track, Album, Artist, Playlist } from '@/lib/types';
+import type { Track, Album, Artist, Playlist, Collection } from '@/lib/types';
+import { OriginalBadge } from './Provenance';
 import { usePlayer } from '@/player/store';
 import { trackToQueueItem } from '@/providers';
 import { Artwork } from './Artwork';
@@ -39,6 +40,23 @@ export function AlbumTile({ album }: { album: Album }) {
       <div className="tile-title">{album.title}</div>
       <div className="tile-sub">
         {album.artist.name} · {album.type.toUpperCase()}
+      </div>
+      {album.sourceType === 'original' && <div style={{ marginTop: 2 }}><OriginalBadge compact /></div>}
+    </Link>
+  );
+}
+
+export function CollectionTile({ collection }: { collection: Collection }) {
+  return (
+    <Link to={`/collection/${collection.slug}`} className="collection-tile">
+      <div className="collection-art">
+        <Artwork src={collection.artworkUrl} alt="" />
+      </div>
+      <div>
+        <div className="tile-title">{collection.title}</div>
+        <div className="tile-sub">
+          {collection.itemCount} items · {collection.curatorName}
+        </div>
       </div>
     </Link>
   );

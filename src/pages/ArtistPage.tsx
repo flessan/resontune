@@ -6,7 +6,10 @@ import { AlbumTile } from '@/components/Tiles';
 import { Artwork } from '@/components/Artwork';
 import { usePlayer } from '@/player/store';
 import { trackToQueueItem } from '@/providers';
-import { IconPlay, IconExternal } from '@/components/Icons';
+import { IconPlay, IconExternal, IconWave } from '@/components/Icons';
+import { OriginalBadge, SourceChip } from '@/components/Provenance';
+import { api } from '@/lib/api';
+import { toast } from '@/stores/toast';
 
 interface Data {
   artist: Artist;
@@ -28,6 +31,18 @@ export default function ArtistPage() {
     if (items.length) void usePlayer.getState().playQueue(items, 0);
   };
 
+  const startRadio = async () => {
+    try {
+      const r = await api.get<{ tracks: Track[]; label: string }>(`/radio?station=artist:${artist.slug}`);
+      const items = r.tracks.map(trackToQueueItem).filter(Boolean) as NonNullable<ReturnType<typeof trackToQueueItem>>[];
+      if (!items.length) return toast('Nothing to play.');
+      void usePlayer.getState().playQueue(items, 0);
+      toast(`Now playing: ${r.label}`);
+    } catch {
+      toast('Could not start the radio.');
+    }
+  };
+
   return (
     <div className="page">
       <div className="detail-head">
@@ -35,7 +50,10 @@ export default function ArtistPage() {
           <Artwork src={artist.imageUrl} alt={`Photo of ${artist.name}`} />
         </div>
         <div style={{ minWidth: 240, flex: 1 }}>
-          <div className="detail-kind">Artist</div>
+          <div className="detail-kind" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            Artist
+            {artist.sourceType === 'original' ? <OriginalBadge /> : <SourceChip sourceType={artist.sourceType} />}
+          </div>
           <h1 className="detail-title">{artist.name}</h1>
           <div className="detail-meta">
             {artist.location}
@@ -44,6 +62,9 @@ export default function ArtistPage() {
           <div className="detail-actions">
             <button className="btn primary" onClick={playAll}>
               <IconPlay width={15} height={15} /> Play popular
+            </button>
+            <button className="btn" onClick={() => void startRadio()}>
+              <IconWave width={15} height={15} /> Artist radio
             </button>
             {artist.links?.map((l) => (
               <a key={l.url + l.label} className="btn small" href={l.url} target="_blank" rel="noreferrer">

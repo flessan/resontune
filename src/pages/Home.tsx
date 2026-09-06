@@ -1,13 +1,29 @@
+/**
+ * Home — the front page of a music platform, not a dashboard:
+ * Featured Release → Originals → New releases → Rising artists →
+ * Community picks → Trending → Collections. Every section is music-first,
+ * deterministic and explained; nothing here is an engagement statistic.
+ */
 import { Link } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
-import type { Track, Album, Artist } from '@/lib/types';
-import { TrackTile, AlbumTile, ArtistTile } from '@/components/Tiles';
+import type { Track, Album, Artist, Collection } from '@/lib/types';
+import { TrackTile, AlbumTile, ArtistTile, CollectionTile } from '@/components/Tiles';
 import { TrackRow } from '@/components/TrackRow';
+import { OriginalBadge } from '@/components/Provenance';
 import { usePlayer } from '@/player/store';
 import { trackToQueueItem } from '@/providers';
 import { IconPlay } from '@/components/Icons';
+import { api } from '@/lib/api';
+import { toast } from '@/stores/toast';
+
+interface FeaturedRelease extends Album {
+  description?: string | null;
+}
 
 interface HomeData {
+  featuredRelease: FeaturedRelease | null;
+  originals: Track[];
+  collections: Collection[];
   trending: Track[];
   newReleases: Album[];
   risingArtists: Artist[];
@@ -17,46 +33,56 @@ interface HomeData {
 export default function Home() {
   const { data, loading, error } = useFetch<HomeData>('/home');
 
-  const playTrending = () => {
-    if (!data?.trending.length) return;
-    const items = data.trending.map(trackToQueueItem).filter(Boolean) as NonNullable<ReturnType<typeof trackToQueueItem>>[];
-    void usePlayer.getState().playQueue(items, 0);
+  const playFeatured = async (slug: string) => {
+    try {
+      const r = await api.get<{ tracks: Track[] }>(`/albums/${slug}`);
+      const items = r.tracks.map(trackToQueueItem).filter(Boolean) as NonNullable<ReturnType<typeof trackToQueueItem>>[];
+      if (!items.length) return toast('No playable tracks on this release.');
+      void usePlayer.getState().playQueue(items, 0);
+    } catch {
+      toast('Could not load the release.');
+    }
   };
 
   if (loading) return <div className="loading-page"><span className="spin" /></div>;
   if (error || !data) return <div className="page"><div className="empty"><h3>Couldn't load the catalog</h3><p>{error}</p></div></div>;
 
+  const feat = data.featuredRelease;
+
   return (
     <div className="page">
-      <div className="hero">
-        <div className="hero-inner">
-          <h2>Open music.<br />For <em>everyone.</em></h2>
-          <p>
-            A community-driven catalog you can play instantly — no account, no
-            subscription, no listening limits. Bring your own files too: the local
-            library lives entirely on your device.
-          </p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button className="btn primary" onClick={playTrending}>
-              <IconPlay width={15} height={15} /> Play what's trending
-            </button>
-            <Link to="/library" className="btn">Open local library</Link>
+      {feat && (
+        <section className="featured" aria-label="Featured release">
+          {feat.artworkUrl && <img src={feat.artworkUrl} alt="" />}
+          <div>
+            <div className="kicker">
+              Featured release{feat.catalogNo ? ` · ${feat.catalogNo}` : ''}
+            </div>
+            <div style={{ marginBottom: 8 }}><OriginalBadge /></div>
+            <h2>{feat.title}</h2>
+            <div className="featured-artist">
+              <Link to={`/artist/${feat.artist.slug}`}>{feat.artist.name}</Link>
+              {' · '}{feat.type.toUpperCase()}
+              {feat.releasedOn ? ` · ${new Date(feat.releasedOn).getFullYear()}` : ''}
+            </div>
+            {feat.description && <p className="blurb">{feat.description}</p>}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button className="btn primary" onClick={() => void playFeatured(feat.slug)}>
+                <IconPlay width={15} height={15} /> Play
+              </button>
+              <Link to={`/release/${feat.slug}`} className="btn">Open release</Link>
+            </div>
           </div>
-        </div>
-        <div className="hero-art" aria-hidden>
-          {data.newReleases.slice(0, 2).map((al) => (
-            al.artworkUrl ? <img key={al.id} src={al.artworkUrl} alt="" /> : null
-          ))}
-        </div>
-      </div>
+        </section>
+      )}
 
       <div className="section-head">
-        <h2 className="section-title">Trending</h2>
-        <span className="section-note">most played in the last two weeks</span>
+        <h2 className="section-title">ResonTune Originals</h2>
+        <Link to="/originals" className="section-link">The Originals catalog</Link>
       </div>
       <div className="card-row">
-        {data.trending.slice(0, 6).map((t) => (
-          <TrackTile key={t.id} track={t} context={data.trending} />
+        {data.originals.slice(0, 6).map((t) => (
+          <TrackTile key={t.id} track={t} context={data.originals} />
         ))}
       </div>
 
@@ -66,6 +92,14 @@ export default function Home() {
       </div>
       <div className="card-row">
         {data.newReleases.slice(0, 6).map((al) => <AlbumTile key={al.id} album={al} />)}
+      </div>
+
+      <div className="section-head">
+        <h2 className="section-title">Rising artists</h2>
+        <Link to="/artists" className="section-link">All artists</Link>
+      </div>
+      <div className="card-row">
+        {data.risingArtists.map((a) => <ArtistTile key={a.id} artist={a} />)}
       </div>
 
       <div className="section-head">
@@ -82,12 +116,26 @@ export default function Home() {
       </div>
 
       <div className="section-head">
-        <h2 className="section-title">Rising artists</h2>
-        <Link to="/artists" className="section-link">All artists</Link>
+        <h2 className="section-title">Trending</h2>
+        <span className="section-note">most played in the last two weeks</span>
       </div>
       <div className="card-row">
-        {data.risingArtists.map((a) => <ArtistTile key={a.id} artist={a} />)}
+        {data.trending.slice(0, 6).map((t) => (
+          <TrackTile key={t.id} track={t} context={data.trending} />
+        ))}
       </div>
+
+      {data.collections.length > 0 && (
+        <>
+          <div className="section-head">
+            <h2 className="section-title">Collections</h2>
+            <Link to="/collections" className="section-link">All collections</Link>
+          </div>
+          <div className="collection-grid">
+            {data.collections.slice(0, 3).map((c) => <CollectionTile key={c.id} collection={c} />)}
+          </div>
+        </>
+      )}
     </div>
   );
 }

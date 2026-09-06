@@ -109,8 +109,8 @@ export default function PlaylistPage() {
     const lines = ['#EXTM3U'];
     for (const t of tracks) {
       lines.push(`#EXTINF:${t.duration ?? -1},${t.artist.name} - ${t.title}`);
-      const src = t.sources.find((s) => s.kind === 'direct_url');
-      lines.push(src ? new URL(src.url, location.origin).toString() : `resontune:track:${t.slug}`);
+      // Playback URLs are resolved server-side; export links point at the track page.
+      lines.push(new URL(`/track/${t.slug}`, location.origin).toString());
     }
     const blob = new Blob([lines.join('\n')], { type: 'audio/x-mpegurl' });
     const a = document.createElement('a');

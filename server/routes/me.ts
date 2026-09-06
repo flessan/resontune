@@ -8,6 +8,7 @@ import { getDb, uuid } from '../db/index.ts';
 import { asyncRoute, pagination, HttpError } from '../util/http.ts';
 import { requireAuth } from '../auth.ts';
 import { queryTracks } from './catalog.ts';
+import { validateMediaUrl } from '../util/urlSafety.ts';
 
 const UUID_RE = /^[0-9a-f-]{36}$/;
 
@@ -146,6 +147,10 @@ export function meRouter(): Router {
     rightsHolder: z.string().trim().min(1).max(200),
     externalLinks: z.string().trim().max(1000).optional().or(z.literal('')),
     rightsConfirmed: z.literal(true, { error: 'You must confirm you have the rights to submit this music.' }),
+    // Rights declarations recorded verbatim — never invented on the artist's behalf.
+    streamingPermission: z.boolean().optional().default(true),
+    distributionPermission: z.boolean().optional().default(false),
+    rightsNotes: z.string().trim().max(600).optional().or(z.literal('')),
   });
 
   r.get(
@@ -198,6 +203,20 @@ export function meRouter(): Router {
       }
       const license = await db.query(`SELECT 1 FROM licenses WHERE id = $1`, [parsed.data.licenseId]);
       if (!license.length) throw new HttpError(400, 'Unknown license.');
+      // Media URL safety: https-only, no credentials, no private/internal hosts.
+      const audioErr = validateMediaUrl(parsed.data.audioUrl);
+      if (audioErr) throw new HttpError(400, `Audio URL: ${audioErr}`);
+      if (parsed.data.artworkUrl) {
+        const artErr = validateMediaUrl(parsed.data.artworkUrl);
+        if (artErr) throw new HttpError(400, `Artwork URL: ${artErr}`);
+      }
+      // Duplicate guard: same audio URL already pending/published by anyone.
+      const dupe = await db.query(
+        `SELECT 1 FROM submissions
+          WHERE payload->>'audioUrl' = $1 AND status IN ('pending','reviewing','approved','published') LIMIT 1`,
+        [parsed.data.audioUrl],
+      );
+      if (dupe.length) throw new HttpError(409, 'This audio URL has already been submitted.');
       const id = uuid();
       await db.query(
         `INSERT INTO submissions (id, submitter_id, payload) VALUES ($1, $2, $3)`,

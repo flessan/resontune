@@ -1,16 +1,22 @@
 /**
- * Provider abstraction.
+ * Playback source resolution.
  *
- * Every playable track has an explicit source identity. A provider knows how
- * to resolve a Track (remote) or LocalTrack (device) into something the
- * player can actually use — a direct stream URL, an object URL, an embed, or
- * an external link when direct playback isn't permitted.
+ * Remote catalog tracks are resolved through the server —
+ * GET /api/play/:trackId — which enforces content state (takedowns),
+ * streaming permission and source availability, and maps hosted object keys
+ * onto storage/CDN URLs. The client never derives playback URLs from raw
+ * database fields, so storage can move (S3/R2/signed URLs) without touching
+ * the player.
  *
- * Adding a provider means adding a module here — the player itself never
- * changes. Providers must only use permitted mechanisms: no DRM bypass, no
- * scraping protected endpoints, no proxying restricted streams.
+ * Local device files are a separate world: they resolve to session-scoped
+ * object URLs and never leave the device.
+ *
+ * External services (YouTube, SoundCloud, …) are only ever handled through
+ * permitted mechanisms — the server returns { mode: 'external' } with an
+ * official link, never a scraped or proxied stream.
  */
-import type { Track, TrackSource, QueueItem, LocalTrack } from '@/lib/types';
+import type { Track, QueueItem, LocalTrack, PlayResolution } from '@/lib/types';
+import { api } from '@/lib/api';
 import { getLocalBlob, getLocalArtwork } from '@/local/db';
 
 export type Resolution =
@@ -18,67 +24,25 @@ export type Resolution =
   | { type: 'external'; url: string; label: string }
   | { type: 'unavailable'; reason: string };
 
-export interface MusicProvider {
-  id: string;
-  /** Can this provider resolve the given source? */
-  supports(source: TrackSource): boolean;
-  /** Resolve a source into a playable stream / external link. */
-  resolve(source: TrackSource): Promise<Resolution>;
-}
-
-/** Hosted catalog audio — direct URLs managed by ResonTune admins today,
- *  object storage / CDN later. The URL is used as-is. */
-const HostedProvider: MusicProvider = {
-  id: 'hosted',
-  supports: (s) => s.provider === 'hosted' && s.kind === 'direct_url',
-  resolve: async (s) => ({ type: 'stream', url: s.url, mimeType: s.mimeType }),
-};
-
-/**
- * External services (YouTube, SoundCloud, …). ResonTune does not proxy or
- * capture their streams — that would violate provider terms. Instead these
- * resolve to an official external playback experience.
- */
-const ExternalLinkProvider: MusicProvider = {
-  id: 'external',
-  supports: (s) =>
-    (s.provider === 'youtube' || s.provider === 'soundcloud' || s.provider === 'other') &&
-    (s.kind === 'external_link' || s.kind === 'embed'),
-  resolve: async (s) => ({
-    type: 'external',
-    url: s.url,
-    label: s.provider === 'youtube' ? 'Watch on YouTube'
-      : s.provider === 'soundcloud' ? 'Listen on SoundCloud'
-      : 'Open source',
-  }),
-};
-
-const providers: MusicProvider[] = [HostedProvider, ExternalLinkProvider];
-
-export function registerProvider(p: MusicProvider): void {
-  providers.push(p);
-}
-
-export async function resolveTrackSource(track: Track): Promise<Resolution> {
-  for (const source of track.sources ?? []) {
-    const provider = providers.find((p) => p.supports(source));
-    if (provider) {
-      try {
-        const r = await provider.resolve(source);
-        if (r.type !== 'unavailable') return r;
-      } catch {
-        /* try next source */
-      }
-    }
+/** Ask the server how (and whether) a catalog track may be played. */
+export async function resolveRemotePlayback(trackId: string): Promise<Resolution> {
+  try {
+    const r = await api.get<PlayResolution>(`/play/${trackId}`);
+    if (r.mode === 'stream') return { type: 'stream', url: r.url, mimeType: r.mimeType };
+    return { type: 'external', url: r.url, label: r.label };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'This track is not available right now.';
+    return { type: 'unavailable', reason: msg };
   }
-  return { type: 'unavailable', reason: 'No playable source for this track.' };
 }
 
 /* ------------------------------ queue building ---------------------------- */
 
 export function trackToQueueItem(track: Track): QueueItem | null {
-  const direct = (track.sources ?? []).find((s) => s.provider === 'hosted' && s.kind === 'direct_url');
-  if (!direct) return null;
+  const playable = (track.sources ?? []).some(
+    (s) => s.availability !== 'unavailable',
+  );
+  if (!playable) return null;
   return {
     queueId: crypto.randomUUID(),
     origin: 'remote',
@@ -90,8 +54,7 @@ export function trackToQueueItem(track: Track): QueueItem | null {
     albumTitle: track.album?.title ?? null,
     artworkUrl: track.artworkUrl,
     duration: track.duration,
-    src: direct.url,
-    mimeType: direct.mimeType,
+    sourceType: track.sourceType,
   };
 }
 
@@ -138,7 +101,6 @@ export function localTrackToQueueItem(t: LocalTrack, artworkUrl: string | null):
     albumTitle: t.album,
     artworkUrl,
     duration: t.duration,
-    src: '', // resolved lazily via resolveLocalSrc
     mimeType: t.mimeType,
   };
 }

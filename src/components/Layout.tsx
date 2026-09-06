@@ -8,7 +8,7 @@ import { ExpandedPlayer } from '@/player/ExpandedPlayer';
 import { ImmersivePlayer } from '@/player/ImmersivePlayer';
 import { engine } from '@/player/engine';
 import {
-  IconHome, IconSearch, IconLibrary, IconMic, IconDisc, IconTag, IconPlaylist,
+  IconHome, IconSearch, IconLibrary, IconMic, IconDisc, IconPlaylist,
   IconHeart, IconSubmit, IconUser, IconSettings, IconShield, IconWave, IconQueue,
 } from './Icons';
 import { SignInDialog } from './SignInDialog';
@@ -66,21 +66,19 @@ export function Layout() {
         </div>
 
         <NavLink to="/" className={nav} end><IconHome width={17} height={17} /> Home</NavLink>
-        <NavLink to="/search" className={nav}><IconSearch width={17} height={17} /> Search</NavLink>
-
-        <div className="nav-section">Catalog</div>
-        <NavLink to="/artists" className={nav}><IconMic width={17} height={17} /> Artists</NavLink>
-        <NavLink to="/albums" className={nav}><IconDisc width={17} height={17} /> Releases</NavLink>
-        <NavLink to="/genres" className={nav}><IconTag width={17} height={17} /> Genres</NavLink>
-        <NavLink to="/playlists" className={nav}><IconPlaylist width={17} height={17} /> Playlists</NavLink>
+        <NavLink to="/discover" className={nav}><IconSearch width={17} height={17} /> Discover</NavLink>
+        <NavLink to="/originals" className={nav}><IconDisc width={17} height={17} /> Originals</NavLink>
+        <NavLink to="/community" className={nav}><IconMic width={17} height={17} /> Community</NavLink>
+        <NavLink to="/radio" className={nav}><IconWave width={17} height={17} /> Radio</NavLink>
 
         <div className="nav-section">Your music</div>
         <NavLink to="/library" className={nav}><IconLibrary width={17} height={17} /> Local library</NavLink>
+        <NavLink to="/playlists" className={nav}><IconPlaylist width={17} height={17} /> Playlists</NavLink>
         <NavLink to="/favorites" className={nav}><IconHeart width={17} height={17} /> Favorites</NavLink>
         <NavLink to="/history" className={nav}><IconQueue width={17} height={17} /> History</NavLink>
 
-        <div className="nav-section">Community</div>
-        <NavLink to="/submit" className={nav}><IconSubmit width={17} height={17} /> Submit music</NavLink>
+        <div className="nav-section">Create</div>
+        <NavLink to="/submit" className={nav}><IconSubmit width={17} height={17} /> Release music</NavLink>
         {(user?.role === 'moderator' || user?.role === 'admin') && (
           <NavLink to="/moderation" className={nav}><IconShield width={17} height={17} /> Moderation</NavLink>
         )}
@@ -128,9 +126,9 @@ export function Layout() {
 
       <nav className="tabbar" aria-label="Mobile navigation">
         <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}><IconHome width={20} height={20} />Home</NavLink>
-        <NavLink to="/search" className={({ isActive }) => (isActive ? 'active' : '')}><IconSearch width={20} height={20} />Search</NavLink>
+        <NavLink to="/discover" className={({ isActive }) => (isActive ? 'active' : '')}><IconSearch width={20} height={20} />Discover</NavLink>
+        <NavLink to="/radio" className={({ isActive }) => (isActive ? 'active' : '')}><IconWave width={20} height={20} />Radio</NavLink>
         <NavLink to="/library" className={({ isActive }) => (isActive ? 'active' : '')}><IconLibrary width={20} height={20} />Library</NavLink>
-        <NavLink to="/playlists" className={({ isActive }) => (isActive ? 'active' : '')}><IconPlaylist width={20} height={20} />Playlists</NavLink>
         <NavLink to={user ? '/profile' : '/settings'} className={({ isActive }) => (isActive ? 'active' : '')}><IconUser width={20} height={20} />{user ? 'You' : 'More'}</NavLink>
       </nav>
 

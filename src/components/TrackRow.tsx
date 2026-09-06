@@ -8,6 +8,7 @@ import { formatDuration } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { Artwork } from './Artwork';
 import { AddToPlaylistDialog } from './AddToPlaylistDialog';
+import { SourceChip } from './Provenance';
 import {
   IconPlay, IconPause, IconHeart, IconPlus, IconQueue,
 } from './Icons';
@@ -83,6 +84,8 @@ export const TrackRow = memo(function TrackRow({ track, index, context, showArt 
       <div className="meta">
         <div className="t-title">
           <Link to={`/track/${track.slug}`}>{track.title}</Link>
+          {' '}
+          <SourceChip sourceType={track.sourceType} />
         </div>
         <div className="t-sub">
           <Link to={`/artist/${track.artist.slug}`}>{track.artist.name}</Link>

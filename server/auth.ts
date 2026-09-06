@@ -42,6 +42,32 @@ declare global {
   }
 }
 
+/**
+ * Server-side role resolution.
+ *
+ * Roles are controlled exclusively on the server:
+ *  - ADMIN_USER_IDS / MODERATOR_USER_IDS env vars (comma-separated user ids)
+ *    are the production mechanism — they override whatever is in the DB row,
+ *    so a compromised write to users.role cannot mint an admin.
+ *  - The users.role column remains as a secondary store for roles granted
+ *    by an existing admin.
+ * Nothing the client sends (headers, body, localStorage) ever affects this.
+ */
+function envRoleFor(userId: string): 'admin' | 'moderator' | null {
+  const admins = (process.env.ADMIN_USER_IDS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (admins.includes(userId)) return 'admin';
+  const mods = (process.env.MODERATOR_USER_IDS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (mods.includes(userId)) return 'moderator';
+  return null;
+}
+
+function effectiveRole(user: SessionUser): SessionUser['role'] {
+  const envRole = envRoleFor(user.id);
+  if (envRole === 'admin') return 'admin';
+  if (envRole === 'moderator') return user.role === 'admin' ? 'admin' : 'moderator';
+  return user.role;
+}
+
 export async function attachUser(req: Request, _res: Response, next: NextFunction) {
   try {
     const sid = req.cookies?.[SESSION_COOKIE];
@@ -53,7 +79,7 @@ export async function attachUser(req: Request, _res: Response, next: NextFunctio
           WHERE s.id = $1 AND s.expires_at > now()`,
         [sid],
       );
-      if (rows[0]) req.user = rows[0];
+      if (rows[0]) req.user = { ...rows[0], role: effectiveRole(rows[0]) };
     }
   } catch {
     /* treat as anonymous */
@@ -105,8 +131,12 @@ function publicUser(u: SessionUser) {
 const githubConfigured = () =>
   Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET);
 
-const devLoginEnabled = () =>
-  !githubConfigured() || process.env.ALLOW_DEV_LOGIN === 'true';
+// Dev sign-in is a development convenience. In production it is disabled
+// unless explicitly re-enabled AND GitHub OAuth is absent.
+const devLoginEnabled = () => {
+  if (process.env.NODE_ENV === 'production') return process.env.ALLOW_DEV_LOGIN === 'true';
+  return !githubConfigured() || process.env.ALLOW_DEV_LOGIN === 'true';
+};
 
 export function authRouter(): Router {
   const r = Router();
@@ -150,10 +180,16 @@ export function authRouter(): Router {
       );
       if (!rows[0]) {
         const id = uuid();
-        // First ever account on a fresh database becomes admin so the
-        // moderation queue is reachable during local development.
-        const count = await db.query<{ n: string }>(`SELECT count(*)::text AS n FROM users`);
-        const role = count[0]?.n === '0' ? 'admin' : 'listener';
+        // DEVELOPMENT ONLY: on a fresh local database the first account
+        // becomes admin so the moderation queue is reachable. This never
+        // applies in production — dev-login itself is disabled there unless
+        // explicitly re-enabled, and production roles come from
+        // ADMIN_USER_IDS / MODERATOR_USER_IDS (see effectiveRole).
+        let role = 'listener';
+        if (process.env.NODE_ENV !== 'production') {
+          const count = await db.query<{ n: string }>(`SELECT count(*)::text AS n FROM users`);
+          if (count[0]?.n === '0') role = 'admin';
+        }
         rows = await db.query<SessionUser>(
           `INSERT INTO users (id, handle, display_name, role, auth_provider)
            VALUES ($1, $2, $3, $4, 'dev')

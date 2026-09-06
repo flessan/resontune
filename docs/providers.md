@@ -1,35 +1,29 @@
-# Provider adapters
+# Providers & playback resolution
 
-`src/providers/index.ts` defines the contract:
+Playback is resolved **server-side**. The client (`src/providers/index.ts`)
+calls `GET /api/play/:trackId` and receives:
 
 ```ts
-interface MusicProvider {
-  id: string;
-  supports(source: TrackSource): boolean;
-  resolve(source: TrackSource): Promise<Resolution>;
-}
-
 type Resolution =
-  | { type: 'stream'; url: string; mimeType?: string | null }
-  | { type: 'external'; url: string; label: string }
-  | { type: 'unavailable'; reason: string };
+  | { type: 'stream'; url: string; mimeType?: string | null }   // load into <audio>
+  | { type: 'external'; url: string; label: string }            // official external playback
+  | { type: 'unavailable'; reason: string };                    // said honestly, no dead buttons
 ```
 
-A track's `sources[]` are tried in priority order; the first provider that
-`supports()` a source resolves it. Results:
+The server (`server/routes/play.ts`) walks the track's `sources[]` in
+priority order, enforces content state (takedowns → 410) and
+`streaming_permission` (→ 403), maps hosted object keys onto
+`AUDIO_CDN_BASE`, and returns the first playable resolution. Catalog
+endpoints never expose raw source URLs — the resolver is the only door.
 
-- `stream` — the player loads the URL into the audio element.
-- `external` — the UI offers official external playback (link/embed).
-- `unavailable` — the next source is tried; if none work, the UI says so
-  honestly instead of showing a dead play button.
+## Built-in source handling
 
-## Built-in providers
-
-| Provider | Sources | Behavior |
-| --- | --- | --- |
-| `HostedProvider` | `hosted` + `direct_url` | Plays the URL as-is (admin-managed today, object storage later) |
-| `ExternalLinkProvider` | `youtube` / `soundcloud` / `other` + `embed`/`external_link` | Resolves to official external playback |
-| Local resolution | `local` (device files) | Object URLs from IndexedDB blobs, cached and revoked in a bounded LRU |
+| Source | Behavior |
+| --- | --- |
+| `original_hosted` / `community_hosted` (`direct_url`) | Object key → `AUDIO_CDN_BASE` (dev: `/media/audio`, prod: object storage/CDN, later signable) |
+| `remote` (`direct_url`) | Rights-holder-managed URL played as-is |
+| `external` (`external_link` / `embed`) | Resolves to official external playback with a labeled link |
+| Local device files | Client-only: object URLs from IndexedDB blobs, cached and revoked in a bounded LRU — never touch the server |
 
 ## Rules for new providers
 

@@ -10,7 +10,9 @@ import { Artwork } from '@/components/Artwork';
 import { formatDuration, formatCount, formatDate } from '@/lib/format';
 import { extractAccent, applyAccent } from '@/lib/artworkColor';
 import { toast } from '@/stores/toast';
-import { IconPlay, IconPause, IconHeart, IconQueue } from '@/components/Icons';
+import { IconPlay, IconPause, IconHeart, IconQueue, IconWave } from '@/components/Icons';
+import { OriginalBadge, SourceChip, provenanceLabel } from '@/components/Provenance';
+import { api } from '@/lib/api';
 
 interface Data {
   track: Track;
@@ -59,6 +61,18 @@ export default function TrackPage() {
     toast('Playing next');
   };
 
+  const startRadio = async () => {
+    try {
+      const r = await api.get<{ tracks: Track[]; label: string }>(`/radio?station=track:${track.slug}`);
+      const items = r.tracks.map(trackToQueueItem).filter(Boolean) as NonNullable<ReturnType<typeof trackToQueueItem>>[];
+      if (!items.length) return toast('Nothing to play.');
+      void usePlayer.getState().playQueue(items, 0);
+      toast(`Now playing: ${r.label}`);
+    } catch {
+      toast('Could not start the radio.');
+    }
+  };
+
   return (
     <div className="page">
       <div className="detail-head">
@@ -66,7 +80,10 @@ export default function TrackPage() {
           <Artwork src={track.artworkUrl} alt={`Artwork for ${track.title}`} />
         </div>
         <div style={{ minWidth: 240, flex: 1 }}>
-          <div className="detail-kind">Track</div>
+          <div className="detail-kind" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            Track
+            {track.sourceType === 'original' ? <OriginalBadge /> : <SourceChip sourceType={track.sourceType} />}
+          </div>
           <h1 className="detail-title">{track.title}</h1>
           <div className="detail-meta">
             <Link to={`/artist/${track.artist.slug}`}>{track.artist.name}</Link>
@@ -85,6 +102,9 @@ export default function TrackPage() {
             </button>
             <button className="btn" onClick={queueNext}>
               <IconQueue width={15} height={15} /> Play next
+            </button>
+            <button className="btn" onClick={() => void startRadio()}>
+              <IconWave width={15} height={15} /> Start radio
             </button>
           </div>
           <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -125,10 +145,13 @@ export default function TrackPage() {
               </td>
             </tr>
           )}
-          <tr><td style={{ color: 'var(--ink-muted)' }}>Added</td><td>{formatDate(track.createdAt)}</td></tr>
+          {track.attributionText && track.license?.requiresAttribution && (
+            <tr><td style={{ color: 'var(--ink-muted)' }}>Attribution</td><td>{track.attributionText}</td></tr>
+          )}
+          <tr><td style={{ color: 'var(--ink-muted)' }}>Released</td><td>{formatDate(track.createdAt)}</td></tr>
           <tr>
-            <td style={{ color: 'var(--ink-muted)' }}>Source</td>
-            <td>{track.sources.map((s) => s.provider.toUpperCase()).join(', ') || '—'}</td>
+            <td style={{ color: 'var(--ink-muted)' }}>Origin</td>
+            <td>{provenanceLabel(track.sourceType)}</td>
           </tr>
         </tbody>
       </table>

@@ -22,22 +22,37 @@ Server-side constraints (`server/routes/me.ts`):
 
 ## Moderator flow
 
-`/moderation` (role `moderator` or `admin` — the first account on a fresh
-dev database is admin):
+`/moderation` requires a server-verified `moderator` or `admin` session.
+In production, roles come from `ADMIN_USER_IDS` / `MODERATOR_USER_IDS` or
+grants stored in `users.role`; on a fresh *development* database the first
+account becomes admin (that shortcut is disabled under
+`NODE_ENV=production`).
+
+Lifecycle: `pending → reviewing → approved → published` (or `rejected`).
 
 - filter queue by status
 - inspect all metadata, open the audio URL, preview it inline
 - *Start reviewing* → marks `reviewing`
-- *Approve & publish* → materializes catalog rows in one step:
-  - artist (found by name or created)
+- *Approve* → records the decision (nothing public yet)
+- *Publish to catalog* → materializes catalog rows:
+  - artist (found by name or created, `source_type='community'`)
   - album (optional, found or created)
-  - track (+ license, rights holder, description)
-  - `track_sources` row (`hosted` / `direct_url` / `manual-url` storage)
+  - track (+ license, rights holder, declared permissions, provenance)
+  - `track_sources` row (`community_hosted`)
   - lyrics and genre when provided
 - *Reject* → keeps the record with the note; nothing enters the catalog
 
-Takedowns after publication use `tracks.status = 'hidden' | 'removed'`
-(data preserved, hidden from all public queries).
+Two note channels: the **moderator note** is shown to the submitter; the
+**internal note** never leaves moderation endpoints. Every transition is
+appended to `moderation_events` (actor, from → to, both notes) — decisions
+are auditable and never silently rewritten.
+
+Takedowns after publication use
+`POST /api/moderation/tracks/:id/state` with
+`status ∈ published | unlisted | taken_down | archived` and a required
+reason; the change is logged in the `takedowns` table, playback returns
+410 and public catalog queries stop returning the track — all metadata is
+preserved for auditing.
 
 ## Licensing stance
 

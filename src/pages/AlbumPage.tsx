@@ -7,6 +7,7 @@ import { usePlayer } from '@/player/store';
 import { trackToQueueItem } from '@/providers';
 import { formatDate } from '@/lib/format';
 import { IconPlay } from '@/components/Icons';
+import { OriginalBadge, SourceChip } from '@/components/Provenance';
 
 interface Data { album: Album; tracks: Track[] }
 
@@ -31,12 +32,16 @@ export default function AlbumPage() {
           <Artwork src={album.artworkUrl} alt={`Cover of ${album.title}`} />
         </div>
         <div style={{ minWidth: 240, flex: 1 }}>
-          <div className="detail-kind">{album.type}</div>
+          <div className="detail-kind" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {album.type}
+            {album.sourceType === 'original' ? <OriginalBadge /> : <SourceChip sourceType={album.sourceType} />}
+          </div>
           <h1 className="detail-title">{album.title}</h1>
           <div className="detail-meta">
             <Link to={`/artist/${album.artist.slug}`}>{album.artist.name}</Link>
             {album.releasedOn && <> · {formatDate(album.releasedOn)}</>}
             {' · '}{tracks.length} tracks
+            {album.catalogNo && <> · <span style={{ letterSpacing: '0.06em' }}>{album.catalogNo}</span></>}
           </div>
           <div className="detail-actions">
             <button className="btn primary" onClick={playAll}>

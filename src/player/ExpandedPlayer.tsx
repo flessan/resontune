@@ -4,6 +4,7 @@ import { usePlayer } from './store';
 import { SeekBar } from './SeekBar';
 import { api } from '@/lib/api';
 import { Artwork } from '@/components/Artwork';
+import { SourceChip, provenanceLabel } from '@/components/Provenance';
 import type { Track } from '@/lib/types';
 import { formatDuration } from '@/lib/format';
 import {
@@ -110,7 +111,7 @@ export function ExpandedPlayer() {
                       <div className="q-meta">
                         <div className="q-title">
                           {q.title}
-                          {q.origin === 'local' && <span className="source-chip local">Local</span>}
+                          <SourceChip origin={q.origin} sourceType={q.sourceType} />
                         </div>
                         <div className="q-sub">{q.artistName}</div>
                       </div>
@@ -146,6 +147,9 @@ export function ExpandedPlayer() {
                   </>
                 ) : detail ? (
                   <>
+                    <p style={{ fontSize: 12.5, color: 'var(--ink-muted)' }}>
+                      {provenanceLabel(detail.sourceType)}
+                    </p>
                     {detail.description && <p>{detail.description}</p>}
                     {detail.credits && <p style={{ color: 'var(--ink-muted)' }}>{detail.credits}</p>}
                     {detail.license && (

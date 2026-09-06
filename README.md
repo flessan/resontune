@@ -15,18 +15,31 @@ Discover → organize → play → visualize → share — no subscriptions, no 
 
 ## What ResonTune is
 
-ResonTune combines three worlds into one player:
+A streaming platform built on five pillars — *Listen · Discover · Create ·
+Release · Share*:
 
-1. **Community catalog** — artists, releases, tracks, lyrics, credits and
-   *visible licensing*, submitted by the community and approved through
-   moderation.
-2. **Local music** — drag audio files into the browser; they're parsed
+1. **ResonTune Originals** — the platform's own catalog: artists who release
+   directly through ResonTune, hosted by the platform, free to stream, with
+   clear licensing on every track. Marked everywhere with the
+   `RESONTUNE ORIGINAL` wordmark.
+2. **Community catalog** — independent artists publish through a real
+   pipeline: submission → review → approval → publication, with declared
+   rights recorded verbatim and full moderation history.
+3. **Radio** — continuous listening: ResonTune Radio, Originals Radio,
+   Community Radio, plus genre/artist/track stations. Deterministic seeded
+   queues, no recommender system, no profiling.
+4. **Local music** — drag audio files into the browser; they're parsed
    (tags + embedded artwork), stored in IndexedDB, and **never uploaded**.
-   Local and remote tracks are clearly distinguished everywhere.
-3. **External discovery** — a provider architecture (`src/providers/`)
-   designed for official APIs/embeds only. When direct playback isn't
-   permitted, tracks fall back to embeds, external playback or
-   metadata-only. No DRM bypass, no scraping, no proxying protected streams.
+   Local files are a separate, private world, labeled `Local` everywhere.
+5. **Discovery & editorial** — genres, moods, collections (curated mixes of
+   tracks, releases and artists), community picks. Explained, deterministic
+   sections — never a black-box feed.
+
+Every playable track has an **inspectable origin** (Original / Community /
+External / Local) and an explicit rights record. The player asks the server
+how a track may be played (`/api/play/:id`) — takedowns and permissions are
+enforced in one place, and provider adapters only ever use official
+mechanisms. No DRM bypass, no scraping, no proxying protected streams.
 
 The player is persistent across navigation, has compact / expanded /
 immersive modes, media-key support (Media Session API), queue + position
@@ -57,15 +70,20 @@ npm run dev
 ```
 
 Open http://localhost:5173. The database migrates and seeds itself on first
-boot. Sign in with any handle (dev sign-in) — the **first account becomes
-admin** so you can try the moderation queue.
+boot. Sign in with any handle (dev sign-in) — on a fresh **development**
+database the first account becomes admin so you can try the moderation
+queue. In production, roles come only from `ADMIN_USER_IDS` /
+`MODERATOR_USER_IDS` (see `.env.example`).
 
-> The demo audio is generated locally by `scripts/generate-audio.cjs`:
-> seventeen original instrumental pieces composed procedurally (chords, bass,
-> arps, leads, percussion) and dedicated to the public domain (CC0). The demo
-> artists are fictional. This keeps the repository livable, licensing-clean
-> and honest — no fake `<audio>` tags pointing at nothing, no third-party
-> copyrighted files.
+> **About the launch catalog.** The "ResonTune Originals — Founding Catalog"
+> (five artists, seven releases) and the two community-side artists are
+> fictional label identities created for launch; they do not represent real
+> people. All twenty-two tracks are original instrumental music composed
+> procedurally by `scripts/generate-audio.cjs` (chords, bass, arps, leads,
+> percussion) and dedicated to the public domain (CC0) — so the platform
+> genuinely holds the rights it claims. This keeps the repository livable,
+> licensing-clean and honest: no fake `<audio>` tags pointing at nothing, no
+> third-party copyrighted files.
 
 ### Production (Neon Postgres + GitHub OAuth)
 
@@ -83,7 +101,9 @@ OAuth configured, dev sign-in disables itself automatically.
 | Doc | Contents |
 | --- | --- |
 | [docs/architecture.md](docs/architecture.md) | Domain boundaries, data flow, player/visualizer design |
-| [docs/database.md](docs/database.md) | Schema, relations, storage migration path |
+| [docs/database.md](docs/database.md) | Schema, migrations, relations, storage migration path |
+| [docs/catalog-model.md](docs/catalog-model.md) | Provenance, rights model, content states, collections, roles |
+| [docs/radio.md](docs/radio.md) | Radio stations and deterministic selection |
 | [docs/providers.md](docs/providers.md) | Provider adapters and their rules |
 | [docs/visualizers.md](docs/visualizers.md) | Writing a visualizer mode |
 | [docs/moderation.md](docs/moderation.md) | Submission workflow and moderation states |
@@ -113,5 +133,6 @@ hand-built (`src/styles/global.css`).
 
 ## License
 
-[MIT](LICENSE). Seed audio: CC0. Music submitted by the community remains the
-property of its rights holders — see track pages for per-track licensing.
+[MIT](LICENSE). Launch-catalog audio: CC0. Music submitted by the community
+remains the property of its rights holders — see track pages for per-track
+licensing.

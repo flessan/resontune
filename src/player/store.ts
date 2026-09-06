@@ -7,7 +7,7 @@
 import { create } from 'zustand';
 import type { QueueItem } from '@/lib/types';
 import { engine } from './engine';
-import { resolveLocalSrc } from '@/providers';
+import { resolveLocalSrc, resolveRemotePlayback } from '@/providers';
 import { kvGet, kvSet } from '@/local/db';
 import { api } from '@/lib/api';
 
@@ -59,14 +59,28 @@ function reportPlay(item: QueueItem) {
   }, 5000);
 }
 
-async function resolveSrc(item: QueueItem): Promise<string | null> {
-  if (item.origin === 'local') return resolveLocalSrc(item.id);
-  return item.src || null;
+/**
+ * Resolve a queue item into something the audio element can load.
+ * Remote tracks go through the server's playback-resolution endpoint
+ * (which enforces takedowns/permissions); local files resolve to
+ * session-scoped object URLs.
+ */
+async function resolveSrc(
+  item: QueueItem,
+): Promise<{ src: string } | { external: string; label: string } | { error: string } | null> {
+  if (item.origin === 'local') {
+    const url = await resolveLocalSrc(item.id);
+    return url ? { src: url } : null;
+  }
+  const r = await resolveRemotePlayback(item.id);
+  if (r.type === 'stream') return { src: r.url };
+  if (r.type === 'external') return { external: r.url, label: r.label };
+  return { error: r.reason };
 }
 
 async function persistState(state: Pick<PlayerState, 'queue' | 'index' | 'volume' | 'muted' | 'rate' | 'shuffle' | 'repeat'>) {
   // Local object URLs are session-scoped; store enough to rebuild.
-  const queue = state.queue.map((q) => ({ ...q, src: q.origin === 'local' ? '' : q.src, artworkUrl: q.origin === 'local' ? null : q.artworkUrl }));
+  const queue = state.queue.map((q) => ({ ...q, artworkUrl: q.origin === 'local' ? null : q.artworkUrl }));
   await kvSet('player-state', {
     queue,
     index: state.index,
@@ -87,13 +101,23 @@ export const usePlayer = create<PlayerState>((set, get) => {
     const item = queue[index];
     if (!item) return;
     set({ index, loading: true, error: null });
-    const src = await resolveSrc(item);
-    if (!src) {
+    const resolved = await resolveSrc(item);
+    if (!resolved) {
       set({ loading: false, error: `Couldn't load “${item.title}”. The file may have been removed.`, playing: false });
       return;
     }
+    if ('error' in resolved) {
+      set({ loading: false, error: resolved.error, playing: false });
+      return;
+    }
+    if ('external' in resolved) {
+      // Direct playback isn't permitted for this source — playback happens
+      // on the official external page; communicate rather than fake it.
+      set({ loading: false, playing: false, error: `${resolved.label}: ${resolved.external}` });
+      return;
+    }
     try {
-      await engine.load(src);
+      await engine.load(resolved.src);
       if (autoplay) {
         await engine.play();
         set({ playing: true, loading: false });
@@ -294,7 +318,8 @@ export async function restorePlayerState(): Promise<void> {
     // Preload current track paused at the saved position (no autoplay).
     const item = saved.queue[Math.min(saved.index ?? 0, saved.queue.length - 1)];
     if (item) {
-      const src = item.origin === 'local' ? await resolveLocalSrc(item.id) : item.src;
+      const resolved = await resolveSrc(item);
+      const src = resolved && 'src' in resolved ? resolved.src : null;
       if (src) {
         await engine.load(src);
         if (saved.position > 0) {

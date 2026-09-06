@@ -470,6 +470,48 @@ const TRACKS = [
     arp: { steps: 8, rest: 0.35, octave: 1, gain: 0.16, from: 0, pluck: true },
     lead: { type: 'glass', gain: 0.12, rest: 0.35, from: 0.85, startBar: 6 },
     echo: 1.1, echoGain: 0.25 },
+
+  // ═══ Community catalog (independent creators, published via moderation) ═══
+
+  // ——— Glasshouse Tapes — Winter Garden (bedroom electronic EP) ———
+  { file: 'winter-garden', seed: 601, bpm: 78, root: 52, scale: 'dorian', bars: 26,
+    prog: [0, 3, 5, 4], swing: 0.11,
+    pad: { type: 'organ', gain: 0.12, from: 0 },
+    bass: { pattern: [0, 2.5], dur: 1.2, gain: 0.26, from: 0.3 },
+    arp: { steps: 8, rest: 0.38, octave: 1, gain: 0.15, from: 0.3, pluck: true },
+    lead: { type: 'glass', gain: 0.13, rest: 0.35, from: 0.85, startBar: 6 },
+    drums: { kick: [0, 2.5], hats: 8, snare: [2], from: 0.55 },
+    echo: 1.2, echoGain: 0.28 },
+  { file: 'condensation', seed: 602, bpm: 90, root: 50, scale: 'minor', bars: 28,
+    prog: [0, 5, 3, 6], swing: 0.06,
+    pad: { type: 'saw', gain: 0.07, from: 0 },
+    bass: { pattern: [0, 1.5, 3], dur: 0.7, gain: 0.28, from: 0.5, octaves: true },
+    arp: { steps: 16, rest: 0.3, octave: 1, gain: 0.11, from: 0.5, type: 'glass' },
+    lead: { type: 'tri', gain: 0.14, rest: 0.35, from: 0.9, startBar: 8 },
+    drums: { kick: [0, 1.75, 2.5], hats: 16, open: 16, snare: [1, 3], from: 0.5 } },
+  { file: 'orange-peel-sun', seed: 603, bpm: 96, root: 55, scale: 'major', bars: 26,
+    prog: [0, 4, 5, 3], swing: 0.1,
+    pad: { type: 'organ', gain: 0.1, from: 0 },
+    bass: { pattern: [0, 1.5, 2.5], dur: 0.7, gain: 0.26, from: 0.5 },
+    arp: { steps: 8, rest: 0.28, octave: 1, gain: 0.17, from: 0, pluck: true },
+    lead: { gain: 0.15, rest: 0.3, from: 0.9, startBar: 6, pluck: true },
+    drums: { kick: [0, 2], hats: 8, snare: [1, 3], from: 0.55 } },
+
+  // ——— Kite Season — Paper Planes (playful melodic single) ———
+  { file: 'paper-planes', seed: 701, bpm: 132, root: 60, scale: 'pentMaj', bars: 32,
+    prog: [0, 3, 4, 1], swing: 0,
+    pad: { type: 'saw', gain: 0.05, from: 0.5 },
+    bass: { pattern: [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5], dur: 0.35, gain: 0.24, from: 0.5 },
+    arp: { steps: 16, rest: 0.18, octave: 1, gain: 0.16, from: 0, type: 'glass' },
+    lead: { type: 'tri', gain: 0.16, rest: 0.22, from: 0.9, startBar: 8 },
+    drums: { kick: four, hats: 16, open: 8, snare: [1, 3], from: 0.5 } },
+  { file: 'rooftop-arcade', seed: 702, bpm: 120, root: 57, scale: 'mixo', bars: 30,
+    prog: [0, 0, 3, 4], swing: 0,
+    pad: { type: 'organ', gain: 0.07, from: 0.3 },
+    bass: { pattern: [0, 0.75, 1.5, 2.25, 3], dur: 0.4, gain: 0.27, from: 0.5 },
+    arp: { steps: 16, rest: 0.25, octave: 2, gain: 0.12, from: 0.3, type: 'sine' },
+    lead: { type: 'saw', gain: 0.11, rest: 0.28, from: 0.9, startBar: 8 },
+    drums: { kick: four, hats: 16, snare: [1, 3], from: 0.5 } },
 ];
 
 /* ---------------------------------- main ---------------------------------- */

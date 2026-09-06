@@ -7,7 +7,7 @@ import { toast } from '@/stores/toast';
 
 interface Submission {
   id: string;
-  status: 'pending' | 'reviewing' | 'approved' | 'rejected';
+  status: 'pending' | 'reviewing' | 'approved' | 'published' | 'rejected';
   payload: Record<string, string>;
   moderatorNote: string | null;
   createdAt: string;
@@ -24,6 +24,8 @@ export default function Submit() {
   const user = useAuth((s) => s.user);
   const [form, setForm] = useState({ ...EMPTY });
   const [rights, setRights] = useState(false);
+  const [distribution, setDistribution] = useState(false);
+  const [rightsNotes, setRightsNotes] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
@@ -43,10 +45,18 @@ export default function Submit() {
     }
     setBusy(true);
     try {
-      await api.post('/me/submissions', { ...form, rightsConfirmed: true });
+      await api.post('/me/submissions', {
+        ...form,
+        rightsConfirmed: true,
+        streamingPermission: true,
+        distributionPermission: distribution,
+        rightsNotes,
+      });
       setOk(true);
       setForm({ ...EMPTY });
       setRights(false);
+      setDistribution(false);
+      setRightsNotes('');
       setRefresh((n) => n + 1);
       toast('Submission received — thank you!');
     } catch (err: any) {
@@ -132,6 +142,21 @@ export default function Submit() {
             <div className="field">
               <label htmlFor="s-links">External links</label>
               <input id="s-links" type="text" maxLength={1000} value={form.externalLinks} onChange={set('externalLinks')} placeholder="Bandcamp, website, socials…" />
+            </div>
+            <div className="field field-check">
+              <input id="s-dist" type="checkbox" checked={distribution} onChange={(e) => setDistribution(e.target.checked)} />
+              <label htmlFor="s-dist" style={{ fontWeight: 400, margin: 0 }}>
+                Listeners may also share/redistribute this recording under the chosen
+                license (leave unchecked for streaming-only).
+              </label>
+            </div>
+            <div className="field">
+              <label htmlFor="s-rnotes">Rights notes (optional)</label>
+              <input
+                id="s-rnotes" type="text" maxLength={600} value={rightsNotes}
+                onChange={(e) => setRightsNotes(e.target.value)}
+                placeholder="e.g. sample clearances, co-writers, territory limits"
+              />
             </div>
             <div className="field field-check">
               <input id="s-confirm" type="checkbox" checked={rights} onChange={(e) => setRights(e.target.checked)} />

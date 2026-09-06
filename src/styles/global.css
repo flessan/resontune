@@ -446,6 +446,156 @@ h1.page-title {
   color: var(--ok);
 }
 
+.source-chip.community {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: color-mix(in srgb, var(--accent) 80%, var(--ink));
+}
+
+.source-chip.external {
+  border-style: dashed;
+}
+
+/* "RESONTUNE ORIGINAL" — identity through typography and spacing, nothing
+   louder. Small caps wordmark with a hairline rule on the left. */
+.original-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9.5px;
+  font-weight: 750;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink);
+  border-left: 2px solid var(--ink);
+  padding-left: 6px;
+  line-height: 1.4;
+  vertical-align: 2px;
+  white-space: nowrap;
+}
+
+.original-badge.compact {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+}
+
+/* Featured release hero on Home */
+.featured {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 26px;
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg, 14px);
+  padding: 26px;
+  margin-bottom: 34px;
+  background: var(--surface, var(--bg));
+}
+
+.featured img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+}
+
+.featured .kicker {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+
+.featured h2 {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 4vw, 40px);
+  line-height: 1.05;
+  margin: 0 0 6px;
+}
+
+.featured .featured-artist {
+  font-size: 15px;
+  color: var(--ink-muted);
+  margin-bottom: 12px;
+}
+
+.featured p.blurb {
+  max-width: 56ch;
+  color: var(--ink-muted);
+  line-height: 1.55;
+  margin: 0 0 16px;
+}
+
+@media (max-width: 860px) {
+  .featured { grid-template-columns: 1fr; padding: 18px; }
+  .featured img { max-width: 260px; }
+}
+
+/* Collection tile: editorial, wider than a track tile */
+.collection-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+
+.collection-tile .collection-art {
+  aspect-ratio: 16 / 10;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.collection-tile .collection-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.collection-tile:hover .collection-art img { transform: scale(1.03); }
+
+.collection-tile .tile-title { font-weight: 650; }
+
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px;
+}
+
+/* Radio station cards */
+.station-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.station-card {
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 18px;
+  text-align: left;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.station-card:hover { border-color: var(--ink); transform: translateY(-1px); }
+
+.station-card .station-name {
+  font-family: var(--font-display);
+  font-size: 19px;
+  margin-bottom: 4px;
+}
+
+.station-card .station-desc { font-size: 12.5px; color: var(--ink-muted); line-height: 1.45; }
+
 /* ---------------------------------------------------------------- buttons */
 
 .btn {
@@ -951,6 +1101,7 @@ h1.page-title {
 .status-badge.pending { background: color-mix(in srgb, #b8860b 15%, transparent); color: #9a7209; }
 .status-badge.reviewing { background: color-mix(in srgb, #2d6a9a 15%, transparent); color: #2d6a9a; }
 .status-badge.approved { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+.status-badge.published { background: color-mix(in srgb, var(--ok) 25%, transparent); color: var(--ok); }
 .status-badge.rejected { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
 [data-theme='dark'] .status-badge.pending { color: #d4af37; }
 [data-theme='dark'] .status-badge.reviewing { color: #6ba3cc; }

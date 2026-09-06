@@ -1,12 +1,13 @@
 /**
- * Database adapter.
+ * Database adapter + migration runner.
  *
- * - Production: Neon Postgres via @neondatabase/serverless (set DATABASE_URL).
- * - Development: embedded PGlite Postgres stored under var/pglite so the
- *   whole stack runs locally with zero external services.
+ * Production : Neon Postgres via @neondatabase/serverless (DATABASE_URL).
+ * Development: embedded PGlite Postgres under var/pglite.
  *
- * Both drivers speak the same `query(text, params)` interface, so the rest of
- * the server never cares which one is active.
+ * The rest of the server speaks only `query(text, params)` — no
+ * driver-specific behavior may leak past this module. Migrations are plain
+ * SQL files in ./migrations, applied in filename order and tracked in
+ * schema_migrations, so dev and Neon run the exact same DDL.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -35,12 +36,18 @@ async function createDb(): Promise<Db> {
       },
     };
   }
+  if (process.env.NODE_ENV === 'production') {
+    // The embedded database is a development convenience only.
+    throw new Error(
+      'DATABASE_URL is required in production. Set it to your Neon Postgres connection string.',
+    );
+  }
 
   const { PGlite } = await import('@electric-sql/pglite');
   const dataDir = path.resolve(__dirname, '../../var/pglite');
   fs.mkdirSync(path.dirname(dataDir), { recursive: true });
   const pg = await PGlite.create(dataDir);
-  console.log('[db] using embedded PGlite Postgres at var/pglite');
+  console.log('[db] using embedded PGlite Postgres at var/pglite (development)');
   return {
     driver: 'pglite',
     async query<T>(text: string, params: unknown[] = []) {
@@ -55,18 +62,45 @@ export function getDb(): Promise<Db> {
   return dbPromise;
 }
 
-/** Apply schema.sql (idempotent — every statement is IF NOT EXISTS). */
+/**
+ * Apply ./migrations/*.sql in filename order. Each file runs once and is
+ * recorded in schema_migrations. Statements are split on `;` at line ends —
+ * migration files must not contain function bodies with embedded semicolons.
+ */
 export async function migrate(): Promise<void> {
   const db = await getDb();
-  const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
-  // Split on semicolons at end of statements; safe because the schema file
-  // contains no function bodies or literals with semicolons.
-  const statements = schema
-    .split(/;\s*(?:\r?\n|$)/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  for (const stmt of statements) {
-    await db.query(stmt);
+  await db.query(`CREATE TABLE IF NOT EXISTS schema_migrations (
+    name TEXT PRIMARY KEY,
+    applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+  const applied = new Set(
+    (await db.query<{ name: string }>(`SELECT name FROM schema_migrations`)).map((r) => r.name),
+  );
+  const dir = path.join(__dirname, 'migrations');
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
+  for (const file of files) {
+    if (applied.has(file)) continue;
+    const sqlText = fs.readFileSync(path.join(dir, file), 'utf8');
+    const statements = sqlText
+      .split(/;\s*(?:\r?\n|$)/)
+      .map((raw) =>
+        raw
+          .split('\n')
+          .filter((line) => !/^\s*--/.test(line))
+          .join('\n')
+          .trim(),
+      )
+      .filter(Boolean);
+    for (const stmt of statements) {
+      try {
+        await db.query(stmt);
+      } catch (err) {
+        console.error(`[db] migration ${file} failed on statement:\n${stmt.slice(0, 200)}`);
+        throw err;
+      }
+    }
+    await db.query(`INSERT INTO schema_migrations (name) VALUES ($1)`, [file]);
+    console.log(`[db] applied migration ${file}`);
   }
 }
 
