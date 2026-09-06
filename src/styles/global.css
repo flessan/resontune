@@ -2928,11 +2928,13 @@ h1.page-title, .detail-title, .profile-name, .ps-track-title, .section-title {
 .search-field > svg {
   position: absolute;
   left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--on-surface-faint);
   pointer-events: none;
 }
 .search-field .search-hero { padding-left: 48px; padding-right: 50px; }
-.search-field .search-clear { position: absolute; right: 5px; }
+.search-field .search-clear { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); }
 @media (max-width: 860px) {
   .search-form { margin-bottom: 18px; }
   .search-field { max-width: none; }
