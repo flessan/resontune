@@ -71,8 +71,12 @@ export default function Home() {
 
   const feat = data.featuredRelease;
 
+  const hour = new Date().getHours();
+  const greeting = hour < 5 ? 'Late night listening' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+
   return (
     <div className="page">
+      <h1 className="home-greeting">{greeting}</h1>
       {feat && (
         <section className="featured" aria-label="Featured release">
           {feat.artworkUrl && (

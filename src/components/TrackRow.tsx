@@ -9,9 +9,8 @@ import { toast } from '@/stores/toast';
 import { Artwork } from './Artwork';
 import { AddToPlaylistDialog } from './AddToPlaylistDialog';
 import { SourceChip } from './Provenance';
-import {
-  IconPlay, IconPause, IconHeart, IconPlus, IconQueue,
-} from './Icons';
+import { IconPlay, IconPause, IconHeart } from './Icons';
+import { TrackMenu } from './TrackMenu';
 
 interface Props {
   track: Track;
@@ -24,7 +23,7 @@ interface Props {
 export const TrackRow = memo(function TrackRow({ track, index, context, showArt = true }: Props) {
   const currentId = usePlayer((s) => (s.queue[s.index]?.origin === 'remote' ? s.queue[s.index]?.id : null));
   const playing = usePlayer((s) => s.playing);
-  const { playQueue, toggle, playNext } = usePlayer.getState();
+  const { playQueue, toggle } = usePlayer.getState();
   const user = useAuth((s) => s.user);
   const isFav = useAuth((s) => s.favoriteIds.has(track.id));
   const [showAdd, setShowAdd] = useState(false);
@@ -55,13 +54,6 @@ export const TrackRow = memo(function TrackRow({ track, index, context, showArt 
     toast(fav ? 'Added to favorites' : 'Removed from favorites');
   };
 
-  const handleQueue = () => {
-    const item = trackToQueueItem(track);
-    if (!item) return toast('This track has no playable source.');
-    playNext(item);
-    toast('Playing next');
-  };
-
   return (
     <div
       className={`track-row ${isCurrent ? 'playing' : ''}`}
@@ -72,7 +64,11 @@ export const TrackRow = memo(function TrackRow({ track, index, context, showArt 
       }}
     >
       <div className="idx">
-        <span>{index != null ? index + 1 : ''}</span>
+        {isCurrent && playing ? (
+          <span className="eq" aria-hidden><i /><i /><i /></span>
+        ) : (
+          <span>{index != null ? index + 1 : ''}</span>
+        )}
         <button
           className="row-play"
           onClick={handlePlay}
@@ -103,12 +99,7 @@ export const TrackRow = memo(function TrackRow({ track, index, context, showArt 
         <button className={`icon-btn ${isFav ? 'active' : ''}`} onClick={handleFav} aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}>
           <IconHeart width={16} height={16} filled={isFav} />
         </button>
-        <button className="icon-btn" onClick={handleQueue} aria-label="Play next">
-          <IconQueue width={16} height={16} />
-        </button>
-        <button className="icon-btn" onClick={() => setShowAdd(true)} aria-label="Add to playlist">
-          <IconPlus width={16} height={16} />
-        </button>
+        <TrackMenu track={track} onAddToPlaylist={() => setShowAdd(true)} />
       </div>
       <div className="dur">{formatDuration(track.duration)}</div>
       {showAdd && <AddToPlaylistDialog trackId={track.id} onClose={() => setShowAdd(false)} />}

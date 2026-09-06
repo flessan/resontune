@@ -9,7 +9,7 @@ import { MiniSpectrum } from './MiniSpectrum';
 import { extractAccent, applyAccent } from '@/lib/artworkColor';
 import {
   IconPlay, IconPause, IconPrev, IconNext, IconShuffle, IconRepeat,
-  IconRepeatOne, IconVolume, IconMute, IconExpand, IconWave,
+  IconRepeatOne, IconVolume, IconMute, IconExpand, IconWave, IconQueue,
 } from '@/components/Icons';
 
 export function PlayerBar() {
@@ -139,6 +139,9 @@ export function PlayerBar() {
       </div>
 
       <div className="pb-right">
+        <button className="icon-btn desktop-only" onClick={openExpanded} aria-label="Open queue" disabled={!item}>
+          <IconQueue width={17} height={17} />
+        </button>
         <button className="icon-btn desktop-only" onClick={() => setView('immersive')} aria-label="Full screen player" disabled={!item}>
           <IconWave width={17} height={17} />
         </button>

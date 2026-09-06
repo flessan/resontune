@@ -61,6 +61,9 @@ export const IconCollapse = (p: SVGProps<SVGSVGElement>) => (
 export const IconClose = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}><path d="m6 6 12 12M18 6 6 18" /></svg>
 );
+export const IconMenu = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+);
 export const IconHome = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}><path d="m4 10.5 8-6.5 8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19z" /><path d="M9.5 20v-6h5v6" /></svg>
 );

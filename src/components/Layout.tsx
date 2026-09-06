@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { usePlayer } from '@/player/store';
 import { useAuth } from '@/stores/auth';
@@ -8,17 +8,27 @@ import { ExpandedPlayer } from '@/player/ExpandedPlayer';
 import { ImmersivePlayer } from '@/player/ImmersivePlayer';
 import { engine } from '@/player/engine';
 import {
-  IconHome, IconSearch, IconLibrary, IconMic, IconDisc,
-  IconSubmit, IconUser, IconSettings, IconShield, IconWave,
+  IconHome, IconSearch, IconLibrary, IconMic, IconDisc, IconMenu, IconClose,
+  IconSubmit, IconUser, IconSettings, IconShield, IconWave, IconGitHub,
+  IconPlaylist, IconHeart, IconQueue,
 } from './Icons';
 import { SignInDialog } from './SignInDialog';
 import { Footer } from './Footer';
+
+const REPO = 'https://github.com/flessan/resontune';
+
+/** Is the pathname part of the unified Library destination? */
+const inLibrary = (path: string) =>
+  ['/playlists', '/library', '/favorites', '/history'].some((p) => path.startsWith(p));
 
 export function Layout() {
   const view = usePlayer((s) => s.view);
   const user = useAuth((s) => s.user);
   const toasts = useToasts((s) => s.toasts);
   const [signIn, setSignIn] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('rt-nav-collapsed') === '1');
+  const [drawer, setDrawer] = useState(false);
+  const drawerRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const [q, setQ] = useState('');
@@ -45,10 +55,27 @@ export function Layout() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  /* scroll to top on navigation */
+  /* scroll to top + close drawer on navigation */
   useEffect(() => {
     document.querySelector('.main')?.scrollTo(0, 0);
+    setDrawer(false);
   }, [location.pathname]);
+
+  /* drawer: Esc to close + focus the panel when opened */
+  useEffect(() => {
+    if (!drawer) return;
+    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setDrawer(false); };
+    window.addEventListener('keydown', onEsc);
+    drawerRef.current?.focus();
+    return () => window.removeEventListener('keydown', onEsc);
+  }, [drawer]);
+
+  const toggleCollapsed = () => {
+    setCollapsed((c) => {
+      localStorage.setItem('rt-nav-collapsed', c ? '0' : '1');
+      return !c;
+    });
+  };
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,62 +84,113 @@ export function Layout() {
 
   const nav = ({ isActive }: { isActive: boolean }) => `nav-link ${isActive ? 'active' : ''}`;
 
+  /* Primary destinations, shared between sidebar and drawer */
+  const primaryNav = (
+    <>
+      <NavLink to="/" className={nav} end title="Home"><IconHome width={18} height={18} /><span>Home</span></NavLink>
+      <NavLink to="/discover" className={nav} title="Discover"><IconSearch width={18} height={18} /><span>Discover</span></NavLink>
+      <NavLink to="/originals" className={nav} title="Originals"><IconDisc width={18} height={18} /><span>Originals</span></NavLink>
+      <NavLink to="/community" className={nav} title="Community"><IconMic width={18} height={18} /><span>Community</span></NavLink>
+      <NavLink to="/radio" className={nav} title="Radio"><IconWave width={18} height={18} /><span>Radio</span></NavLink>
+      <NavLink
+        to="/playlists"
+        title="Library"
+        className={({ isActive }) => `nav-link ${isActive || inLibrary(location.pathname) ? 'active' : ''}`}
+      >
+        <IconLibrary width={18} height={18} /><span>Library</span>
+      </NavLink>
+    </>
+  );
+
   return (
-    <div className="app">
+    <div className={`app ${collapsed ? 'nav-collapsed' : ''}`}>
       <a href="#main-content" className="visually-hidden">Skip to content</a>
 
+      {/* ---- desktop sidebar ---- */}
       <aside className="sidebar" aria-label="Main navigation">
         <div className="brand">
-          <NavLink to="/" className="brand-mark">Reson<em>Tune</em></NavLink>
+          <button className="icon-btn" onClick={toggleCollapsed} aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'} title={collapsed ? 'Expand' : 'Collapse'}>
+            <IconMenu width={18} height={18} />
+          </button>
+          <NavLink to="/" className="brand-mark"><span>Reson<em>Tune</em></span></NavLink>
         </div>
 
-        <NavLink to="/" className={nav} end><IconHome width={17} height={17} /> Home</NavLink>
-        <NavLink to="/discover" className={nav}><IconSearch width={17} height={17} /> Discover</NavLink>
-        <NavLink to="/originals" className={nav}><IconDisc width={17} height={17} /> Originals</NavLink>
-        <NavLink to="/community" className={nav}><IconMic width={17} height={17} /> Community</NavLink>
-        <NavLink to="/radio" className={nav}><IconWave width={17} height={17} /> Radio</NavLink>
-        <NavLink
-          to="/playlists"
-          className={({ isActive }) =>
-            `nav-link ${isActive || ['/library', '/favorites', '/history'].some((p) => location.pathname.startsWith(p)) ? 'active' : ''}`
-          }
-        >
-          <IconLibrary width={17} height={17} /> Library
-        </NavLink>
+        {primaryNav}
 
-        <div className="nav-section">Create</div>
-        <NavLink to="/submit" className={nav}><IconSubmit width={17} height={17} /> Release music</NavLink>
+        <div className="nav-section"><span>Create</span></div>
+        <NavLink to="/submit" className={nav} title="Release music"><IconSubmit width={18} height={18} /><span>Release music</span></NavLink>
         {(user?.role === 'moderator' || user?.role === 'admin') && (
-          <NavLink to="/moderation" className={nav}><IconShield width={17} height={17} /> Moderation</NavLink>
+          <NavLink to="/moderation" className={nav} title="Moderation"><IconShield width={18} height={18} /><span>Moderation</span></NavLink>
         )}
 
         <div style={{ flex: 1 }} />
 
-        <NavLink to="/settings" className={nav}><IconSettings width={17} height={17} /> Settings</NavLink>
+        <NavLink to="/settings" className={nav} title="Settings"><IconSettings width={18} height={18} /><span>Settings</span></NavLink>
         {user ? (
-          <NavLink to="/profile" className={nav}><IconUser width={17} height={17} /> {user.displayName}</NavLink>
+          <NavLink to="/profile" className={nav} title={user.displayName}><IconUser width={18} height={18} /><span>{user.displayName}</span></NavLink>
         ) : (
-          <button className="nav-link" onClick={() => setSignIn(true)}>
-            <IconUser width={17} height={17} /> Sign in
+          <button className="nav-link" onClick={() => setSignIn(true)} title="Sign in">
+            <IconUser width={18} height={18} /><span>Sign in</span>
           </button>
         )}
-        <div style={{ padding: '14px 14px 6px', fontSize: 11, color: 'var(--on-surface-faint)', lineHeight: 1.7 }}>
-          <NavLink to="/about" style={{ color: 'inherit' }}>About</NavLink>
+        <div className="sidebar-foot">
+          <NavLink to="/about">About</NavLink>
           {' · '}
-          <NavLink to="/contribute" style={{ color: 'inherit' }}>Contribute</NavLink>
+          <NavLink to="/contribute">Contribute</NavLink>
           {' · '}
-          <NavLink to="/support" style={{ color: 'inherit' }}>Support</NavLink>
+          <NavLink to="/support">Support</NavLink>
         </div>
       </aside>
 
+      {/* ---- mobile drawer ---- */}
+      {drawer && (
+        <div className="drawer-backdrop" onClick={() => setDrawer(false)} aria-hidden />
+      )}
+      <nav
+        className={`drawer ${drawer ? 'open' : ''}`}
+        aria-label="Application navigation"
+        aria-hidden={!drawer}
+        ref={drawerRef}
+        tabIndex={-1}
+      >
+        <div className="drawer-head">
+          <span className="brand-mark">Reson<em>Tune</em></span>
+          <button className="icon-btn" onClick={() => setDrawer(false)} aria-label="Close navigation">
+            <IconClose width={18} height={18} />
+          </button>
+        </div>
+        {primaryNav}
+        <div className="nav-section"><span>Your music</span></div>
+        <NavLink to="/playlists" className={nav}><IconPlaylist width={18} height={18} /><span>Playlists</span></NavLink>
+        <NavLink to="/favorites" className={nav}><IconHeart width={18} height={18} /><span>Favorites</span></NavLink>
+        <NavLink to="/history" className={nav}><IconQueue width={18} height={18} /><span>History</span></NavLink>
+        <NavLink to="/library" className={nav}><IconUser width={18} height={18} /><span>Local music</span></NavLink>
+        <div className="nav-section"><span>More</span></div>
+        <NavLink to="/submit" className={nav}><IconSubmit width={18} height={18} /><span>Release music</span></NavLink>
+        {(user?.role === 'moderator' || user?.role === 'admin') && (
+          <NavLink to="/moderation" className={nav}><IconShield width={18} height={18} /><span>Moderation</span></NavLink>
+        )}
+        <NavLink to="/about" className={nav}><IconDisc width={18} height={18} /><span>About</span></NavLink>
+        <NavLink to="/contribute" className={nav}><IconSubmit width={18} height={18} /><span>Contribute</span></NavLink>
+        <NavLink to="/support" className={nav}><IconHeart width={18} height={18} /><span>Support</span></NavLink>
+        <NavLink to="/settings" className={nav}><IconSettings width={18} height={18} /><span>Settings</span></NavLink>
+        <a href={REPO} target="_blank" rel="noreferrer" className="nav-link">
+          <IconGitHub width={18} height={18} /><span>GitHub</span>
+        </a>
+      </nav>
+
       <main className="main" id="main-content">
         <div className="topbar">
+          <button className="icon-btn hamburger" onClick={() => setDrawer(true)} aria-label="Open navigation" aria-expanded={drawer}>
+            <IconMenu width={19} height={19} />
+          </button>
+          <NavLink to="/" className="brand-mark topbar-brand">Reson<em>Tune</em></NavLink>
           <form className="search-box" onSubmit={submitSearch} role="search">
             <IconSearch width={15} height={15} />
             <input
               id="global-search"
               type="search"
-              placeholder="Search tracks, artists, releases…  ( / )"
+              placeholder="Search music, artists, albums…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               aria-label="Search the catalog"
@@ -131,19 +209,17 @@ export function Layout() {
 
       <PlayerBar />
 
+      {/* ---- mobile navigation bar: core destinations only ---- */}
       <nav className="tabbar" aria-label="Mobile navigation">
         <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}><IconHome width={20} height={20} />Home</NavLink>
-        <NavLink to="/discover" className={({ isActive }) => (isActive ? 'active' : '')}><IconSearch width={20} height={20} />Discover</NavLink>
+        <NavLink to="/search" className={({ isActive }) => (isActive ? 'active' : '')}><IconSearch width={20} height={20} />Search</NavLink>
         <NavLink to="/radio" className={({ isActive }) => (isActive ? 'active' : '')}><IconWave width={20} height={20} />Radio</NavLink>
         <NavLink
           to="/playlists"
-          className={({ isActive }) =>
-            isActive || ['/library', '/favorites', '/history'].some((p) => location.pathname.startsWith(p)) ? 'active' : ''
-          }
+          className={({ isActive }) => (isActive || inLibrary(location.pathname) ? 'active' : '')}
         >
           <IconLibrary width={20} height={20} />Library
         </NavLink>
-        <NavLink to={user ? '/profile' : '/settings'} className={({ isActive }) => (isActive ? 'active' : '')}><IconUser width={20} height={20} />{user ? 'You' : 'More'}</NavLink>
       </nav>
 
       {view === 'expanded' && <ExpandedPlayer />}

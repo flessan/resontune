@@ -119,17 +119,19 @@
   --tertiary-container: #4e471b;
   --on-tertiary-container: #efe3a9;
 
-  --surface: #1a120d;
-  --surface-container-lowest: #140d09;
-  --surface-container-low: #221a15;
-  --surface-container: #271e18;
-  --surface-container-high: #322822;
-  --surface-container-highest: #3d332c;
-  --on-surface: #f0dfd7;
-  --on-surface-variant: #d7c2b8;
+  /* Deep near-neutral darks with a warm undertone — layered, never pure
+     black, comfortable for long listening sessions. */
+  --surface: #131110;
+  --surface-container-lowest: #0d0b0a;
+  --surface-container-low: #1b1817;
+  --surface-container: #211d1b;
+  --surface-container-high: #2b2624;
+  --surface-container-highest: #36302d;
+  --on-surface: #ece5e1;
+  --on-surface-variant: #cfc4be;
 
-  --outline: #a08d83;
-  --outline-variant: #52443c;
+  --outline: #9a8d86;
+  --outline-variant: #453e3a;
 
   --error: #ffb4ab;
   --on-error: #690005;
@@ -208,32 +210,33 @@ input, textarea, select { font-family: inherit; color: inherit; }
   }
 }
 
-/* ------------------------------------------- navigation drawer (desktop)
-   M3 standard navigation drawer: a tonal surface-container layer, items
-   as full-round "pill" destinations with a secondary-container active
-   indicator. */
+/* ----------------------------------------------- sidebar (desktop)
+   Streaming-app navigation column: quiet tonal surface, compact
+   destinations, collapsible to an icon rail via the hamburger. */
 
 .sidebar {
   grid-area: sidebar;
-  padding: 20px 12px;
+  padding: 12px 12px 16px;
   display: flex;
   flex-direction: column;
   gap: 2px;
   overflow-y: auto;
+  overflow-x: hidden;
   background: var(--surface-container-low);
 }
 @media (max-width: 860px) { .sidebar { display: none; } }
 
 .brand {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 4px 14px 20px;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 2px 14px;
 }
 .brand-mark {
   font-weight: 700;
-  font-size: 19px;
+  font-size: 18px;
   letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 .brand-mark em {
   font-style: normal;
@@ -245,33 +248,93 @@ input, textarea, select { font-family: inherit; color: inherit; }
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--on-surface-faint);
-  padding: 18px 14px 6px;
+  padding: 16px 13px 6px;
+  white-space: nowrap;
 }
 
 .nav-link {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 9px 14px;
-  border-radius: var(--shape-full);
+  gap: 13px;
+  padding: 8px 13px;
+  border-radius: var(--shape-sm);
   color: var(--on-surface-variant);
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
   border: none;
   background: none;
   width: 100%;
   text-align: left;
-  transition: background 0.12s var(--ease-standard);
+  white-space: nowrap;
+  transition: background 0.12s var(--ease-standard), color 0.12s var(--ease-standard);
 }
 .nav-link svg { flex-shrink: 0; opacity: 0.8; }
 .nav-link:hover { background: var(--state-hover); color: var(--on-surface); }
 .nav-link:active { background: var(--state-press); }
 .nav-link.active {
-  background: var(--secondary-container);
-  color: var(--on-secondary-container);
+  background: var(--state-press);
+  color: var(--on-surface);
   font-weight: 600;
 }
-.nav-link.active svg { color: var(--on-secondary-container); opacity: 1; }
+.nav-link.active svg { color: var(--primary); opacity: 1; }
+
+.sidebar-foot {
+  padding: 14px 13px 4px;
+  font-size: 11px;
+  color: var(--on-surface-faint);
+  line-height: 1.7;
+  white-space: nowrap;
+}
+.sidebar-foot a { color: inherit; }
+.sidebar-foot a:hover { color: var(--on-surface); }
+
+/* Collapsed rail: icons with tooltips, labels hidden. Desktop only —
+   mobile uses the drawer instead. */
+@media (min-width: 861px) {
+  .app.nav-collapsed { grid-template-columns: 68px 1fr; }
+}
+.app.nav-collapsed .sidebar { padding: 12px 10px 16px; }
+.app.nav-collapsed .nav-link { justify-content: center; padding: 10px 0; gap: 0; }
+.app.nav-collapsed .nav-link span,
+.app.nav-collapsed .brand-mark,
+.app.nav-collapsed .nav-section span,
+.app.nav-collapsed .sidebar-foot { display: none; }
+.app.nav-collapsed .nav-section { padding: 8px 0 0; }
+.app.nav-collapsed .brand { justify-content: center; padding: 2px 0 14px; }
+
+/* ----------------------------------------------- drawer (mobile)
+   The full navigation hierarchy in a slide-in side sheet. */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.5);
+  z-index: 110;
+  animation: fade-in 0.2s var(--ease-standard);
+}
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.drawer {
+  position: fixed;
+  top: 0; bottom: 0; left: 0;
+  width: min(300px, 84vw);
+  z-index: 111;
+  background: var(--surface-container-low);
+  padding: 8px 12px calc(24px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transform: translateX(-102%);
+  transition: transform 0.25s var(--ease-emphasized), visibility 0.25s;
+  visibility: hidden;
+  outline: none;
+}
+.drawer.open { transform: none; visibility: visible; box-shadow: var(--elev-3); }
+.drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 2px 12px 13px;
+}
 
 /* ---------------------------------------------------------------- main */
 
@@ -284,30 +347,37 @@ input, textarea, select { font-family: inherit; color: inherit; }
 }
 
 .page {
-  max-width: 1120px;
+  max-width: 1360px;
   margin: 0 auto;
-  padding: 20px 32px 64px;
-  animation: page-in 180ms ease-out;
+  padding: 16px 28px 56px;
+  animation: page-in 160ms var(--ease-standard);
 }
 @keyframes page-in {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
-@media (max-width: 640px) { .page { padding: 18px 16px 48px; } }
+@media (max-width: 640px) { .page { padding: 12px 14px 40px; } }
 
-/* M3 top app bar: surface color, blends with content until scrolled. */
+/* Top bar: quiet, useful — hamburger (mobile), search, account. */
 .topbar {
   position: sticky;
   top: 0;
   z-index: 30;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 32px 10px;
+  gap: 10px;
+  padding: 10px 28px 8px;
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   backdrop-filter: blur(14px);
 }
-@media (max-width: 640px) { .topbar { padding: 10px 16px; } }
+@media (max-width: 640px) { .topbar { padding: 8px 12px; } }
+/* Hamburger + brand live in the top bar only on mobile; on desktop the
+   sidebar carries both. */
+.topbar .hamburger, .topbar-brand { display: none; }
+@media (max-width: 860px) {
+  .topbar .hamburger { display: inline-grid; }
+  .topbar-brand { display: inline; font-size: 17px; margin-right: 2px; }
+}
 
 /* M3 search bar: full-round field on surface-container-high. */
 .search-box {
@@ -378,7 +448,7 @@ h1.page-title {
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin: 36px 0 14px;
+  margin: 30px 0 12px;
 }
 .section-head:first-child { margin-top: 0; }
 .section-title {
@@ -405,11 +475,11 @@ h1.page-title {
    snaps per tile, scrollbar hidden. */
 .shelf {
   display: flex;
-  gap: 16px;
+  gap: 14px;
   overflow-x: auto;
   scroll-snap-type: x proximity;
-  padding: 4px 32px 8px;
-  margin: 0 -32px;
+  padding: 4px 28px 8px;
+  margin: 0 -28px;
   scrollbar-width: none;
 }
 .shelf::-webkit-scrollbar { display: none; }
@@ -419,9 +489,9 @@ h1.page-title {
 }
 .shelf > .collection-tile { flex-basis: 240px; }
 @media (max-width: 640px) {
-  .shelf { padding: 4px 16px 8px; margin: 0 -16px; gap: 13px; }
-  .shelf > * { flex-basis: 128px; }
-  .shelf > .collection-tile { flex-basis: 210px; }
+  .shelf { padding: 4px 14px 8px; margin: 0 -14px; gap: 12px; }
+  .shelf > * { flex-basis: 124px; }
+  .shelf > .collection-tile { flex-basis: 200px; }
 }
 
 /* Tiles are free artwork + two text lines — never boxes. */
@@ -528,8 +598,35 @@ h1.page-title {
 }
 .track-row:hover .idx span { display: none; }
 .track-row:hover .row-play { display: grid; }
-.track-row.playing .idx span { display: none; }
+.track-row.playing .idx span:not(.eq) { display: none; }
+.track-row.playing:hover .idx .eq { display: none; }
 .track-row.playing .row-play { display: grid; color: var(--player-tint); }
+.track-row.playing:not(:hover) .row-play { display: none; }
+
+/* Tiny equalizer — the "now playing" tell. CSS-only, honors reduced
+   motion by freezing mid-height. */
+.eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+.eq i {
+  width: 3px;
+  border-radius: 1px;
+  background: var(--player-tint);
+  animation: eq-bounce 0.9s ease-in-out infinite;
+}
+.eq i:nth-child(1) { animation-delay: 0s; }
+.eq i:nth-child(2) { animation-delay: 0.25s; }
+.eq i:nth-child(3) { animation-delay: 0.5s; }
+@keyframes eq-bounce {
+  0%, 100% { height: 4px; }
+  50% { height: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eq i { animation: none; height: 8px; }
+}
 
 .track-row .art {
   width: 40px; height: 40px;
@@ -561,7 +658,8 @@ h1.page-title {
   gap: 2px;
   opacity: 0;
 }
-.track-row:hover .actions, .track-row:focus-within .actions { opacity: 1; }
+.track-row:hover .actions, .track-row:focus-within .actions,
+.track-row .actions:has(.menu) { opacity: 1; }
 @media (hover: none) { .track-row .actions { opacity: 1; } }
 
 .track-row .dur {
@@ -610,6 +708,14 @@ h1.page-title {
 }
 
 .original-badge.compact { letter-spacing: 0.12em; }
+
+/* Home greeting — quiet, human, gone in one line. */
+.home-greeting {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 4px 0 16px;
+}
 
 /* Featured release — one compact tonal row. Never a hero. */
 .featured {
@@ -1549,6 +1655,42 @@ textarea.input { resize: vertical; }
   color: var(--on-secondary-container);
   font-weight: 600;
 }
+
+/* Compact anchored menu (track ⋮, overflow actions) */
+.track-menu-wrap { position: relative; }
+.menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 190px;
+  padding: 6px;
+  border-radius: var(--shape-md);
+  background: var(--surface-container-high);
+  box-shadow: var(--elev-3);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  animation: menu-pop 0.14s var(--ease-emphasized);
+  transform-origin: top right;
+}
+@keyframes menu-pop {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+.menu-item {
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--on-surface);
+  padding: 9px 12px;
+  border-radius: var(--shape-sm);
+  white-space: nowrap;
+  transition: background 0.1s var(--ease-standard);
+}
+.menu-item:hover { background: var(--state-hover); }
+.menu-item:active { background: var(--state-press); }
 
 .empty {
   padding: 48px 24px;
