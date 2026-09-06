@@ -96,11 +96,12 @@ export function Layout() {
             <IconUser width={17} height={17} /> Sign in
           </button>
         )}
-        <div style={{ padding: '14px 10px 4px', fontSize: 11, color: 'var(--ink-faint)', lineHeight: 1.6 }}>
-          Open music. For everyone.<br />
-          <NavLink to="/about" style={{ textDecoration: 'underline', color: 'inherit' }}>About</NavLink>
+        <div style={{ padding: '14px 14px 6px', fontSize: 11, color: 'var(--on-surface-faint)', lineHeight: 1.7 }}>
+          <NavLink to="/about" style={{ color: 'inherit' }}>About</NavLink>
           {' · '}
-          <NavLink to="/support" style={{ textDecoration: 'underline', color: 'inherit' }}>Support</NavLink>
+          <NavLink to="/contribute" style={{ color: 'inherit' }}>Contribute</NavLink>
+          {' · '}
+          <NavLink to="/support" style={{ color: 'inherit' }}>Support</NavLink>
         </div>
       </aside>
 

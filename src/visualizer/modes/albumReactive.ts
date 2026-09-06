@@ -41,7 +41,7 @@ registerMode({
       ctx.fillStyle = accent + '33';
       ctx.fillRect(-size / 2, -size / 2, size, size);
       ctx.fillStyle = paper;
-      ctx.font = `${size * 0.4}px Fraunces, serif`;
+      ctx.font = `${size * 0.4}px Poppins, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('♪', 0, 0);

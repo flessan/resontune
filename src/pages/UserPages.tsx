@@ -100,7 +100,7 @@ export function Profile() {
           {user.avatarUrl ? (
             <img src={user.avatarUrl} alt="" />
           ) : (
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 44, color: 'var(--accent)' }}>
+            <span style={{ fontSize: 38, fontWeight: 600, color: 'var(--on-surface-faint)' }}>
               {user.displayName.slice(0, 1).toUpperCase()}
             </span>
           )}

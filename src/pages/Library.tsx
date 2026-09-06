@@ -145,7 +145,8 @@ export default function Library() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               aria-label="Filter local library"
-              style={{ marginLeft: 'auto', padding: '6px 14px', borderRadius: 999, border: '1px solid var(--line-strong)', background: 'var(--bg-raised)', fontSize: 13 }}
+              className="input"
+              style={{ marginLeft: 'auto', maxWidth: 220, padding: '7px 14px', fontSize: 13 }}
             />
             <button className="btn small" onClick={exportLibrary} title="Export library metadata as JSON">
               <IconDownload width={14} height={14} /> Export

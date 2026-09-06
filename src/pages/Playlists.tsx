@@ -55,7 +55,8 @@ export default function Playlists() {
                 placeholder="Playlist name"
                 aria-label="New playlist name"
                 autoFocus
-                style={{ flex: 1, padding: '8px 14px', borderRadius: 999, border: '1px solid var(--line-strong)', background: 'var(--bg-raised)' }}
+                className="input"
+                style={{ flex: 1 }}
               />
               <button className="btn primary small" onClick={() => void create()}>Create</button>
               <button className="btn small" onClick={() => setCreating(false)}>Cancel</button>

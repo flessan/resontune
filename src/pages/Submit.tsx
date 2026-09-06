@@ -179,7 +179,7 @@ export default function Submit() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {mine.submissions.map((s) => (
-                  <div key={s.id} style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 14, background: 'var(--bg-raised)' }}>
+                  <div key={s.id} style={{ borderRadius: 'var(--shape-md)', padding: 14, background: 'var(--surface-container-low)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', marginBottom: 4 }}>
                       <strong style={{ fontSize: 13.5 }}>{s.payload.trackTitle}</strong>
                       <span className={`status-badge ${s.status}`}>{s.status}</span>

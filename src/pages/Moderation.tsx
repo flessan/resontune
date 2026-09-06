@@ -80,10 +80,10 @@ export default function Moderation() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {data.submissions.map((s) => (
-            <div key={s.id} style={{ border: '1px solid var(--line)', borderRadius: 12, padding: 20, background: 'var(--bg-raised)' }}>
+            <div key={s.id} style={{ borderRadius: 'var(--shape-md)', padding: 20, background: 'var(--surface-container-low)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
                 <div>
-                  <strong style={{ fontSize: 16, fontFamily: 'var(--font-display)' }}>
+                  <strong style={{ fontSize: 15, fontWeight: 600 }}>
                     {s.payload.trackTitle}
                   </strong>
                   <span style={{ color: 'var(--ink-muted)' }}> — {s.payload.artistName}</span>

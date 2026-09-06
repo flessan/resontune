@@ -33,7 +33,7 @@ registerMode({
       const isCenter = off === 0;
       const wobble = Math.sin(t * 0.8 + i * 1.3) * 4 * settings.intensity;
       const bandV = (frame.freq[Math.floor(((i + 1) / (rows + 2)) * frame.binCount * 0.5)] ?? 0) / 255;
-      ctx.font = `${isCenter ? 700 : 400} ${size}px Fraunces, Georgia, serif`;
+      ctx.font = `${isCenter ? 700 : 400} ${size}px Poppins, sans-serif`;
       if (isCenter) {
         ctx.fillStyle = paper;
         ctx.globalAlpha = 1;
@@ -46,7 +46,7 @@ registerMode({
     ctx.globalAlpha = 1;
 
     // artist line
-    ctx.font = `500 ${Math.max(12, size * 0.16)}px Inter, sans-serif`;
+    ctx.font = `500 ${Math.max(12, size * 0.16)}px Poppins, sans-serif`;
     ctx.fillStyle = accent;
     const spacing = 4 + frame.treble * 20 * settings.intensity;
     const text = artist.toUpperCase().split('').join('\u200a'.repeat(Math.round(spacing / 4)));

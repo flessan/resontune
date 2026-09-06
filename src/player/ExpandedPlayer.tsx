@@ -319,7 +319,8 @@ export function ExpandedPlayer() {
                     id="rate"
                     value={rate}
                     onChange={(e) => setRate(Number(e.target.value))}
-                    style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--line-strong)', background: 'var(--bg-raised)' }}
+                    className="ps-vis-select"
+                    style={{ width: 'auto', padding: '5px 10px' }}
                   >
                     {[0.75, 0.9, 1, 1.1, 1.25, 1.5].map((r) => (
                       <option key={r} value={r}>{r}×</option>

@@ -133,7 +133,7 @@ export default function PlaylistPage() {
     <div className="page">
       <div className="detail-head">
         <div className="detail-art" style={{ display: 'grid', placeItems: 'center', background: 'var(--accent-soft)' }}>
-          <span style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: 30, color: 'var(--accent)', textAlign: 'center', padding: '0 16px', lineHeight: 1.25 }}>
+          <span style={{ fontSize: 26, fontWeight: 600, color: 'var(--on-surface-faint)', textAlign: 'center', padding: '0 16px', lineHeight: 1.25 }}>
             {playlist.title}
           </span>
         </div>

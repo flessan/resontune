@@ -87,12 +87,12 @@ export default function Home() {
               <Link to={`/artist/${feat.artist.slug}`}>{feat.artist.name}</Link>
               {feat.sourceType === 'original' && <span style={{ marginLeft: 10 }}><OriginalBadge compact /></span>}
             </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <button className="btn primary" onClick={() => void playFeatured(feat.slug)}>
-                <IconPlay width={14} height={14} /> Play
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button className="btn primary small" onClick={() => void playFeatured(feat.slug)}>
+                <IconPlay width={13} height={13} /> Play
               </button>
               {hasQueue && !playing && (
-                <button className="btn" onClick={resume}>Resume listening</button>
+                <button className="btn small" onClick={resume}>Resume</button>
               )}
             </div>
           </div>

@@ -90,8 +90,8 @@ export function PlaylistTile({ playlist }: { playlist: Playlist }) {
   };
   return (
     <Link to={`/playlist/${playlist.slug}`} className="tile">
-      <div className="tile-art" style={{ display: 'grid', placeItems: 'center', background: 'var(--accent-soft)' }}>
-        <span style={{ fontFamily: 'var(--font-display)', fontSize: 34, fontStyle: 'italic', color: 'var(--accent)', padding: '0 14px', textAlign: 'center', lineHeight: 1.2 }}>
+      <div className="tile-art" style={{ display: 'grid', placeItems: 'center', background: 'var(--surface-container-high)' }}>
+        <span style={{ fontSize: 22, fontWeight: 600, color: 'var(--on-surface-muted)', padding: '0 14px', textAlign: 'center', lineHeight: 1.3 }}>
           {playlist.title}
         </span>
         <button className="tile-play" onClick={playAll} aria-label={`Play ${playlist.title}`}>

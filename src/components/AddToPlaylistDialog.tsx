@@ -82,7 +82,8 @@ export function AddToPlaylistDialog({ trackId, onClose }: { trackId: string; onC
                   onKeyDown={(e) => e.key === 'Enter' && void create()}
                   placeholder="Playlist name"
                   aria-label="New playlist name"
-                  style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--line-strong)', borderRadius: 6, background: 'var(--bg)' }}
+                  className="input"
+                  style={{ flex: 1 }}
                 />
                 <button className="btn primary small" onClick={() => void create()}>Create</button>
               </div>
