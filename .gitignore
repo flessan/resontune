@@ -19,3 +19,6 @@ media/audio/*.ogg
 # logs / misc
 *.log
 .DS_Store
+
+# typescript build info
+*.tsbuildinfo
