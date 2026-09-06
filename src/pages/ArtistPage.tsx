@@ -1,8 +1,8 @@
+import { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
 import type { Artist, Album, Track } from '@/lib/types';
 import { TrackRow } from '@/components/TrackRow';
-import { AlbumTile } from '@/components/Tiles';
 import { Artwork } from '@/components/Artwork';
 import { usePlayer } from '@/player/store';
 import { trackToQueueItem } from '@/providers';
@@ -10,6 +10,9 @@ import { IconPlay, IconExternal, IconWave } from '@/components/Icons';
 import { OriginalBadge, SourceChip } from '@/components/Provenance';
 import { api } from '@/lib/api';
 import { toast } from '@/stores/toast';
+import { ContextMenuButton } from '@/contextmenu/ContextMenuButton';
+import { useContextTarget } from '@/contextmenu/useContextTarget';
+import { artistRef, type ContextTarget } from '@/contextmenu/types';
 
 interface Data {
   artist: Artist;
@@ -17,9 +20,38 @@ interface Data {
   popularTracks: Track[];
 }
 
+/** A release card on an artist page — the album rows here carry no nested
+ *  artist, so the target borrows the page's artist. */
+function ReleaseCard({ album, artist }: { album: Album; artist: Artist }) {
+  const target = useMemo<ContextTarget>(
+    () => ({
+      type: 'release',
+      release: { id: album.id, slug: album.slug, title: album.title, artist: { slug: artist.slug, name: artist.name } },
+    }),
+    [album, artist],
+  );
+  const ctxProps = useContextTarget(target);
+  return (
+    <Link to={`/release/${album.slug}`} className="tile" {...ctxProps}>
+      <div className="tile-art">
+        <Artwork src={album.artworkUrl} alt="" />
+        <ContextMenuButton target={target} className="tile-more" size={16} />
+      </div>
+      <div className="tile-title">{album.title}</div>
+      <div className="tile-sub">{album.type.toUpperCase()} · {album.trackCount} tracks</div>
+    </Link>
+  );
+}
+
 export default function ArtistPage() {
   const { slug } = useParams();
   const { data, loading, error } = useFetch<Data>(`/artists/${slug}`, [slug]);
+  const loaded = data?.artist ?? null;
+  const target = useMemo<ContextTarget | null>(
+    () => (loaded ? { type: 'artist', artist: artistRef(loaded) } : null),
+    [loaded],
+  );
+  const headProps = useContextTarget(target);
 
   if (loading) return <div className="loading-page"><span className="spin" /></div>;
   if (error || !data) {
@@ -54,7 +86,7 @@ export default function ArtistPage() {
 
   return (
     <div className="page">
-      <div className="detail-head">
+      <div className="detail-head" {...headProps}>
         <div className="detail-art round">
           <Artwork src={artist.imageUrl} alt={`Photo of ${artist.name}`} />
         </div>
@@ -80,6 +112,7 @@ export default function ArtistPage() {
                 <IconExternal width={13} height={13} /> {l.label}
               </a>
             ))}
+            <ContextMenuButton target={target} className="icon-btn" />
           </div>
           {(artist.links?.some((l) => ['kofi', 'patreon', 'bandcamp'].includes(l.provider ?? l.kind ?? ''))) && (
             <p style={{ fontSize: 12.5, color: 'var(--ink-faint)', marginTop: 10 }}>
@@ -104,13 +137,7 @@ export default function ArtistPage() {
         <>
           <div className="section-head"><h2 className="section-title">Releases</h2></div>
           <div className="card-row">
-            {albums.map((al) => (
-              <Link key={al.id} to={`/release/${al.slug}`} className="tile">
-                <div className="tile-art"><Artwork src={al.artworkUrl} alt="" /></div>
-                <div className="tile-title">{al.title}</div>
-                <div className="tile-sub">{al.type.toUpperCase()} · {al.trackCount} tracks</div>
-              </Link>
-            ))}
+            {albums.map((al) => <ReleaseCard key={al.id} album={al} artist={artist} />)}
           </div>
         </>
       )}

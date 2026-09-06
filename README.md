@@ -110,6 +110,7 @@ production execute identical DDL.
 | [docs/database.md](docs/database.md) | Schema, migrations, relations, storage migration path |
 | [docs/catalog-model.md](docs/catalog-model.md) | Provenance, rights model, content states, collections, roles |
 | [docs/profiles-and-catalog-admin.md](docs/profiles-and-catalog-admin.md) | Member profiles, ImgBB avatars, the admin catalog manager |
+| [docs/contextual-actions.md](docs/contextual-actions.md) | Right-click menus, ⋮ overflow, action sheets — one action model |
 | [docs/radio.md](docs/radio.md) | Radio stations and deterministic selection |
 | [docs/providers.md](docs/providers.md) | Provider adapters and their rules |
 | [docs/visualizers.md](docs/visualizers.md) | Writing a visualizer mode |

@@ -15,6 +15,9 @@ import { hostOf } from '@/lib/validation';
 import { toast } from '@/stores/toast';
 import { IconExternal, IconSettings } from '@/components/Icons';
 import type { Profile } from '@/lib/types';
+import { ContextMenuButton } from '@/contextmenu/ContextMenuButton';
+import { useContextTarget } from '@/contextmenu/useContextTarget';
+import type { ContextTarget } from '@/contextmenu/types';
 
 interface ProfilePayload {
   profile: Profile;
@@ -27,6 +30,42 @@ interface OwnStats {
   stats: { tracksPlayed: number; artistsDiscovered: number; favorites: number; memberSince: string };
   topGenres: { id: string; name: string; plays: number }[];
   playlists: { id: string; slug: string; title: string; isPublic: boolean; likeCount: number; trackCount: number }[];
+}
+
+type ProfilePlaylist = ProfilePayload['playlists'][number];
+type ProfileArtist = ProfilePayload['artists'][number];
+
+/** Profile music sections carry the same contextual actions as anywhere else. */
+function PlaylistCard({ pl, ownerId }: { pl: ProfilePlaylist; ownerId: string | null }) {
+  const target: ContextTarget = {
+    type: 'playlist',
+    // Only public playlists are listed on a profile.
+    playlist: { id: pl.id, slug: pl.slug, title: pl.title, isPublic: true, trackCount: pl.trackCount, ownerId },
+  };
+  const ctxProps = useContextTarget(target);
+  return (
+    <Link to={`/playlist/${pl.slug}`} className="profile-playlist" {...ctxProps}>
+      <strong>{pl.title}</strong>
+      <span>{pl.trackCount} track{pl.trackCount === 1 ? '' : 's'}</span>
+      {pl.description && <em>{pl.description}</em>}
+      <ContextMenuButton target={target} className="card-more" size={16} />
+    </Link>
+  );
+}
+
+function ArtistCard({ artist }: { artist: ProfileArtist }) {
+  const target: ContextTarget = { type: 'artist', artist: { id: artist.id, slug: artist.slug, name: artist.name } };
+  const ctxProps = useContextTarget(target);
+  return (
+    <Link to={`/artist/${artist.slug}`} className="profile-artist-card" {...ctxProps}>
+      <Avatar src={artist.imageUrl} name={artist.name} size={44} />
+      <span>
+        <strong>{artist.name}</strong>
+        <em>{artist.trackCount} track{artist.trackCount === 1 ? '' : 's'}</em>
+      </span>
+      <ContextMenuButton target={target} className="card-more" size={16} />
+    </Link>
+  );
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -124,15 +163,7 @@ export default function ProfilePage() {
             <span className="section-note">catalog records linked to this account</span>
           </div>
           <div className="profile-artist-row">
-            {data.artists.map((a) => (
-              <Link key={a.id} to={`/artist/${a.slug}`} className="profile-artist-card">
-                <Avatar src={a.imageUrl} name={a.name} size={44} />
-                <span>
-                  <strong>{a.name}</strong>
-                  <em>{a.trackCount} track{a.trackCount === 1 ? '' : 's'}</em>
-                </span>
-              </Link>
-            ))}
+            {data.artists.map((a) => <ArtistCard key={a.id} artist={a} />)}
           </div>
         </>
       )}
@@ -174,11 +205,7 @@ export default function ProfilePage() {
       ) : (
         <div className="profile-playlists">
           {data.playlists.map((pl) => (
-            <Link key={pl.id} to={`/playlist/${pl.slug}`} className="profile-playlist">
-              <strong>{pl.title}</strong>
-              <span>{pl.trackCount} track{pl.trackCount === 1 ? '' : 's'}</span>
-              {pl.description && <em>{pl.description}</em>}
-            </Link>
+            <PlaylistCard key={pl.id} pl={pl} ownerId={data.profile.id} />
           ))}
         </div>
       )}

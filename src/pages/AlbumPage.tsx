@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
 import type { Album, Track } from '@/lib/types';
@@ -8,12 +9,21 @@ import { trackToQueueItem } from '@/providers';
 import { formatDate } from '@/lib/format';
 import { IconPlay } from '@/components/Icons';
 import { OriginalBadge, SourceChip } from '@/components/Provenance';
+import { ContextMenuButton } from '@/contextmenu/ContextMenuButton';
+import { useContextTarget } from '@/contextmenu/useContextTarget';
+import { releaseRef, type ContextTarget } from '@/contextmenu/types';
 
 interface Data { album: Album; tracks: Track[] }
 
 export default function AlbumPage() {
   const { slug } = useParams();
   const { data, loading, error } = useFetch<Data>(`/albums/${slug}`, [slug]);
+  const loaded = data?.album ?? null;
+  const target = useMemo<ContextTarget | null>(
+    () => (loaded ? { type: 'release', release: releaseRef(loaded) } : null),
+    [loaded],
+  );
+  const headProps = useContextTarget(target);
 
   if (loading) return <div className="loading-page"><span className="spin" /></div>;
   if (error || !data) {
@@ -36,7 +46,7 @@ export default function AlbumPage() {
 
   return (
     <div className="page">
-      <div className="detail-head">
+      <div className="detail-head" {...headProps}>
         <div className="detail-art">
           <Artwork src={album.artworkUrl} alt={`Cover of ${album.title}`} />
         </div>
@@ -56,6 +66,7 @@ export default function AlbumPage() {
             <button className="btn primary" onClick={playAll}>
               <IconPlay width={15} height={15} /> Play
             </button>
+            <ContextMenuButton target={target} className="icon-btn" />
           </div>
         </div>
       </div>

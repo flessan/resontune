@@ -8,7 +8,7 @@ import { formatDate } from '@/lib/format';
 import { Artwork } from '@/components/Artwork';
 import { IconPlus } from '@/components/Icons';
 import { useCatalogRole } from './AdminLayout';
-import { AdminEmpty, AdminSearch, StatusChip, StatusFilter } from './ui';
+import { AdminEmpty, AdminRow, AdminSearch, StatusChip, StatusFilter } from './ui';
 import type { AdminRelease } from './types';
 
 export default function Releases() {
@@ -68,7 +68,14 @@ export default function Releases() {
       ) : (
         <div className="admin-list">
           {data.releases.map((r) => (
-            <div key={r.id} className="admin-row">
+            <AdminRow
+              key={r.id}
+              target={{
+                type: 'admin-release',
+                entity: { id: r.id, title: r.title, status: r.status, slug: r.slug },
+                onChanged: () => setRefresh((n) => n + 1),
+              }}
+            >
               <span className="admin-row-art"><Artwork src={r.artworkUrl} alt="" /></span>
               <Link to={`/admin/releases/${r.id}`} className="admin-row-main">
                 <strong>{r.title}</strong>
@@ -86,7 +93,7 @@ export default function Releases() {
                   {r.status === 'published' ? 'Unlist' : 'Publish'}
                 </button>
               )}
-            </div>
+            </AdminRow>
           ))}
         </div>
       )}

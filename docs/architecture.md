@@ -21,6 +21,7 @@ src/
   player/       playback engine + state + player UIs
   visualizer/   analysis-driven render engine + modes/
   providers/    playback resolution (server /api/play + local object URLs)
+  contextmenu/  contextual action model (right-click, ⋮, action sheet)
   local/        IndexedDB library, importer (music-metadata)
   stores/       auth, settings, toasts (zustand)
   components/   shared UI (rows, tiles, dialogs, icons)
@@ -49,6 +50,17 @@ src/
 
 Presentation modes: **Compact** (persistent bar), **Expanded** (full sheet
 with queue/lyrics/about), **Immersive** (fullscreen visualizer).
+
+## Contextual actions
+
+Every contextual affordance in the app — desktop right-click, the ⋮ overflow
+button, the mobile action sheet — resolves through one pipeline: a component
+registers a typed *target*, `buildActions(target, ctx)` derives the valid
+actions from live state, and a single portalled surface renders them. Actions
+call the existing player, auth and API layers; they never fork queue or
+playlist state, and hidden actions are a courtesy on top of server
+authorization, not a substitute for it. See
+[docs/contextual-actions.md](contextual-actions.md).
 
 ## The visualizer
 

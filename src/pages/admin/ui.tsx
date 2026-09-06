@@ -4,9 +4,12 @@
  * The catalog manager is denser than the listener UI but uses the same
  * design language: tonal surfaces, one typeface, restrained motion.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { IconCheck, IconExternal, IconPause, IconPlay, IconTrash } from '@/components/Icons';
 import { hostOf, looksLikeAudioUrl, urlError } from '@/lib/validation';
+import { ContextMenuButton } from '@/contextmenu/ContextMenuButton';
+import { useContextTarget } from '@/contextmenu/useContextTarget';
+import type { ContextTarget } from '@/contextmenu/types';
 import { STATUS_LABEL, type CatalogStatus } from './types';
 
 export function StatusChip({ status }: { status: CatalogStatus }) {
@@ -254,6 +257,22 @@ export function AdminEmpty({ title, body, action }: { title: string; body: strin
       <h3>{title}</h3>
       <p>{body}</p>
       {action}
+    </div>
+  );
+}
+
+/**
+ * A catalog row with its management menu attached.
+ *
+ * The admin menu is denser than the listener one — edit, preview, publish,
+ * delete — and it only ever renders for people the API would let through.
+ */
+export function AdminRow({ target, children }: { target: ContextTarget; children: ReactNode }) {
+  const ctxProps = useContextTarget(target);
+  return (
+    <div className="admin-row" {...ctxProps}>
+      {children}
+      <ContextMenuButton target={target} className="icon-btn" size={16} />
     </div>
   );
 }

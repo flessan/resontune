@@ -574,6 +574,20 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
 .tile:hover .tile-play, .tile:focus-within .tile-play { opacity: 1; transform: none; }
 @media (hover: none) { .tile-play { opacity: 1; transform: none; width: 34px; height: 34px; } }
 
+/* Tile overflow trigger — the touch route into the same contextual menu. */
+.tile-more {
+  position: absolute;
+  top: 6px; right: 6px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity var(--dur-micro) var(--ease-standard), background var(--dur-micro) var(--ease-standard);
+}
+.tile-more:hover, .tile-more:focus-visible { background: rgba(0, 0, 0, 0.6); color: #fff; }
+.tile:hover .tile-more, .tile:focus-within .tile-more, .tile-more[aria-expanded='true'] { opacity: 1; }
+@media (hover: none) { .tile-more { opacity: 1; } }
+
 .tile-title {
   margin: 8px 1px 0;
   font-weight: 500;
@@ -1812,47 +1826,155 @@ textarea.input { resize: vertical; }
   font-weight: 600;
 }
 
-/* Compact anchored menu (track ⋮, overflow actions) */
-.track-menu-wrap { position: relative; }
-.menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
-  min-width: 190px;
+/* ------------------------------------------------------------------ *
+ * Contextual menus: one surface for right-click, the ⋮ trigger and the
+ * mobile action sheet. Portalled to <body>, so positioning is fixed and
+ * nothing in the page can clip it.
+ * ------------------------------------------------------------------ */
+.ctx-trigger {
+  display: inline-grid;
+  place-items: center;
+  border: none;
+  background: none;
+  color: var(--on-surface-muted);
+  border-radius: var(--shape-full);
+  padding: 6px;
+  cursor: pointer;
+  transition: background var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard);
+}
+.ctx-trigger:hover { background: var(--state-hover); color: var(--on-surface); }
+.ctx-trigger:active { background: var(--state-press); }
+.ctx-trigger[aria-expanded='true'] { background: var(--state-press); color: var(--on-surface); }
+
+.ctx-menu {
+  position: fixed;
+  z-index: 190;                 /* above the player (100) and dialogs (120) */
+  min-width: 216px;
+  max-width: min(320px, calc(100vw - 16px));
   padding: 6px;
   border-radius: var(--shape-md);
   background: var(--surface-container-high);
+  border: 1px solid var(--line);
   box-shadow: var(--elev-3);
-  z-index: 60;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: ctx-in var(--dur-micro) var(--ease-emphasized);
+}
+.ctx-menu:focus { outline: none; }
+.ctx-menu.closing { animation: ctx-out 110ms var(--ease-exit) forwards; }
+
+/* Short, small, and mostly opacity — a menu should look placed, not thrown. */
+@keyframes ctx-in {
+  from { opacity: 0; transform: scale(0.97) translateY(-2px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ctx-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: scale(0.98); }
+}
+
+.ctx-group + .ctx-group {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid var(--line);
+}
+
+.ctx-item {
   display: flex;
-  flex-direction: column;
-  animation: menu-pop var(--dur-quick) var(--ease-emphasized);
-  transform-origin: top right;
-}
-/* exit: shrink back toward the ⋮ that opened it */
-.menu.closing { animation: menu-pop-out var(--dur-micro) var(--ease-exit) forwards; }
-@keyframes menu-pop-out {
-  from { opacity: 1; transform: scale(1); }
-  to { opacity: 0; transform: scale(0.95); }
-}
-@keyframes menu-pop {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-.menu-item {
+  align-items: center;
+  gap: 10px;
+  width: 100%;
   border: none;
   background: none;
   text-align: left;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 500;
+  line-height: 1.3;
   color: var(--on-surface);
-  padding: 9px 12px;
+  padding: 8px 10px;
   border-radius: var(--shape-sm);
-  white-space: nowrap;
-  transition: background 0.1s var(--ease-standard);
+  cursor: pointer;
+  transition: background var(--dur-micro) var(--ease-standard);
 }
-.menu-item:hover { background: var(--state-hover); }
-.menu-item:active { background: var(--state-press); }
+.ctx-item > svg { flex: none; color: var(--on-surface-muted); }
+.ctx-item .ctx-icon-space { width: 16px; flex: none; }
+.ctx-item .ctx-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ctx-item .ctx-hint {
+  flex: none;
+  max-width: 40%;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--on-surface-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ctx-item:hover, .ctx-item.active { background: var(--state-hover); }
+.ctx-item:active { background: var(--state-press); }
+.ctx-item:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.ctx-item.danger { color: var(--error); }
+.ctx-item.danger > svg { color: var(--error); }
+.ctx-item.danger:hover, .ctx-item.danger.active { background: color-mix(in srgb, var(--error) 12%, transparent); }
+
+/* ---- touch: the same actions as a bottom sheet ---- */
+.ctx-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  background: rgba(20, 17, 12, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fade-in var(--dur-micro) var(--ease-standard);
+}
+.ctx-sheet-backdrop.closing { animation: fade-out 110ms var(--ease-exit) forwards; }
+.ctx-sheet {
+  width: min(560px, 100%);
+  max-height: 76dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 10px calc(14px + env(safe-area-inset-bottom));
+  background: var(--surface-container-high);
+  border-radius: var(--shape-xl) var(--shape-xl) 0 0;
+  box-shadow: var(--elev-3);
+  animation: ctx-sheet-in var(--dur-quick) var(--ease-emphasized);
+}
+.ctx-sheet:focus { outline: none; }
+.ctx-sheet.closing { animation: ctx-sheet-out 110ms var(--ease-exit) forwards; }
+@keyframes ctx-sheet-in {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes ctx-sheet-out {
+  from { transform: none; opacity: 1; }
+  to { transform: translateY(8px); opacity: 0; }
+}
+@keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+.ctx-sheet::before {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 4px;
+  margin: 4px auto 10px;
+  border-radius: var(--shape-full);
+  background: var(--outline-variant);
+}
+.ctx-sheet-head { padding: 0 8px 10px; }
+.ctx-sheet-title { font-size: 15px; font-weight: 600; color: var(--on-surface); }
+.ctx-sheet-sub { font-size: 12px; color: var(--on-surface-muted); margin-top: 2px; }
+.ctx-sheet .ctx-item { font-size: 15px; padding: 13px 10px; gap: 14px; }
+.ctx-sheet .ctx-item .ctx-hint { font-size: 12.5px; }
+
+/* Reduced motion: the menu appears, it does not perform. */
+@media (prefers-reduced-motion: reduce) {
+  .ctx-menu, .ctx-menu.closing,
+  .ctx-sheet, .ctx-sheet.closing,
+  .ctx-sheet-backdrop, .ctx-sheet-backdrop.closing { animation: none; }
+}
+
+/* Dialogs raised by contextual actions */
+.dialog.compact { max-width: 400px; padding: 22px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 
 .empty {
   padding: 48px 24px;
@@ -2206,6 +2328,18 @@ table.simple td { padding: 8px 10px; border-bottom: 1px solid var(--outline-vari
   font-style: normal; font-size: 12.5px; color: var(--on-surface-faint);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* Overflow trigger on a card that is itself a link. */
+.profile-playlist, .profile-artist-card { position: relative; }
+.card-more {
+  position: absolute;
+  top: 8px; right: 8px;
+  opacity: 0;
+}
+.profile-playlist:hover .card-more, .profile-playlist:focus-within .card-more,
+.profile-artist-card:hover .card-more, .profile-artist-card:focus-within .card-more,
+.card-more[aria-expanded='true'] { opacity: 1; }
+@media (hover: none) { .card-more { opacity: 1; } }
 
 @media (max-width: 640px) {
   .profile-head { gap: 16px; }

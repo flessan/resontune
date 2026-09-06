@@ -12,6 +12,8 @@ import {
   IconSubmit, IconUser, IconSettings, IconShield, IconWave, IconGitHub,
   IconPlaylist, IconHeart, IconQueue,
 } from './Icons';
+import { ContextMenuRoot } from '@/contextmenu/ContextMenuRoot';
+import { DialogHost } from './DialogHost';
 import { SignInDialog } from './SignInDialog';
 import { Avatar } from './Avatar';
 import { Footer } from './Footer';
@@ -259,6 +261,11 @@ export function Layout() {
       {view === 'expanded' && <ExpandedPlayer />}
       {view === 'immersive' && <ImmersivePlayer />}
       {signIn && <SignInDialog onClose={() => setSignIn(false)} />}
+
+      {/* Contextual menus and the dialogs their actions raise, mounted once
+          so any row anywhere in the app can reach them. */}
+      <ContextMenuRoot />
+      <DialogHost />
 
       <div className="toast-zone" aria-live="polite">
         {toasts.map((t) => (

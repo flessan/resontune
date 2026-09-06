@@ -8,7 +8,7 @@ import { formatDate } from '@/lib/format';
 import { Avatar } from '@/components/Avatar';
 import { IconPlus } from '@/components/Icons';
 import { useCatalogRole } from './AdminLayout';
-import { AdminEmpty, AdminSearch, StatusChip, StatusFilter } from './ui';
+import { AdminEmpty, AdminRow, AdminSearch, StatusChip, StatusFilter } from './ui';
 import type { AdminArtist } from './types';
 
 export default function Artists() {
@@ -68,7 +68,14 @@ export default function Artists() {
       ) : (
         <div className="admin-list">
           {data.artists.map((a) => (
-            <div key={a.id} className="admin-row">
+            <AdminRow
+              key={a.id}
+              target={{
+                type: 'admin-artist',
+                entity: { id: a.id, title: a.name, status: a.status, slug: a.slug },
+                onChanged: () => setRefresh((n) => n + 1),
+              }}
+            >
               <Avatar src={a.imageUrl} name={a.name} size={34} />
               <Link to={`/admin/artists/${a.id}`} className="admin-row-main">
                 <strong>{a.name}</strong>
@@ -88,7 +95,7 @@ export default function Artists() {
                   {a.status === 'published' ? 'Unlist' : 'Publish'}
                 </button>
               )}
-            </div>
+            </AdminRow>
           ))}
         </div>
       )}

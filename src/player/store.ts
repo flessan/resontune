@@ -35,6 +35,10 @@ interface PlayerState {
   playNow: (item: QueueItem) => Promise<void>;
   enqueue: (items: QueueItem[]) => void;
   playNext: (item: QueueItem) => void;
+  /** Insert items directly after the current one (batch form of playNext). */
+  insertNext: (items: QueueItem[]) => void;
+  /** Move an existing queue entry to another position, keeping playback. */
+  moveInQueue: (queueId: string, toIndex: number) => void;
   removeFromQueue: (queueId: string) => void;
   clearQueue: () => void;
   toggle: () => Promise<void>;
@@ -204,12 +208,35 @@ export const usePlayer = create<PlayerState>((set, get) => {
       if (index === -1 && items.length) void get().jumpTo(queue.length);
     },
 
-    playNext: (item) => {
+    playNext: (item) => get().insertNext([item]),
+
+    insertNext: (items) => {
+      if (!items.length) return;
       const { queue, index } = get();
       const newQueue = [...queue];
-      newQueue.splice(index + 1, 0, item);
+      newQueue.splice(index + 1, 0, ...items);
       set({ queue: newQueue });
       if (index === -1) void get().jumpTo(0);
+    },
+
+    /**
+     * Reorder within the live queue. The playing entry keeps playing: we
+     * track it by queueId and recompute `index` afterwards, so nothing
+     * reloads and no second queue is ever created.
+     */
+    moveInQueue: (queueId, toIndex) => {
+      const { queue, index } = get();
+      const from = queue.findIndex((q) => q.queueId === queueId);
+      if (from === -1) return;
+      const target = Math.max(0, Math.min(toIndex, queue.length - 1));
+      if (from === target) return;
+      const playingId = queue[index]?.queueId ?? null;
+      const newQueue = [...queue];
+      const [moved] = newQueue.splice(from, 1);
+      newQueue.splice(target, 0, moved);
+      const newIndex = playingId ? newQueue.findIndex((q) => q.queueId === playingId) : index;
+      set({ queue: newQueue, index: newIndex });
+      void persistState({ ...get(), queue: newQueue, index: newIndex });
     },
 
     removeFromQueue: (queueId) => {

@@ -7,8 +7,13 @@ import { Artwork } from './Artwork';
 import { IconPlay } from './Icons';
 import { toast } from '@/stores/toast';
 import { api } from '@/lib/api';
+import { ContextMenuButton } from '@/contextmenu/ContextMenuButton';
+import { useContextTarget } from '@/contextmenu/useContextTarget';
+import { artistRef, releaseRef, type ContextTarget } from '@/contextmenu/types';
 
 export function TrackTile({ track, context }: { track: Track; context?: Track[] }) {
+  const target: ContextTarget = { type: 'track', track, context };
+  const ctxProps = useContextTarget(target);
   const play = (e: React.MouseEvent) => {
     e.preventDefault();
     const list = context ?? [track];
@@ -18,12 +23,13 @@ export function TrackTile({ track, context }: { track: Track; context?: Track[] 
     void usePlayer.getState().playQueue(items, start);
   };
   return (
-    <Link to={`/track/${track.slug}`} className="tile">
+    <Link to={`/track/${track.slug}`} className="tile" {...ctxProps}>
       <div className="tile-art">
         <Artwork src={track.artworkUrl} alt="" />
         <button className="tile-play" onClick={play} aria-label={`Play ${track.title}`}>
           <IconPlay width={17} height={17} />
         </button>
+        <ContextMenuButton target={target} className="tile-more" size={16} />
       </div>
       <div className="tile-title">{track.title}</div>
       <div className="tile-sub">{track.artist.name}</div>
@@ -32,10 +38,13 @@ export function TrackTile({ track, context }: { track: Track; context?: Track[] 
 }
 
 export function AlbumTile({ album }: { album: Album }) {
+  const target: ContextTarget = { type: 'release', release: releaseRef(album) };
+  const ctxProps = useContextTarget(target);
   return (
-    <Link to={`/release/${album.slug}`} className="tile">
+    <Link to={`/release/${album.slug}`} className="tile" {...ctxProps}>
       <div className="tile-art">
         <Artwork src={album.artworkUrl} alt="" />
+        <ContextMenuButton target={target} className="tile-more" size={16} />
       </div>
       <div className="tile-title">{album.title}</div>
       <div className="tile-sub">
@@ -63,10 +72,13 @@ export function CollectionTile({ collection }: { collection: Collection }) {
 }
 
 export function ArtistTile({ artist }: { artist: Artist }) {
+  const target: ContextTarget = { type: 'artist', artist: artistRef(artist) };
+  const ctxProps = useContextTarget(target);
   return (
-    <Link to={`/artist/${artist.slug}`} className="tile artist-tile">
+    <Link to={`/artist/${artist.slug}`} className="tile artist-tile" {...ctxProps}>
       <div className="tile-art">
         <Artwork src={artist.imageUrl} alt="" />
+        <ContextMenuButton target={target} className="tile-more" size={16} />
       </div>
       <div className="tile-title" style={{ textAlign: 'center' }}>{artist.name}</div>
       <div className="tile-sub" style={{ textAlign: 'center' }}>
@@ -76,7 +88,9 @@ export function ArtistTile({ artist }: { artist: Artist }) {
   );
 }
 
-export function PlaylistTile({ playlist }: { playlist: Playlist }) {
+export function PlaylistTile({ playlist, onChanged }: { playlist: Playlist; onChanged?: () => void }) {
+  const target: ContextTarget = { type: 'playlist', playlist, onChanged };
+  const ctxProps = useContextTarget(target);
   const playAll = async (e: React.MouseEvent) => {
     e.preventDefault();
     try {
@@ -89,7 +103,7 @@ export function PlaylistTile({ playlist }: { playlist: Playlist }) {
     }
   };
   return (
-    <Link to={`/playlist/${playlist.slug}`} className="tile">
+    <Link to={`/playlist/${playlist.slug}`} className="tile" {...ctxProps}>
       <div className="tile-art" style={{ display: 'grid', placeItems: 'center', background: 'var(--surface-container-high)' }}>
         <span style={{ fontSize: 22, fontWeight: 600, color: 'var(--on-surface-muted)', padding: '0 14px', textAlign: 'center', lineHeight: 1.3 }}>
           {playlist.title}
@@ -97,6 +111,7 @@ export function PlaylistTile({ playlist }: { playlist: Playlist }) {
         <button className="tile-play" onClick={playAll} aria-label={`Play ${playlist.title}`}>
           <IconPlay width={17} height={17} />
         </button>
+        <ContextMenuButton target={target} className="tile-more" size={16} />
       </div>
       <div className="tile-title">{playlist.title}</div>
       <div className="tile-sub">

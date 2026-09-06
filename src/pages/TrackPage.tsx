@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
 import type { Track } from '@/lib/types';
@@ -11,6 +12,9 @@ import { toast } from '@/stores/toast';
 import { IconPlay, IconPause, IconHeart, IconQueue, IconWave } from '@/components/Icons';
 import { OriginalBadge, SourceChip, provenanceLabel } from '@/components/Provenance';
 import { api } from '@/lib/api';
+import { ContextMenuButton } from '@/contextmenu/ContextMenuButton';
+import { useContextTarget } from '@/contextmenu/useContextTarget';
+import type { ContextTarget } from '@/contextmenu/types';
 
 interface Data {
   track: Track;
@@ -25,6 +29,12 @@ export default function TrackPage() {
   const playing = usePlayer((s) => s.playing);
   const user = useAuth((s) => s.user);
   const isFav = useAuth((s) => (data ? s.favoriteIds.has(data.track.id) : false));
+  const loaded = data?.track ?? null;
+  const target = useMemo<ContextTarget | null>(
+    () => (loaded ? { type: 'track', track: loaded } : null),
+    [loaded],
+  );
+  const headProps = useContextTarget(target);
 
   if (loading) return <div className="loading-page"><span className="spin" /></div>;
   if (error || !data) {
@@ -75,7 +85,7 @@ export default function TrackPage() {
 
   return (
     <div className="page">
-      <div className="detail-head">
+      <div className="detail-head" {...headProps}>
         <div className="detail-art">
           <Artwork src={track.artworkUrl} alt={`Artwork for ${track.title}`} />
         </div>
@@ -106,6 +116,7 @@ export default function TrackPage() {
             <button className="btn" onClick={() => void startRadio()}>
               <IconWave width={15} height={15} /> Start radio
             </button>
+            <ContextMenuButton target={target} className="icon-btn" />
           </div>
           <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {track.genres.map((g) => (

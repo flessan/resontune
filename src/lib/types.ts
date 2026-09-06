@@ -183,6 +183,7 @@ export interface QueueItem {
   artistSlug?: string;
   trackSlug?: string;
   albumTitle?: string | null;
+  albumSlug?: string | null;
   artworkUrl: string | null;     // may be an objectURL for local artwork
   duration: number | null;
   mimeType?: string | null;

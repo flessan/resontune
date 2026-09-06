@@ -9,7 +9,7 @@ import { Artwork } from '@/components/Artwork';
 import { IconPlus } from '@/components/Icons';
 import { hostOf } from '@/lib/validation';
 import { useCatalogRole } from './AdminLayout';
-import { AdminEmpty, AdminSearch, StatusChip, StatusFilter } from './ui';
+import { AdminEmpty, AdminRow, AdminSearch, StatusChip, StatusFilter } from './ui';
 import type { AdminTrack } from './types';
 
 export default function Tracks() {
@@ -83,7 +83,14 @@ export default function Tracks() {
       ) : (
         <div className="admin-list">
           {data.tracks.map((t) => (
-            <div key={t.id} className="admin-row">
+            <AdminRow
+              key={t.id}
+              target={{
+                type: 'admin-track',
+                entity: { id: t.id, title: t.title, status: t.status, slug: t.slug },
+                onChanged: () => setRefresh((n) => n + 1),
+              }}
+            >
               <span className="admin-row-art">
                 <Artwork src={t.artworkUrl ?? t.inheritedArtworkUrl} alt="" />
               </span>
@@ -104,7 +111,7 @@ export default function Tracks() {
                   {t.status === 'published' ? 'Unlist' : 'Publish'}
                 </button>
               )}
-            </div>
+            </AdminRow>
           ))}
         </div>
       )}
