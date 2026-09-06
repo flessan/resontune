@@ -29,6 +29,7 @@ export function Layout() {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('rt-nav-collapsed') === '1');
   const [drawer, setDrawer] = useState(false);
   const drawerRef = useRef<HTMLElement>(null);
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const [q, setQ] = useState('');
@@ -61,14 +62,28 @@ export function Layout() {
     setDrawer(false);
   }, [location.pathname]);
 
-  /* drawer: Esc to close + focus the panel when opened */
+  /* drawer: Esc to close, focus the panel on open, return focus after */
   useEffect(() => {
     if (!drawer) return;
     const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setDrawer(false); };
     window.addEventListener('keydown', onEsc);
     drawerRef.current?.focus();
-    return () => window.removeEventListener('keydown', onEsc);
+    return () => {
+      window.removeEventListener('keydown', onEsc);
+      hamburgerRef.current?.focus();
+    };
   }, [drawer]);
+
+  /* top bar gains a surface once content scrolls beneath it */
+  useEffect(() => {
+    const main = document.querySelector('.main');
+    const bar = document.querySelector('.topbar');
+    if (!main || !bar) return;
+    const onScroll = () => bar.classList.toggle('scrolled', main.scrollTop > 8);
+    main.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => main.removeEventListener('scroll', onScroll);
+  }, []);
 
   const toggleCollapsed = () => {
     setCollapsed((c) => {
@@ -143,9 +158,8 @@ export function Layout() {
       </aside>
 
       {/* ---- mobile drawer ---- */}
-      {drawer && (
-        <div className="drawer-backdrop" onClick={() => setDrawer(false)} aria-hidden />
-      )}
+      <div className={`drawer-backdrop ${drawer ? 'open' : ''}`} onClick={() => setDrawer(false)} aria-hidden />
+
       <nav
         className={`drawer ${drawer ? 'open' : ''}`}
         aria-label="Application navigation"
@@ -181,8 +195,8 @@ export function Layout() {
 
       <main className="main" id="main-content">
         <div className="topbar">
-          <button className="icon-btn hamburger" onClick={() => setDrawer(true)} aria-label="Open navigation" aria-expanded={drawer}>
-            <IconMenu width={19} height={19} />
+          <button ref={hamburgerRef} className="icon-btn hamburger" onClick={() => setDrawer(true)} aria-label="Open navigation" aria-expanded={drawer}>
+            {drawer ? <IconClose width={19} height={19} /> : <IconMenu width={19} height={19} />}
           </button>
           <NavLink to="/" className="brand-mark topbar-brand">Reson<em>Tune</em></NavLink>
           <form className="search-box" onSubmit={submitSearch} role="search">

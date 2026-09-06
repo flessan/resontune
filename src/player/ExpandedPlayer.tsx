@@ -137,15 +137,40 @@ export function ExpandedPlayer() {
   const { toggle, next, prev, toggleShuffle, cycleRepeat, setView, jumpTo, removeFromQueue, setRate } = usePlayer.getState();
 
   const [tab, setTab] = useState<Tab>('queue');
+  const [removing, setRemoving] = useState<string | null>(null);
+
+  /* Soft-collapse a queue row, then actually remove it. */
+  const removeQueued = (queueId: string) => {
+    if (removing) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) { removeFromQueue(queueId); return; }
+    setRemoving(queueId);
+    window.setTimeout(() => {
+      removeFromQueue(queueId);
+      setRemoving(null);
+    }, 180);
+  };
   const [detail, setDetail] = useState<Track | null>(null);
+  const [closing, setClosing] = useState(false);
+
+  /* Close by playing the sheet's return motion first, then unmounting.
+     The sheet slides back toward the mini player it grew out of. */
+  const close = () => {
+    if (closing) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) { setView('compact'); return; }
+    setClosing(true);
+    window.setTimeout(() => setView('compact'), 240);
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setView('compact');
+      if (e.key === 'Escape') close();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [setView]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [closing]);
 
   useEffect(() => {
     setDetail(null);
@@ -182,7 +207,7 @@ export function ExpandedPlayer() {
   const lyrics = detail?.lyrics?.body;
 
   return (
-    <div className="player-sheet" role="dialog" aria-modal="true" aria-label="Now playing">
+    <div className={`player-sheet ${closing ? 'closing' : ''}`} role="dialog" aria-modal="true" aria-label="Now playing">
       <div className="ps-backdrop" aria-hidden>
         {item.artworkUrl && <img src={item.artworkUrl} alt="" />}
       </div>
@@ -192,7 +217,7 @@ export function ExpandedPlayer() {
       <AmbientVisualizer item={item} />
 
       <div className="ps-topbar">
-        <button className="icon-btn" onClick={() => setView('compact')} aria-label="Close expanded player">
+        <button className="icon-btn" onClick={close} aria-label="Close expanded player">
           <IconClose />
         </button>
         <span style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-faint)' }}>
@@ -205,7 +230,8 @@ export function ExpandedPlayer() {
 
       <div className="ps-body">
         <div className="ps-left">
-          <div className="ps-art" ref={artRef}>
+          {/* keyed on the queue item so track changes crossfade the artwork */}
+          <div className="ps-art" ref={artRef} key={item.queueId}>
             <Artwork src={item.artworkUrl} alt={`Artwork for ${item.title}`} />
           </div>
           <div className="ps-titleblock">
@@ -242,7 +268,11 @@ export function ExpandedPlayer() {
             {tab === 'queue' && (
               <div>
                 {queue.map((q, i) => (
-                  <div key={q.queueId} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div
+                    key={q.queueId}
+                    className={`queue-item-wrap ${removing === q.queueId ? 'removing' : ''}`}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
                     <button className={`queue-row ${i === index ? 'current' : ''}`} onClick={() => void jumpTo(i)}>
                       <div className="q-art"><Artwork src={q.artworkUrl} alt="" /></div>
                       <div className="q-meta">
@@ -256,7 +286,7 @@ export function ExpandedPlayer() {
                         {formatDuration(q.duration)}
                       </span>
                     </button>
-                    <button className="icon-btn" onClick={() => removeFromQueue(q.queueId)} aria-label={`Remove ${q.title} from queue`}>
+                    <button className="icon-btn" onClick={() => removeQueued(q.queueId)} aria-label={`Remove ${q.title} from queue`}>
                       <IconTrash width={14} height={14} />
                     </button>
                   </div>

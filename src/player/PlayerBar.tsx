@@ -49,7 +49,10 @@ export function PlayerBar() {
 
   return (
     <div
-      className="player-bar"
+      /* `has-item` is keyed so the entrance animation runs once — when the
+         first track arrives — and NOT again on later track changes. */
+      className={`player-bar ${item ? 'has-item' : ''}`}
+      key={item ? 'live' : 'idle'}
       role="region"
       aria-label="Player"
       onClick={(e) => {
