@@ -1,0 +1,112 @@
+import { useSettings, type Theme } from '@/stores/settings';
+import { listModes } from '@/visualizer/engine';
+import '@/visualizer/modes';
+import { usePlayer } from '@/player/store';
+import { IconSun, IconMoon, IconSettings as IconSys, IconWave } from '@/components/Icons';
+
+export default function Settings() {
+  const theme = useSettings((s) => s.theme);
+  const visualizerMode = useSettings((s) => s.visualizerMode);
+  const vis = useSettings((s) => s.visualizer);
+  const { setTheme, setVisualizerMode, updateVisualizer } = useSettings.getState();
+  const modes = listModes();
+
+  return (
+    <div className="page">
+      <h1 className="page-title">Settings</h1>
+      <p className="page-sub">Appearance, player and visualizer preferences. Stored locally in this browser.</p>
+
+      <div className="section-head"><h2 className="section-title">Appearance</h2></div>
+      <div className="pill-row" role="radiogroup" aria-label="Theme">
+        {([
+          ['light', 'Light', <IconSun key="l" width={14} height={14} />],
+          ['dark', 'Dark', <IconMoon key="d" width={14} height={14} />],
+          ['system', 'System', <IconSys key="s" width={14} height={14} />],
+        ] as [Theme, string, React.ReactNode][]).map(([value, label, icon]) => (
+          <button
+            key={value}
+            role="radio"
+            aria-checked={theme === value}
+            className={`pill ${theme === value ? 'active' : ''}`}
+            onClick={() => setTheme(value)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            {icon} {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="section-head"><h2 className="section-title">Visualizer</h2></div>
+      <p style={{ color: 'var(--ink-muted)', fontSize: 13.5, marginTop: 0 }}>
+        Default mode for the immersive player. You can also change it live while it's open.
+      </p>
+      <div className="pill-row" role="radiogroup" aria-label="Visualizer mode" style={{ marginBottom: 22 }}>
+        {modes.map((m) => (
+          <button
+            key={m.id}
+            role="radio"
+            aria-checked={visualizerMode === m.id}
+            className={`pill ${visualizerMode === m.id ? 'active' : ''}`}
+            onClick={() => setVisualizerMode(m.id)}
+            title={m.description}
+          >
+            {m.name}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ maxWidth: 420 }}>
+        {([
+          ['sensitivity', 'Sensitivity', 0.4, 2],
+          ['intensity', 'Intensity', 0.4, 2],
+          ['speed', 'Speed', 0.3, 2],
+          ['opacity', 'Opacity', 0.2, 1],
+          ['smoothing', 'Smoothing', 0, 0.95],
+          ['scale', 'Scale', 0.5, 1.6],
+        ] as const).map(([key, label, min, max]) => (
+          <div key={key} className="field" style={{ marginBottom: 12 }}>
+            <label htmlFor={`set-${key}`} style={{ display: 'flex', justifyContent: 'space-between' }}>
+              {label} <span style={{ color: 'var(--ink-faint)' }}>{vis[key].toFixed(2)}</span>
+            </label>
+            <input
+              id={`set-${key}`}
+              type="range"
+              min={min}
+              max={max}
+              step={0.01}
+              value={vis[key]}
+              onChange={(e) => updateVisualizer({ [key]: Number(e.target.value) })}
+              style={{ width: '100%', accentColor: 'var(--accent)' }}
+            />
+          </div>
+        ))}
+      </div>
+      <button
+        className="btn"
+        onClick={() => usePlayer.getState().setView('immersive')}
+        disabled={usePlayer.getState().index === -1}
+      >
+        <IconWave width={15} height={15} /> Preview in immersive player
+      </button>
+
+      <div className="section-head"><h2 className="section-title">Keyboard shortcuts</h2></div>
+      <table className="simple" style={{ maxWidth: 420 }}>
+        <tbody>
+          <tr><td><span className="kbd">Space</span></td><td>Play / pause</td></tr>
+          <tr><td><span className="kbd">/</span></td><td>Focus search</td></tr>
+          <tr><td><span className="kbd">Shift</span> + <span className="kbd">→</span></td><td>Next track</td></tr>
+          <tr><td><span className="kbd">Shift</span> + <span className="kbd">←</span></td><td>Previous track</td></tr>
+          <tr><td><span className="kbd">←</span> / <span className="kbd">→</span> on seek bar</td><td>Seek ±5s</td></tr>
+          <tr><td><span className="kbd">Esc</span></td><td>Close expanded / immersive player</td></tr>
+        </tbody>
+      </table>
+
+      <div className="section-head"><h2 className="section-title">About</h2></div>
+      <p className="prose" style={{ fontSize: 13.5 }}>
+        ResonTune is free, open-source and community-driven. Basic listening never
+        requires an account. Local music stays on your device. Media keys work via
+        the Media Session API, and the app installs as a PWA.
+      </p>
+    </div>
+  );
+}

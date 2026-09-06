@@ -1,0 +1,61 @@
+# Contributing to ResonTune
+
+Thanks for wanting to help! ResonTune is a community project — code,
+documentation, design, curation and moderation all count as contributions.
+
+## Ground rules
+
+- **Respect licensing.** Never add code that bypasses DRM, authentication,
+  rate limits or paywalls, scrapes prohibited endpoints, or proxies protected
+  streams. Provider adapters must use officially permitted mechanisms.
+- **Listening comes first.** Don't gate existing free functionality behind
+  accounts, and don't add artificial limits.
+- **Local music stays local.** Nothing from the local library may be uploaded
+  without an explicit, separate, opt-in feature.
+- **No secrets in the repo.** Configuration goes through environment
+  variables (`.env.example` documents them).
+
+## Development setup
+
+```bash
+npm install
+npm run seed:audio     # once — renders demo audio locally
+npm run dev:server     # API on :8787 (embedded Postgres via PGlite)
+npm run dev            # Vite on :5173 (proxies /api and /media)
+```
+
+`npm run typecheck` must pass before you open a PR.
+
+## Project layout
+
+```
+server/          Express API, schema, seed (Neon Postgres / PGlite)
+src/player/      engine (audio element + Web Audio graph), store, UI
+src/visualizer/  engine + modes/ (one file per visualizer)
+src/providers/   provider abstraction (hosted, local, external)
+src/local/       IndexedDB library + importer
+src/pages/       route components
+docs/            architecture & operations documentation
+scripts/         seed-audio generator
+```
+
+## Adding things
+
+- **A visualizer mode** — see [docs/visualizers.md](docs/visualizers.md).
+  One file in `src/visualizer/modes/`, registered via `registerMode`.
+- **A provider** — see [docs/providers.md](docs/providers.md). Implement
+  `MusicProvider`, register it, and document the terms it complies with.
+- **API endpoints** — validate all input with zod, keep responses paginated
+  and bounded, and never trust the client.
+
+## Pull requests
+
+1. Fork, branch from `main`.
+2. Keep PRs focused; describe *why*, not just *what*.
+3. `npm run typecheck && npm run build` must pass.
+4. UI changes: include a screenshot, check keyboard navigation and
+   `prefers-reduced-motion` behavior.
+
+## Code of Conduct
+
+Be excellent to each other — see [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
