@@ -9,7 +9,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 /** Date these documents were last reviewed against the implementation. */
-export const LEGAL_UPDATED = 'September 6, 2026';
+export const LEGAL_UPDATED = 'September 7, 2026';
 
 export const REPO_URL = 'https://github.com/flessan/resontune';
 
