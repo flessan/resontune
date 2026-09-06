@@ -13,9 +13,18 @@ page is link-only.
    which license applies, whether streaming and/or redistribution is
    permitted.
 3. A catalog administrator publishes approved music directly into the real
-   catalog (artist, album, track, `track_sources`), recording the declared
-   license, rights holder and permissions **verbatim** — ResonTune never
-   invents or auto-assigns rights.
+   catalog through the **catalog manager** at `/admin` (artist → release →
+   track, with administrator-verified external media URLs), recording the
+   declared license, rights holder and permissions **verbatim** — ResonTune
+   never invents or auto-assigns rights. See
+   [profiles-and-catalog-admin.md](profiles-and-catalog-admin.md).
+
+## Where each surface lives
+
+| Surface | Role | Purpose |
+| --- | --- | --- |
+| `/admin` | moderator (read) · admin (write) | The catalog itself: create, edit, publish, unpublish, delete artists, releases and tracks |
+| `/moderation` | moderator · admin | Content-state review of existing tracks with a required reason, and the audit trail |
 
 ## Administration (`/moderation`)
 

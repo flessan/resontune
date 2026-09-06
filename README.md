@@ -84,6 +84,13 @@ music never require an account). Identity providers like GitHub are
 configured inside Neon Auth, not in this codebase. Roles come only from
 `ADMIN_USER_IDS` / `MODERATOR_USER_IDS` (see `.env.example`).
 
+**Profile photos are optional.** Set `IMGBB_API_KEY` (server-side only) to
+let members upload an avatar — the browser sends the image to ResonTune,
+ResonTune forwards it to ImgBB and stores just the URL. Without the key,
+avatars fall back to initials. Music and album artwork are never uploaded:
+administrators paste already-hosted URLs in the catalog manager at `/admin`
+(see [docs/profiles-and-catalog-admin.md](docs/profiles-and-catalog-admin.md)).
+
 ### Production (Neon Postgres + Neon Auth)
 
 ```bash
@@ -102,6 +109,7 @@ production execute identical DDL.
 | [docs/architecture.md](docs/architecture.md) | Domain boundaries, data flow, player/visualizer design |
 | [docs/database.md](docs/database.md) | Schema, migrations, relations, storage migration path |
 | [docs/catalog-model.md](docs/catalog-model.md) | Provenance, rights model, content states, collections, roles |
+| [docs/profiles-and-catalog-admin.md](docs/profiles-and-catalog-admin.md) | Member profiles, ImgBB avatars, the admin catalog manager |
 | [docs/radio.md](docs/radio.md) | Radio stations and deterministic selection |
 | [docs/providers.md](docs/providers.md) | Provider adapters and their rules |
 | [docs/visualizers.md](docs/visualizers.md) | Writing a visualizer mode |

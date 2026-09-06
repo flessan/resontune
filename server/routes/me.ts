@@ -1,14 +1,52 @@
 /**
- * Authenticated user features: favorites, history, profile stats, and export.
+ * The signed-in account: profile, avatar, favorites, history, stats, export.
+ *
+ * Every route here is authorized from the verified session (`req.user`) —
+ * ownership is never read from the request body, so a client cannot edit
+ * another account by sending a different id.
  */
-import { Router } from 'express';
+import { Router, raw } from 'express';
 import { z } from 'zod';
 import { getDb, uuid } from '../db/index.ts';
 import { asyncRoute, pagination, HttpError } from '../util/http.ts';
-import { requireAuth } from '../auth.ts';
+import { requireAuth, SESSION_USER_COLUMNS, publicUser, type SessionUser } from '../auth.ts';
 import { queryTracks } from './catalog.ts';
+import { listLinks, replaceLinks } from '../db/links.ts';
+import { PROFILE_COLUMNS, serializeProfile, type ProfileRow } from '../util/profile.ts';
+import { checkUsername } from '../util/username.ts';
+import { validateLinkUrl, validateMediaUrl, coerceHttps } from '../util/urlSafety.ts';
+import {
+  AVATAR_ALLOWED_MIME, AVATAR_MAX_BYTES, ImgbbError, imgbbConfigured,
+  sniffImageMime, uploadAvatarToImgbb,
+} from '../util/imgbb.ts';
 
 const UUID_RE = /^[0-9a-f-]{36}$/;
+
+/* --------------------------------- schemas -------------------------------- */
+
+const linkSchema = z.object({
+  provider: z.string().trim().max(30).optional().nullable(),
+  label: z.string().trim().max(40).optional().nullable(),
+  url: z.string().trim().min(1).max(500),
+});
+
+const profileSchema = z.object({
+  displayName: z.string().trim().min(1).max(60).optional(),
+  username: z.string().trim().min(1).max(40).optional(),
+  bio: z.string().trim().max(600).nullable().optional(),
+  location: z.string().trim().max(80).nullable().optional(),
+  websiteUrl: z.string().trim().max(500).nullable().optional(),
+  links: z.array(linkSchema).max(8).optional(),
+});
+
+async function readOwnProfile(userId: string) {
+  const db = await getDb();
+  const rows = await db.query<ProfileRow>(
+    `SELECT ${PROFILE_COLUMNS} FROM users u WHERE u.id = $1`, [userId],
+  );
+  if (!rows[0]) throw new HttpError(404, 'Account not found.');
+  return serializeProfile(rows[0], await listLinks('user', userId));
+}
 
 export function meRouter(): Router {
   const r = Router();
@@ -88,6 +126,180 @@ export function meRouter(): Router {
     }),
   );
 
+  /* --------------------------------- account -------------------------------- */
+
+  /** The signed-in account record (profile fields + external links). */
+  r.get(
+    '/',
+    asyncRoute(async (req, res) => {
+      res.json({ profile: await readOwnProfile(req.user!.id) });
+    }),
+  );
+
+  /**
+   * Edit your own profile. The account is taken from the verified session;
+   * nothing in the body can change which row is written.
+   */
+  r.patch(
+    '/profile',
+    asyncRoute(async (req, res) => {
+      const parsed = profileSchema.safeParse(req.body);
+      if (!parsed.success) {
+        throw new HttpError(400, parsed.error.issues[0]?.message ?? 'Invalid profile.');
+      }
+      const patch = parsed.data;
+      const db = await getDb();
+      const uid = req.user!.id;
+
+      /* username: normalized, validated, unique, never a reserved route */
+      let handle: string | null = null;
+      if (patch.username !== undefined) {
+        const check = checkUsername(patch.username);
+        if (!check.ok) throw new HttpError(400, check.error);
+        handle = check.value;
+        if (handle !== req.user!.handle) {
+          const clash = await db.query(
+            `SELECT 1 FROM users WHERE lower(handle) = $1 AND id <> $2`, [handle, uid],
+          );
+          if (clash.length) throw new HttpError(409, 'That username is already taken.');
+        }
+      }
+
+      // A typed value may omit the scheme; assume https, then validate.
+      if (patch.websiteUrl) {
+        patch.websiteUrl = coerceHttps(patch.websiteUrl);
+        const err = validateMediaUrl(patch.websiteUrl);
+        if (err) throw new HttpError(400, `Website: ${err}`);
+      }
+      if (patch.links) {
+        patch.links = patch.links.map((l) => ({ ...l, url: coerceHttps(l.url) }));
+        for (const link of patch.links) {
+          const err = validateLinkUrl(link.url);
+          if (err) throw new HttpError(400, `Link ${link.url.slice(0, 40)}: ${err}`);
+        }
+      }
+
+      const sets: string[] = [];
+      const params: unknown[] = [uid];
+      const set = (column: string, value: unknown) => {
+        params.push(value);
+        sets.push(`${column} = $${params.length}`);
+      };
+      if (handle) set('handle', handle);
+      if (patch.displayName !== undefined) set('display_name', patch.displayName);
+      if (patch.bio !== undefined) set('bio', patch.bio || null);
+      if (patch.location !== undefined) set('location', patch.location || null);
+      if (patch.websiteUrl !== undefined) set('website_url', patch.websiteUrl || null);
+      if (sets.length) {
+        await db.query(
+          `UPDATE users SET ${sets.join(', ')}, updated_at = now() WHERE id = $1`, params,
+        );
+      }
+      if (patch.links) await replaceLinks('user', uid, patch.links);
+
+      const fresh = await db.query<SessionUser>(
+        `SELECT ${SESSION_USER_COLUMNS} FROM users WHERE id = $1`, [uid],
+      );
+      res.json({
+        profile: await readOwnProfile(uid),
+        user: fresh[0] ? publicUser({ ...fresh[0], role: req.user!.role }) : null,
+      });
+    }),
+  );
+
+  /** Username availability, for live feedback in the profile editor. */
+  r.get(
+    '/username-available',
+    asyncRoute(async (req, res) => {
+      const check = checkUsername(String(req.query.username ?? ''));
+      if (!check.ok) return void res.json({ available: false, reason: check.error, username: null });
+      if (check.value === req.user!.handle) {
+        return void res.json({ available: true, reason: null, username: check.value });
+      }
+      const db = await getDb();
+      const clash = await db.query(
+        `SELECT 1 FROM users WHERE lower(handle) = $1 AND id <> $2`, [check.value, req.user!.id],
+      );
+      res.json({
+        available: !clash.length,
+        reason: clash.length ? 'That username is already taken.' : null,
+        username: check.value,
+      });
+    }),
+  );
+
+  /* --------------------------- avatar (ImgBB only) -------------------------- */
+
+  /**
+   * Upload a profile photo.
+   *
+   * The browser POSTs the raw image bytes with an image/* content type; the
+   * server validates size and real file type (magic bytes, not just the
+   * header), forwards it to ImgBB using the server-side IMGBB_API_KEY, and
+   * stores only the resulting URL. The key never reaches the client and no
+   * image data is written to the database.
+   */
+  const rawAvatarBody = raw({ type: () => true, limit: AVATAR_MAX_BYTES });
+
+  r.post(
+    '/avatar',
+    // Translate the body parser's own limit error into the same 413 the
+    // explicit size check produces, so oversized files never surface as 500s.
+    (req, res, next) => rawAvatarBody(req, res, (err?: unknown) => {
+      if (err && typeof err === 'object' && (err as { type?: string }).type === 'entity.too.large') {
+        return next(new HttpError(413, 'Image is larger than 4 MB.'));
+      }
+      next(err as Error | undefined);
+    }),
+    asyncRoute(async (req, res) => {
+      if (!imgbbConfigured()) {
+        throw new HttpError(503, 'Profile photo uploads are not configured on this deployment.');
+      }
+      const declared = String(req.headers['content-type'] ?? '').split(';')[0].trim().toLowerCase();
+      if (!AVATAR_ALLOWED_MIME.includes(declared as never)) {
+        throw new HttpError(415, 'Use a JPEG, PNG, WebP or GIF image.');
+      }
+      const body = req.body;
+      if (!Buffer.isBuffer(body) || !body.length) throw new HttpError(400, 'No image received.');
+      if (body.length > AVATAR_MAX_BYTES) throw new HttpError(413, 'Image is larger than 4 MB.');
+      const sniffed = sniffImageMime(body);
+      if (!sniffed) throw new HttpError(415, 'That file is not a supported image.');
+      if (sniffed !== declared) {
+        throw new HttpError(415, 'The file contents do not match the image type.');
+      }
+
+      try {
+        const uploaded = await uploadAvatarToImgbb(body, `resontune-${req.user!.handle}`);
+        const db = await getDb();
+        await db.query(
+          `UPDATE users SET avatar_url = $2, avatar_thumb_url = $3, avatar_provider_id = $4,
+                            avatar_source = 'imgbb', avatar_updated_at = now(), updated_at = now()
+            WHERE id = $1`,
+          [req.user!.id, uploaded.url, uploaded.thumbUrl, uploaded.id],
+        );
+        res.json({ avatarUrl: uploaded.url, avatarThumbUrl: uploaded.thumbUrl });
+      } catch (err) {
+        if (err instanceof ImgbbError) throw new HttpError(err.status, err.message);
+        throw err;
+      }
+    }),
+  );
+
+  /** Remove the profile photo (falls back to initials everywhere). */
+  r.delete(
+    '/avatar',
+    asyncRoute(async (req, res) => {
+      const db = await getDb();
+      await db.query(
+        `UPDATE users SET avatar_url = NULL, avatar_thumb_url = NULL, avatar_provider_id = NULL,
+                          avatar_source = NULL, avatar_updated_at = now(), updated_at = now()
+          WHERE id = $1`,
+        [req.user!.id],
+      );
+      res.json({ avatarUrl: null, avatarThumbUrl: null });
+    }),
+  );
+
   /* -------------------------------- profile ------------------------------- */
 
   r.get(
@@ -115,6 +327,7 @@ export function meRouter(): Router {
         db.query<{ n: string }>(`SELECT count(*)::text AS n FROM favorites WHERE user_id = $1`, [uid]),
       ]);
       res.json({
+        profile: await readOwnProfile(uid),
         stats: {
           tracksPlayed: Number(plays[0]?.n ?? 0),
           artistsDiscovered: Number(artists[0]?.n ?? 0),

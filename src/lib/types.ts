@@ -77,7 +77,7 @@ export interface Artist {
   location: string | null;
   plays?: number;
   trackCount?: number;
-  links?: { kind: string; label: string; url: string }[];
+  links?: { kind?: string; provider?: string; label: string; url: string }[];
   genres?: { id: string; name: string }[];
   sourceType?: SourceType;
 }
@@ -130,13 +130,44 @@ export interface Playlist {
   updatedAt?: string;
 }
 
+export type Role = 'listener' | 'moderator' | 'admin';
+
+/** A link on a profile or catalog entity (normalized `entity_links`). */
+export interface EntityLink {
+  provider: string;
+  label: string;
+  url: string;
+}
+
+/** The signed-in account, as reported by the server. */
 export interface User {
   id: string;
   handle: string;
   displayName: string;
   avatarUrl: string | null;
-  role: 'listener' | 'moderator' | 'admin';
+  avatarThumbUrl?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  websiteUrl?: string | null;
+  role: Role;
   createdAt: string;
+}
+
+/** A public ResonTune profile. */
+export interface Profile {
+  id: string;
+  username: string;
+  handle: string;
+  displayName: string;
+  avatarUrl: string | null;
+  avatarThumbUrl: string | null;
+  bio: string | null;
+  location: string | null;
+  websiteUrl: string | null;
+  role: Role;
+  joinedAt: string;
+  createdAt: string;
+  links: EntityLink[];
 }
 
 /**

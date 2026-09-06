@@ -52,13 +52,30 @@ export function playRouter(): Router {
       const trackId = String(req.params.trackId);
       if (!UUID_RE.test(trackId)) throw new HttpError(400, 'Bad track id.');
       const db = await getDb();
-      const trackRows = await db.query<{ status: string; streaming_permission: boolean; source_type: string }>(
-        `SELECT status, streaming_permission, source_type FROM tracks WHERE id = $1`,
+      const trackRows = await db.query<{
+        status: string; streaming_permission: boolean; source_type: string;
+        artist_status: string; album_status: string | null;
+      }>(
+        `SELECT t.status, t.streaming_permission, t.source_type,
+                a.status AS artist_status, al.status AS album_status
+           FROM tracks t
+           JOIN artists a ON a.id = t.artist_id
+           LEFT JOIN albums al ON al.id = t.album_id
+          WHERE t.id = $1`,
         [trackId],
       );
       const track = trackRows[0];
       if (!track) throw new HttpError(404, 'Track not found.');
-      if (track.status === 'taken_down' || track.status === 'archived') {
+
+      // Only genuinely available catalog entries resolve. Unlisted tracks stay
+      // playable from a direct link; withdrawn ones — including tracks whose
+      // artist or release was withdrawn — never do.
+      const withdrawn = (status: string | null | undefined) =>
+        status === 'taken_down' || status === 'archived';
+      if (track.status !== 'published' && track.status !== 'unlisted') {
+        throw new HttpError(410, 'This track is no longer available.');
+      }
+      if (withdrawn(track.artist_status) || withdrawn(track.album_status)) {
         throw new HttpError(410, 'This track is no longer available.');
       }
       if (!track.streaming_permission) {

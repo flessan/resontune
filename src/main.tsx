@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import '@fontsource/poppins/400.css';
@@ -20,7 +20,10 @@ import Submit from './pages/Submit';
 import Moderation from './pages/Moderation';
 import Settings from './pages/Settings';
 import { ArtistsPage, AlbumsPage, GenresPage, GenrePage, TagPage } from './pages/BrowsePages';
-import { Favorites, History, Profile } from './pages/UserPages';
+import { Favorites, History } from './pages/UserPages';
+import ProfilePage from './pages/ProfilePage';
+import ProfileEdit from './pages/ProfileEdit';
+import ProfileRedirect from './pages/ProfileRedirect';
 import Discover from './pages/Discover';
 import Originals from './pages/Originals';
 import Community from './pages/Community';
@@ -30,6 +33,20 @@ import CollectionPage from './pages/CollectionPage';
 import About from './pages/About';
 import Contribute from './pages/Contribute';
 import Support from './pages/Support';
+
+/* The catalog manager only loads for the people who open it. */
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
+const AdminOverview = lazy(() => import('./pages/admin/Overview'));
+const AdminArtists = lazy(() => import('./pages/admin/Artists'));
+const AdminArtistEditor = lazy(() => import('./pages/admin/ArtistEditor'));
+const AdminReleases = lazy(() => import('./pages/admin/Releases'));
+const AdminReleaseEditor = lazy(() => import('./pages/admin/ReleaseEditor'));
+const AdminTracks = lazy(() => import('./pages/admin/Tracks'));
+const AdminTrackEditor = lazy(() => import('./pages/admin/TrackEditor'));
+
+const lazyRoute = (node: React.ReactNode) => (
+  <Suspense fallback={<div className="loading-page"><span className="spin" /></div>}>{node}</Suspense>
+);
 
 import { useAuth } from './stores/auth';
 import { restorePlayerState, setupMediaSession } from './player/store';
@@ -65,8 +82,23 @@ const router = createBrowserRouter([
       { path: '/moderation', element: <Moderation /> },
       { path: '/favorites', element: <Favorites /> },
       { path: '/history', element: <History /> },
-      { path: '/profile', element: <Profile /> },
+      { path: '/profile', element: <ProfileRedirect /> },
+      { path: '/profile/edit', element: <ProfileEdit /> },
+      { path: '/u/:username', element: <ProfilePage /> },
       { path: '/settings', element: <Settings /> },
+      {
+        path: '/admin',
+        element: lazyRoute(<AdminLayout />),
+        children: [
+          { index: true, element: lazyRoute(<AdminOverview />) },
+          { path: 'artists', element: lazyRoute(<AdminArtists />) },
+          { path: 'artists/:id', element: lazyRoute(<AdminArtistEditor />) },
+          { path: 'releases', element: lazyRoute(<AdminReleases />) },
+          { path: 'releases/:id', element: lazyRoute(<AdminReleaseEditor />) },
+          { path: 'tracks', element: lazyRoute(<AdminTracks />) },
+          { path: 'tracks/:id', element: lazyRoute(<AdminTrackEditor />) },
+        ],
+      },
       { path: '*', element: (
         <div className="page">
           <div className="empty" style={{ marginTop: 60 }}>

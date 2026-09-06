@@ -28,6 +28,8 @@ import { Router } from 'express';
 import { createLocalJWKSet, createRemoteJWKSet, jwtVerify } from 'jose';
 import { getDb, uuid } from './db/index.ts';
 import { asyncRoute, HttpError } from './util/http.ts';
+import { checkUsername, suggestUsername } from './util/username.ts';
+import { effectiveRole } from './util/roles.ts';
 
 /** Base URL of the Neon Auth deployment (…/neondb/auth). */
 const NEON_AUTH_URL = (process.env.NEON_AUTH_URL ?? '').replace(/\/+$/, '');
@@ -60,9 +62,17 @@ export interface SessionUser {
   handle: string;
   display_name: string;
   avatar_url: string | null;
+  avatar_thumb_url: string | null;
+  bio: string | null;
+  location: string | null;
+  website_url: string | null;
   role: 'listener' | 'moderator' | 'admin';
   created_at: string;
 }
+
+/** Columns that make up a session user — shared by every lookup below. */
+export const SESSION_USER_COLUMNS = `id, handle, display_name, avatar_url, avatar_thumb_url,
+       bio, location, website_url, role, created_at`;
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -71,29 +81,6 @@ declare global {
       user?: SessionUser;
     }
   }
-}
-
-/* ----------------------------- authorization ----------------------------- */
-
-/**
- * Server-side role resolution. ADMIN_USER_IDS / MODERATOR_USER_IDS
- * (comma-separated ResonTune user ids) override the users.role column, so a
- * compromised write to users.role cannot mint an admin. Nothing the client
- * sends ever affects this.
- */
-function envRoleFor(userId: string): 'admin' | 'moderator' | null {
-  const admins = (process.env.ADMIN_USER_IDS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
-  if (admins.includes(userId)) return 'admin';
-  const mods = (process.env.MODERATOR_USER_IDS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
-  if (mods.includes(userId)) return 'moderator';
-  return null;
-}
-
-function effectiveRole(user: SessionUser): SessionUser['role'] {
-  const envRole = envRoleFor(user.id);
-  if (envRole === 'admin') return 'admin';
-  if (envRole === 'moderator') return user.role === 'admin' ? 'admin' : 'moderator';
-  return user.role;
 }
 
 /* ------------------------------ verification ----------------------------- */
@@ -133,21 +120,17 @@ async function verifyToken(token: string): Promise<VerifiedIdentity | null> {
 /* ------------------------------ user mapping ----------------------------- */
 
 function handleFrom(identity: VerifiedIdentity): string {
-  const base = (identity.name ?? identity.email?.split('@')[0] ?? 'listener')
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9_.-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 20);
-  return base || 'listener';
+  const seed = identity.name ?? identity.email?.split('@')[0] ?? 'listener';
+  const candidate = suggestUsername(seed);
+  // Never mint a reserved or malformed handle for a brand-new account.
+  return checkUsername(candidate).ok ? candidate : `listener-${Math.floor(Math.random() * 10000)}`;
 }
 
 /** Find or create the ResonTune user for a verified Neon Auth identity. */
 async function userForIdentity(identity: VerifiedIdentity): Promise<SessionUser> {
   const db = await getDb();
   const rows = await db.query<SessionUser>(
-    `SELECT id, handle, display_name, avatar_url, role, created_at
+    `SELECT ${SESSION_USER_COLUMNS}
        FROM users WHERE auth_provider = 'neon' AND auth_subject = $1`,
     [identity.subject],
   );
@@ -162,16 +145,17 @@ async function userForIdentity(identity: VerifiedIdentity): Promise<SessionUser>
     handle = `${base}-${Math.floor(Math.random() * 10000)}`;
   }
   const created = await db.query<SessionUser>(
-    `INSERT INTO users (id, handle, display_name, avatar_url, auth_provider, auth_subject)
-     VALUES ($1, $2, $3, $4, 'neon', $5)
+    `INSERT INTO users (id, handle, display_name, avatar_url, avatar_source,
+                        auth_provider, auth_subject)
+     VALUES ($1, $2, $3, $4, $5, 'neon', $6)
      ON CONFLICT (auth_provider, auth_subject) WHERE auth_subject IS NOT NULL DO NOTHING
-     RETURNING id, handle, display_name, avatar_url, role, created_at`,
-    [id, handle, identity.name ?? handle, identity.image, identity.subject],
+     RETURNING ${SESSION_USER_COLUMNS}`,
+    [id, handle, identity.name ?? handle, identity.image, identity.image ? 'auth' : null, identity.subject],
   );
   if (created[0]) return created[0];
   // concurrent first request created it — read it back
   const again = await db.query<SessionUser>(
-    `SELECT id, handle, display_name, avatar_url, role, created_at
+    `SELECT ${SESSION_USER_COLUMNS}
        FROM users WHERE auth_provider = 'neon' AND auth_subject = $1`,
     [identity.subject],
   );
@@ -188,7 +172,7 @@ export async function attachUser(req: Request, _res: Response, next: NextFunctio
       const identity = await verifyToken(header.slice(7));
       if (identity) {
         const user = await userForIdentity(identity);
-        req.user = { ...user, role: effectiveRole(user) };
+        req.user = { ...user, role: effectiveRole(user.id, user.role) };
       }
     }
   } catch {
@@ -220,12 +204,16 @@ export function requireAdmin(req: Request, _res: Response, next: NextFunction) {
 
 /* --------------------------------- routes -------------------------------- */
 
-function publicUser(u: SessionUser) {
+export function publicUser(u: SessionUser) {
   return {
     id: u.id,
     handle: u.handle,
     displayName: u.display_name,
     avatarUrl: u.avatar_url,
+    avatarThumbUrl: u.avatar_thumb_url,
+    bio: u.bio,
+    location: u.location,
+    websiteUrl: u.website_url,
     role: u.role,
     createdAt: u.created_at,
   };

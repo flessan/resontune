@@ -10,21 +10,26 @@ files applied in filename order by the migration runner in
 `server/db/index.ts` and tracked in `schema_migrations`. Dev (PGlite) and
 production (Neon) run the exact same DDL. `001_init.sql` is the v1 schema;
 `002_product_model.sql` adds provenance, content states, the rights model,
-collections and moderation history.
+collections and moderation history; `005_profiles_and_catalog_admin.sql`
+adds member profile columns, artist publication state and the shared
+`entity_links` table.
 
 ## Entities
 
 ```
 users ─┬─ playlists ── playlist_tracks ── tracks
        ├─ favorites ───────────────────── tracks
-       └─ play_history ────────────────── tracks
+       ├─ play_history ────────────────── tracks
+       └─ artists              (optional artists.user_id back-reference)
 
-artists ─┬─ artist_links
-         ├─ albums ── tracks
+artists ─┬─ albums ── tracks
          └─ tracks ─┬─ track_sources     (provider/kind/url/storage)
                     ├─ lyrics
                     ├─ track_genres ── genres
                     └─ track_tags ──── tags
+
+entity_links (entity_kind = user | artist | album | track)
+             ── provider / label / url / position
 
 licenses ── tracks
 community_picks ── tracks
@@ -53,6 +58,19 @@ takedowns (content-state audit trail)
   visibility. `takedowns` keeps the full audit history; takedowns never
   destroy data. There are no submission tables — music intake happens in
   external community channels.
+- **Profiles live on `users`.** `handle` *is* the username (unique,
+  lowercase, reserved-route-safe). `bio`, `location`, `website_url`,
+  `avatar_url`, `avatar_thumb_url`, `avatar_source`, `avatar_provider_id`
+  and `avatar_updated_at` are plain columns; no image bytes are stored —
+  only the ImgBB URL the server received.
+- **One link table.** `entity_links` replaced `artist_links` (migrated, then
+  dropped) so profiles, artists, releases and tracks share one normalized
+  shape: `provider`, `label`, `url`, `position`.
+- **Artists may reference an account.** `artists.user_id` is nullable and
+  optional: artists work with no account at all, and the column leaves room
+  for a future claim workflow without one existing today.
+- **Artists have a `status`** on the same scale as albums and tracks, so
+  withdrawing an artist withdraws their catalog in one write.
 - **Rights are columns, not vibes**: `rights_holder`, `license_id`,
   `attribution_text`, `distribution_permission`, `streaming_permission`,
   `territory`, `rights_notes` (see docs/catalog-model.md).

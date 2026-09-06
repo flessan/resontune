@@ -81,7 +81,7 @@ export default function ArtistPage() {
               </a>
             ))}
           </div>
-          {(artist.links?.some((l) => ['kofi', 'patreon', 'bandcamp'].includes(l.kind))) && (
+          {(artist.links?.some((l) => ['kofi', 'patreon', 'bandcamp'].includes(l.provider ?? l.kind ?? ''))) && (
             <p style={{ fontSize: 12.5, color: 'var(--ink-faint)', marginTop: 10 }}>
               Like what you hear? Support {artist.name} directly through the links above.
             </p>

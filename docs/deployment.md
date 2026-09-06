@@ -26,11 +26,16 @@ See [.env.example](../.env.example):
 | `VITE_NEON_AUTH_URL` | same base URL for the client bundle (public by design) |
 | `COMMUNITY_DISCORD_URL` / `COMMUNITY_TELEGRAM_URL` / `COMMUNITY_WHATSAPP_URL` | Release-music channel links (optional; admin-editable at runtime) |
 | `ADMIN_USER_IDS` / `MODERATOR_USER_IDS` | comma-separated user ids granted roles server-side — the only way to bootstrap the first production admin |
+| `IMGBB_API_KEY` | **server-side only.** Enables member profile-photo upload (browser → API → ImgBB → stored URL). Unset → uploads answer 503 and avatars fall back to initials. Never expose it to the client; catalog audio/artwork never use it |
 | `AUDIO_CDN_BASE` | base URL for hosted-audio object keys (default `/media/audio`) |
 | `GITHUB_SPONSORS_URL` / `SOCIABUZZ_URL` / `QRIS_IMAGE_URL` | support-page links (all optional; admin-editable at runtime via `PUT /api/site/config/support`, which overrides env) |
 | `REPO_URL` | public repository URL used on About/Contribute/footer (default `https://github.com/flessan/resontune`) |
 
-Secrets live only in server env. The client bundle contains none.
+Secrets live only in server env. The client bundle contains none — only
+`VITE_`-prefixed values reach the browser, and the sole one is the public
+Neon Auth base URL. `IMGBB_API_KEY` in particular must never be given a
+`VITE_` prefix: verify with `grep -r IMGBB dist/` after a build (expected:
+no matches).
 
 ## Authentication (Neon Auth)
 
@@ -73,19 +78,30 @@ audio through the Node process at scale.
 
 Already built in:
 
-- per-IP rate limits (general 300/min, writes 40/min, sign-in 25/15min)
-- submission cooldown (60s) + pending cap (5)
+- per-IP rate limits (general 300/min, writes 40/min on every non-GET)
 - zod validation on every mutation; bounded JSON bodies (64 kB)
 - pagination bounds on every list endpoint (max 60/100 rows)
-- `Cache-Control` on public catalog reads → CDN/Cloudflare can absorb reads
+- `Cache-Control` on public catalog reads → CDN/Cloudflare can absorb reads;
+  `no-store` on `/api/auth`, `/api/me`, `/api/admin`, `/api/moderation`
 - `trust proxy` enabled for real client IPs behind Cloudflare/WAF
-- opaque httpOnly session cookies (Secure in production, SameSite=Lax)
-- media-URL validation on submissions (`server/util/urlSafety.ts`): https
-  only, no embedded credentials, no private/reserved IPs, no
-  internal-looking hostnames; the server never auto-fetches submitted URLs
-  (moderators preview in their own browser), so there is no SSRF fetch path
-- duplicate-submission guard (same audio URL can't be resubmitted)
-- takedown/permission enforcement centralized in `GET /api/play/:trackId`
+- stateless bearer auth: Neon Auth JWTs verified against the JWKS
+  (signature, issuer, expiry) — never an unsigned decode, no custom OAuth,
+  no dev-login backdoor
+- roles resolved server-side per request; `requireAdmin` on every catalog
+  mutation and `requireModerator` on every admin read, independent of the UI
+- media-URL validation (`server/util/urlSafety.ts`) on profile links,
+  artist images, release artwork and track audio/artwork: https only, no
+  embedded credentials, no private/reserved/loopback IPs, no IPv6 literals,
+  no internal-looking hostnames. The server never fetches an
+  administrator-supplied URL — previews happen in the admin's own browser —
+  so there is no SSRF fetch path
+- avatar upload bounded at 4 MB with declared-MIME *and* magic-byte checks
+  before the image is forwarded to ImgBB; the API key stays server-side and
+  no image bytes are stored
+- unexpected server errors respond with a generic message (no stack or
+  driver details leak to clients)
+- takedown/permission enforcement centralized in `GET /api/play/:trackId`,
+  which also refuses tracks whose artist or release has been withdrawn
 
 Recommended in front of the app:
 

@@ -23,12 +23,19 @@ Track *sources* (the rows describing actual audio) have their own axis,
 URL, which the playback resolver maps onto `AUDIO_CDN_BASE` — that's the
 seam where S3/R2/object storage plugs in without schema or client changes.
 
+Catalog media is **entered by hand**: an administrator verifies a file in
+their own browser and pastes the direct URL into the catalog manager, which
+validates its shape and stores the address. ResonTune never uploads, hosts,
+mirrors, downloads or proxies catalog audio and artwork — see
+[profiles-and-catalog-admin.md](profiles-and-catalog-admin.md).
+
 ## Playback resolution
 
 The client never plays from database fields. It calls
 `GET /api/play/:trackId`, and the server decides:
 
-- `410` if the track is `taken_down` or `archived`
+- `410` if the track — or its artist, or its release — is `taken_down` or
+  `archived`
 - `403` if `streaming_permission` is false
 - `{ mode: 'stream', url, mimeType }` for hosted/remote audio
 - `{ mode: 'external', url, label }` when playback must happen on the

@@ -27,6 +27,8 @@ import { moderationRouter } from './routes/moderation.ts';
 import { HttpError } from './util/http.ts';
 import { playRouter } from './routes/play.ts';
 import { siteRouter } from './routes/site.ts';
+import { usersRouter } from './routes/users.ts';
+import { adminRouter } from './routes/admin/index.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.API_PORT ?? process.env.PORT ?? 8787);
@@ -69,7 +71,10 @@ async function main() {
   /* --------------------------- cache-aware reads --------------------------- */
 
   app.use('/api', (req, res, next) => {
-    if (req.method === 'GET' && !req.path.startsWith('/auth') && !req.path.startsWith('/me')) {
+    const privatePath =
+      req.path.startsWith('/auth') || req.path.startsWith('/me') || req.path.startsWith('/admin') ||
+      req.path.startsWith('/moderation');
+    if (req.method === 'GET' && !privatePath) {
       res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=60');
     } else {
       res.setHeader('Cache-Control', 'no-store');
@@ -84,6 +89,8 @@ async function main() {
   app.use('/api/site', siteRouter());
   app.use('/api/playlists', playlistsRouter());
   app.use('/api/me', meRouter());
+  app.use('/api/users', usersRouter());
+  app.use('/api/admin', adminRouter());
   app.use('/api/moderation', moderationRouter());
 
   app.get('/api/health', (_req, res) => res.json({ ok: true, name: 'resontune' }));
@@ -138,9 +145,12 @@ async function main() {
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Not found.')));
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    const status = err instanceof HttpError ? err.status : 500;
+    const status = err instanceof HttpError ? err.status : Number(err?.status ?? err?.statusCode) || 500;
     if (status >= 500) console.error('[api]', err);
-    res.status(status).json({ error: err.message ?? 'Server error.' });
+    // Only deliberate HttpErrors describe themselves to the client; anything
+    // else could carry a driver/stack detail, so it stays generic.
+    const message = err instanceof HttpError || status < 500 ? err.message : 'Something went wrong.';
+    res.status(status).json({ error: message ?? 'Server error.' });
   });
 
   app.listen(PORT, '0.0.0.0', () => {

@@ -13,6 +13,7 @@ import {
   IconPlaylist, IconHeart, IconQueue,
 } from './Icons';
 import { SignInDialog } from './SignInDialog';
+import { Avatar } from './Avatar';
 import { Footer } from './Footer';
 
 const REPO = 'https://github.com/flessan/resontune';
@@ -135,14 +136,20 @@ export function Layout() {
         <div className="nav-section"><span>Create</span></div>
         <NavLink to="/submit" className={nav} title="Release music"><IconSubmit width={18} height={18} /><span>Release music</span></NavLink>
         {(user?.role === 'moderator' || user?.role === 'admin') && (
-          <NavLink to="/moderation" className={nav} title="Moderation"><IconShield width={18} height={18} /><span>Moderation</span></NavLink>
+          <>
+            <NavLink to="/admin" className={nav} title="Catalog manager"><IconDisc width={18} height={18} /><span>Catalog</span></NavLink>
+            <NavLink to="/moderation" className={nav} title="Moderation"><IconShield width={18} height={18} /><span>Moderation</span></NavLink>
+          </>
         )}
 
         <div style={{ flex: 1 }} />
 
         <NavLink to="/settings" className={nav} title="Settings"><IconSettings width={18} height={18} /><span>Settings</span></NavLink>
         {user ? (
-          <NavLink to="/profile" className={nav} title={user.displayName}><IconUser width={18} height={18} /><span>{user.displayName}</span></NavLink>
+          <NavLink to={`/u/${user.handle}`} className={nav} title={user.displayName}>
+            <Avatar src={user.avatarThumbUrl ?? user.avatarUrl} name={user.displayName} size={18} />
+            <span>{user.displayName}</span>
+          </NavLink>
         ) : (
           <button className="nav-link" onClick={() => setSignIn(true)} title="Sign in">
             <IconUser width={18} height={18} /><span>Sign in</span>
@@ -179,10 +186,19 @@ export function Layout() {
         <NavLink to="/favorites" className={nav}><IconHeart width={18} height={18} /><span>Favorites</span></NavLink>
         <NavLink to="/history" className={nav}><IconQueue width={18} height={18} /><span>History</span></NavLink>
         <NavLink to="/library" className={nav}><IconUser width={18} height={18} /><span>Local music</span></NavLink>
+        {user && (
+          <NavLink to={`/u/${user.handle}`} className={nav}>
+            <Avatar src={user.avatarThumbUrl ?? user.avatarUrl} name={user.displayName} size={18} />
+            <span>Your profile</span>
+          </NavLink>
+        )}
         <div className="nav-section"><span>More</span></div>
         <NavLink to="/submit" className={nav}><IconSubmit width={18} height={18} /><span>Release music</span></NavLink>
         {(user?.role === 'moderator' || user?.role === 'admin') && (
-          <NavLink to="/moderation" className={nav}><IconShield width={18} height={18} /><span>Moderation</span></NavLink>
+          <>
+            <NavLink to="/admin" className={nav}><IconDisc width={18} height={18} /><span>Catalog manager</span></NavLink>
+            <NavLink to="/moderation" className={nav}><IconShield width={18} height={18} /><span>Moderation</span></NavLink>
+          </>
         )}
         <NavLink to="/about" className={nav}><IconDisc width={18} height={18} /><span>About</span></NavLink>
         <NavLink to="/contribute" className={nav}><IconSubmit width={18} height={18} /><span>Contribute</span></NavLink>
@@ -211,7 +227,11 @@ export function Layout() {
             />
           </form>
           <div style={{ flex: 1 }} />
-          {!user && (
+          {user ? (
+            <NavLink to={`/u/${user.handle}`} className="topbar-avatar" title={`${user.displayName} — your profile`}>
+              <Avatar src={user.avatarThumbUrl ?? user.avatarUrl} name={user.displayName} size={30} />
+            </NavLink>
+          ) : (
             <button className="btn small" onClick={() => setSignIn(true)}>Sign in</button>
           )}
         </div>

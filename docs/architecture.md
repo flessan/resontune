@@ -57,6 +57,19 @@ See [visualizers.md](visualizers.md). Key decision: modes consume a
 have no knowledge of the player. The runner owns canvas sizing, the clock
 (speed-scaled, reduced-motion aware), and settings.
 
+## Administration
+
+`/admin` is a small internal CMS for the catalog (artists → releases →
+tracks), not a separate app: same components, same tokens, denser layout.
+It is lazily code-split, so listeners never download it. Reads require the
+`moderator` role, writes require `admin`, and the server enforces both
+independently of the UI. See
+[profiles-and-catalog-admin.md](profiles-and-catalog-admin.md).
+
+The one upload path in the product is a member's profile photo
+(browser → API → ImgBB → URL in Postgres). Catalog audio and artwork are
+administrator-verified external URLs; nothing in the server fetches them.
+
 ## Source identity
 
 Every queue item carries `origin: 'remote' | 'local'`, surfaced in the UI as
