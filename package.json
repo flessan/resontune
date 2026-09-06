@@ -1,0 +1,42 @@
+{
+  "name": "resontune",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ResonTune — a free, open-source, community-driven music platform. Open music. For everyone.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:server": "tsx watch server/index.ts",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "start": "tsx server/index.ts",
+    "typecheck": "tsc -b --noEmit"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@fontsource/poppins": "^5.3.0",
+    "@neondatabase/neon-js": "^0.7.0-beta",
+    "@neondatabase/serverless": "^1.1.0",
+    "express": "^5.2.1",
+    "idb": "^8.0.3",
+    "jose": "^6.2.12",
+    "music-metadata": "^11.15.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.3",
+    "zod": "^4.5.4",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.4.1",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "express-rate-limit": "^8.7.0",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2"
+  }
+}

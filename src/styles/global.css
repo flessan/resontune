@@ -1,0 +1,2078 @@
+/* ============================================================
+   ResonTune design system.
+   Material You 3 principles, one typeface (Poppins 400/500/600/700),
+   semantic color roles, tonal surface layering (surfaces do the
+   hierarchy work, not borders), an intentional shape scale, and
+   state layers. Dynamic color from the playing artwork tints
+   PLAYER surfaces only (--player-tint); the application identity
+   stays stable while the song changes.
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* ---- M3 color roles · light (seed: ResonTune warm sienna) ---- */
+  --primary: #8f4a2b;
+  --on-primary: #ffffff;
+  --primary-container: #ffdbc9;
+  --on-primary-container: #390c00;
+
+  --secondary: #77574a;
+  --on-secondary: #ffffff;
+  --secondary-container: #ffdbc9;
+  --on-secondary-container: #2c160b;
+
+  --tertiary: #675f31;
+  --on-tertiary: #ffffff;
+  --tertiary-container: #efe3a9;
+  --on-tertiary-container: #201c00;
+
+  --surface: #fff8f5;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #fef1ec;
+  --surface-container: #f9ebe4;
+  --surface-container-high: #f3e5de;
+  --surface-container-highest: #eddfd8;
+  --on-surface: #221a15;
+  --on-surface-variant: #52443c;
+
+  --outline: #85736b;
+  --outline-variant: #d7c2b8;
+
+  --error: #ba1a1a;
+  --on-error: #ffffff;
+  --error-container: #ffdad6;
+  --on-error-container: #410002;
+
+  --ok: #4a6741;
+
+  /* Derived text emphasis levels (muted/faint) and stronger outline. */
+  --on-surface-muted: color-mix(in srgb, var(--on-surface-variant) 74%, transparent);
+  --on-surface-faint: color-mix(in srgb, var(--on-surface-variant) 50%, transparent);
+  --outline-strong: color-mix(in srgb, var(--outline) 50%, transparent);
+
+  /* Dynamic color from the playing artwork — player surfaces ONLY. */
+  --player-tint: var(--primary);
+
+  /* ---- aliases used by inline styles in components --------------- */
+  --bg: var(--surface);
+  --bg-raised: var(--surface-container-low);
+  --bg-sunken: var(--surface-container);
+  --line: var(--outline-variant);
+  --line-strong: var(--outline-strong);
+  --ink: var(--on-surface);
+  --ink-soft: var(--on-surface-variant);
+  --ink-muted: var(--on-surface-muted);
+  --ink-faint: var(--on-surface-faint);
+  --accent: var(--primary);
+  --accent-ink: var(--on-primary);
+  --accent-soft: color-mix(in srgb, var(--primary) 12%, transparent);
+  --danger: var(--error);
+  --font-display: var(--font);
+  --radius: var(--shape-sm);
+  --radius-lg: var(--shape-lg);
+  --art-radius: var(--shape-sm);
+
+  /* ---- shape scale ---------------------------------------------- */
+  --shape-xs: 4px;
+  --shape-sm: 8px;
+  --shape-md: 12px;
+  --shape-lg: 16px;
+  --shape-xl: 28px;
+  --shape-full: 999px;
+
+  /* ---- state layers (M3: 8% hover, 12% press) -------------------- */
+  --state-hover: color-mix(in srgb, var(--on-surface) 8%, transparent);
+  --state-press: color-mix(in srgb, var(--on-surface) 12%, transparent);
+
+  /* ---- motion ----------------------------------------------------- */
+  /* One timing scale + three curves. Micro = state layers and icon
+     feedback; quick = menus, rows, reveals; standard = navigation and
+     layout shifts; sheet = player expansion and drawers. */
+  --dur-micro: 120ms;
+  --dur-quick: 180ms;
+  --dur-standard: 260ms;
+  --dur-sheet: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.3, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  --font: 'Poppins', system-ui, -apple-system, sans-serif;
+
+  --player-h: 76px;
+  --sidebar-w: 232px;
+
+  --elev-1: 0 1px 2px rgb(0 0 0 / 0.1), 0 1px 3px rgb(0 0 0 / 0.06);
+  --elev-2: 0 1px 3px rgb(0 0 0 / 0.12), 0 2px 8px rgb(0 0 0 / 0.08);
+  --elev-3: 0 4px 12px rgb(0 0 0 / 0.14), 0 1px 4px rgb(0 0 0 / 0.1);
+  --shadow-pop: var(--elev-3);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* ---- M3 color roles · dark (layered surfaces, never pure black) */
+  --primary: #ffb693;
+  --on-primary: #552004;
+  --primary-container: #713518;
+  --on-primary-container: #ffdbc9;
+
+  --secondary: #e7bead;
+  --on-secondary: #442a1e;
+  --secondary-container: #5d4033;
+  --on-secondary-container: #ffdbc9;
+
+  --tertiary: #d2c78f;
+  --on-tertiary: #373106;
+  --tertiary-container: #4e471b;
+  --on-tertiary-container: #efe3a9;
+
+  /* Deep near-neutral darks with a warm undertone — layered, never pure
+     black, comfortable for long listening sessions. */
+  --surface: #131110;
+  --surface-container-lowest: #0d0b0a;
+  --surface-container-low: #1b1817;
+  --surface-container: #211d1b;
+  --surface-container-high: #2b2624;
+  --surface-container-highest: #36302d;
+  --on-surface: #ece5e1;
+  --on-surface-variant: #cfc4be;
+
+  --outline: #9a8d86;
+  --outline-variant: #453e3a;
+
+  --error: #ffb4ab;
+  --on-error: #690005;
+  --error-container: #93000a;
+  --on-error-container: #ffdad6;
+
+  --ok: #8aa982;
+
+  --elev-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.2);
+  --elev-2: 0 1px 3px rgb(0 0 0 / 0.4), 0 2px 8px rgb(0 0 0 / 0.3);
+  --elev-3: 0 4px 14px rgb(0 0 0 / 0.5), 0 1px 4px rgb(0 0 0 / 0.4);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--surface);
+  color: var(--on-surface);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+
+#root { height: 100%; }
+
+::selection { background: var(--accent-soft); }
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; color: inherit; cursor: pointer; }
+input, textarea, select { font-family: inherit; color: inherit; }
+
+/* focus */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------- app frame */
+
+.app {
+  display: grid;
+  height: 100dvh;
+  grid-template-rows: 1fr auto;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  /* rail expand/collapse interpolates instead of snapping */
+  transition: grid-template-columns var(--dur-standard) var(--ease-emphasized);
+  grid-template-areas:
+    'sidebar main'
+    'player  player';
+}
+
+@media (max-width: 860px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto auto;
+    grid-template-areas:
+      'main'
+      'player'
+      'tabs';
+  }
+}
+
+/* ----------------------------------------------- sidebar (desktop)
+   Streaming-app navigation column: quiet tonal surface, compact
+   destinations, collapsible to an icon rail via the hamburger. */
+
+.sidebar {
+  grid-area: sidebar;
+  padding: 12px 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--surface-container-low);
+}
+@media (max-width: 860px) { .sidebar { display: none; } }
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 2px 14px;
+}
+.brand-mark {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.brand-mark em {
+  font-style: normal;
+  color: var(--primary);
+}
+.nav-section {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--on-surface-faint);
+  padding: 16px 13px 6px;
+  white-space: nowrap;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 8px 13px;
+  border-radius: var(--shape-sm);
+  color: var(--on-surface-variant);
+  font-size: 13.5px;
+  font-weight: 500;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  white-space: nowrap;
+  transition: background 0.12s var(--ease-standard), color 0.12s var(--ease-standard);
+}
+.nav-link svg { flex-shrink: 0; opacity: 0.8; }
+.nav-link:hover { background: var(--state-hover); color: var(--on-surface); }
+.nav-link:active { background: var(--state-press); }
+.nav-link.active {
+  background: var(--state-press);
+  color: var(--on-surface);
+  font-weight: 600;
+}
+.nav-link.active svg { color: var(--primary); opacity: 1; }
+
+.sidebar-foot {
+  padding: 14px 13px 4px;
+  font-size: 11px;
+  color: var(--on-surface-faint);
+  line-height: 1.7;
+  white-space: nowrap;
+}
+.sidebar-foot a { color: inherit; }
+.sidebar-foot a:hover { color: var(--on-surface); }
+
+/* Collapsed rail: icons with tooltips, labels hidden. Desktop only —
+   mobile uses the drawer instead. */
+@media (min-width: 861px) {
+  .app.nav-collapsed { grid-template-columns: 68px 1fr; }
+}
+/* Labels ease back in when the rail expands. */
+.app:not(.nav-collapsed) .nav-link span,
+.app:not(.nav-collapsed) .brand-mark span {
+  animation: fade-in var(--dur-quick) var(--ease-standard);
+}
+.app.nav-collapsed .sidebar { padding: 12px 10px 16px; }
+.app.nav-collapsed .nav-link { justify-content: center; padding: 10px 0; gap: 0; }
+.app.nav-collapsed .nav-link span,
+.app.nav-collapsed .brand-mark,
+.app.nav-collapsed .nav-section span,
+.app.nav-collapsed .sidebar-foot { display: none; }
+.app.nav-collapsed .nav-section { padding: 8px 0 0; }
+.app.nav-collapsed .brand { justify-content: center; padding: 2px 0 14px; }
+
+/* ----------------------------------------------- drawer (mobile)
+   The full navigation hierarchy in a slide-in side sheet. */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.5);
+  z-index: 110;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-quick) var(--ease-standard);
+}
+.drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.drawer {
+  position: fixed;
+  top: 0; bottom: 0; left: 0;
+  width: min(300px, 84vw);
+  z-index: 111;
+  background: var(--surface-container-low);
+  padding: 8px 12px calc(24px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transform: translateX(-102%);
+  transition: transform var(--dur-standard) var(--ease-emphasized), visibility var(--dur-standard);
+  visibility: hidden;
+  outline: none;
+}
+.drawer.open { transform: none; visibility: visible; box-shadow: var(--elev-3); }
+.drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 2px 12px 13px;
+}
+
+/* ---------------------------------------------------------------- main */
+
+.main {
+  grid-area: main;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  position: relative;
+}
+
+.page {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 16px 28px 56px;
+  animation: page-in var(--dur-quick) var(--ease-standard);
+}
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@media (max-width: 640px) { .page { padding: 12px 14px 40px; } }
+
+/* Top bar: quiet, useful — hamburger (mobile), search, account. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 28px 8px;
+  background: transparent;
+  backdrop-filter: blur(14px);
+  transition: background var(--dur-quick) var(--ease-standard), box-shadow var(--dur-quick) var(--ease-standard);
+}
+/* gains a surface once content scrolls beneath it */
+.topbar.scrolled {
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  box-shadow: 0 1px 0 var(--outline-variant);
+}
+@media (max-width: 640px) { .topbar { padding: 8px 12px; } }
+/* Hamburger + brand live in the top bar only on mobile; on desktop the
+   sidebar carries both. */
+.topbar .hamburger, .topbar-brand { display: none; }
+@media (max-width: 860px) {
+  .topbar .hamburger { display: inline-grid; }
+  .topbar-brand { display: inline; font-size: 17px; margin-right: 2px; }
+}
+
+/* M3 search bar: full-round field on surface-container-high. */
+.search-box {
+  flex: 1;
+  max-width: 460px;
+  position: relative;
+}
+.search-box input {
+  width: 100%;
+  padding: 10px 16px 10px 40px;
+  border: none;
+  border-radius: var(--shape-full);
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+  font-size: 14px;
+  transition: background 0.15s var(--ease-standard), box-shadow 0.15s var(--ease-standard);
+}
+.search-box input::placeholder { color: var(--on-surface-variant); opacity: 0.8; }
+.search-box input:focus {
+  background: var(--surface-container-highest);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+  outline: none;
+}
+/* Large search bar on the Search page. */
+.search-hero {
+  width: 100%;
+  max-width: 560px;
+  padding: 14px 22px;
+  font-size: 16px;
+  border: none;
+  border-radius: var(--shape-full);
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+  transition: background 0.15s var(--ease-standard), box-shadow 0.15s var(--ease-standard);
+}
+.search-hero:focus {
+  background: var(--surface-container-highest);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+  outline: none;
+}
+
+.search-box svg {
+  position: absolute;
+  left: 12px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--on-surface-faint);
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------- type scale
+   One family (Poppins), four weights (400/500/600/700), one rhythm.
+   Headline — page titles         · 600 / 24px
+   Title    — section headers     · 600 / 16px
+   Body     — content             · 400 / 14px
+   Label    — meta, chips, times  · 500 / 11–12px                        */
+
+h1.page-title {
+  font-weight: 600;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0 0 4px;
+}
+.page-sub { color: var(--on-surface-muted); margin: 0 0 28px; max-width: 62ch; font-size: 13px; line-height: 1.55; }
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 30px 0 12px;
+}
+.section-head:first-child { margin-top: 0; }
+.section-title {
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0;
+  margin: 0;
+}
+.section-note { font-size: 12px; color: var(--on-surface-faint); font-weight: 400; }
+/* "See all" — quiet text action, consistent on every section */
+.section-link { font-size: 12.5px; color: var(--on-surface-muted); font-weight: 500; }
+.section-link:hover { color: var(--primary); }
+
+/* ------------------------------------------------------- tiles & shelves */
+
+.card-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 24px 16px;
+}
+.card-row.wide { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+
+/* Horizontal shelf — the primary browsing pattern. Scrolls sideways,
+   snaps per tile, scrollbar hidden. */
+.shelf {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding: 4px 28px 8px;
+  margin: 0 -28px;
+  scrollbar-width: none;
+}
+.shelf::-webkit-scrollbar { display: none; }
+/* Subtle sequential reveal, capped — long shelves appear as one group. */
+.shelf > * { animation: fade-in var(--dur-quick) var(--ease-standard) backwards; }
+.shelf > :nth-child(1) { animation-delay: 0ms; }
+.shelf > :nth-child(2) { animation-delay: 25ms; }
+.shelf > :nth-child(3) { animation-delay: 50ms; }
+.shelf > :nth-child(4) { animation-delay: 75ms; }
+.shelf > :nth-child(5) { animation-delay: 100ms; }
+.shelf > :nth-child(6) { animation-delay: 125ms; }
+.shelf > :nth-child(7) { animation-delay: 150ms; }
+.shelf > :nth-child(n+8) { animation-delay: 165ms; }
+.shelf > * {
+  flex: 0 0 148px;
+  scroll-snap-align: start;
+}
+.shelf > .collection-tile { flex-basis: 240px; }
+@media (max-width: 640px) {
+  .shelf { padding: 4px 14px 8px; margin: 0 -14px; gap: 12px; }
+  .shelf > * { flex-basis: 124px; }
+  .shelf > .collection-tile { flex-basis: 200px; }
+}
+
+/* Tiles are free artwork + two text lines — never boxes. */
+.tile { display: block; }
+.tile-art {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--shape-sm);
+  overflow: hidden;
+  background: var(--surface-container);
+  transition: transform 0.15s var(--ease-standard);
+}
+.tile:active .tile-art { transform: scale(0.975); }
+.tile-art img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s var(--ease-standard);
+}
+/* gentle fade as artwork files arrive */
+img.img-loading { opacity: 0; }
+img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-standard); }
+.tile:hover .tile-art img { transform: scale(1.03); }
+.tile-art .art-fallback {
+  width: 100%; height: 100%;
+  display: grid; place-items: center;
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--on-surface-faint);
+}
+.tile-play {
+  position: absolute;
+  right: 8px; bottom: 8px;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  color: var(--on-primary);
+  display: grid; place-items: center;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s var(--ease-standard), transform 0.15s var(--ease-standard);
+  box-shadow: var(--elev-2);
+}
+.tile:hover .tile-play, .tile:focus-within .tile-play { opacity: 1; transform: none; }
+@media (hover: none) { .tile-play { opacity: 1; transform: none; width: 34px; height: 34px; } }
+
+.tile-title {
+  margin: 8px 1px 0;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tile-sub {
+  margin: 0 1px 0;
+  font-size: 12px;
+  color: var(--on-surface-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tile-sub a:hover { color: var(--primary); }
+
+.artist-tile .tile-art { border-radius: 50%; }
+
+/* ---------------------------------------------------------------- track list */
+
+.tracklist { margin: 0 -10px; }
+/* Home lists: two dense columns on wide screens for quick scanning. */
+@media (min-width: 1000px) {
+  .home-tracklist {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 24px;
+  }
+}
+.track-row {
+  display: grid;
+  grid-template-columns: 24px 40px 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 52px;
+  padding: 4px 10px;
+  border-radius: var(--shape-sm);
+  cursor: pointer;
+  transition: background 0.1s var(--ease-standard);
+}
+.track-row:hover { background: var(--state-hover); }
+.track-row:active { background: var(--state-press); transform: scale(0.997); }
+.track-row { transition: background 0.1s var(--ease-standard), transform 0.1s var(--ease-standard); }
+.track-row.playing { background: color-mix(in srgb, var(--player-tint) 9%, transparent); }
+.track-row .idx {
+  color: var(--on-surface-faint);
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  text-align: right;
+  position: relative;
+}
+.track-row .row-play {
+  border: none; background: none; padding: 0;
+  color: var(--on-surface);
+  display: none;
+  place-items: center;
+  width: 100%;
+}
+.track-row:hover .idx span { display: none; }
+.track-row:hover .row-play { display: grid; }
+.track-row.playing .idx span:not(.eq) { display: none; }
+.track-row.playing:hover .idx .eq { display: none; }
+.track-row.playing .row-play { display: grid; color: var(--player-tint); }
+.track-row.playing:not(:hover) .row-play { display: none; }
+
+/* Tiny equalizer — the "now playing" tell. CSS-only, honors reduced
+   motion by freezing mid-height. */
+.eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+.eq i {
+  width: 3px;
+  border-radius: 1px;
+  background: var(--player-tint);
+  animation: eq-bounce 0.9s ease-in-out infinite;
+}
+.eq i:nth-child(1) { animation-delay: 0s; }
+.eq i:nth-child(2) { animation-delay: 0.25s; }
+.eq i:nth-child(3) { animation-delay: 0.5s; }
+@keyframes eq-bounce {
+  0%, 100% { height: 4px; }
+  50% { height: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eq i { animation: none; height: 8px; }
+}
+
+.track-row .art {
+  width: 40px; height: 40px;
+  border-radius: var(--shape-xs);
+  overflow: hidden;
+  background: var(--surface-container);
+  flex-shrink: 0;
+}
+.track-row .art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.track-row .meta { min-width: 0; }
+.track-row .t-title {
+  font-weight: 500;
+  font-size: 13.5px;
+  line-height: 1.4;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.track-row.playing .t-title { color: color-mix(in srgb, var(--player-tint) 80%, var(--on-surface)); font-weight: 600; }
+.track-row .t-sub {
+  font-size: 12px;
+  color: var(--on-surface-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.track-row .t-sub a:hover { color: var(--primary); }
+
+.track-row .actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+}
+.track-row:hover .actions, .track-row:focus-within .actions,
+.track-row .actions:has(.menu) { opacity: 1; }
+@media (hover: none) { .track-row .actions { opacity: 1; } }
+
+.track-row .dur {
+  color: var(--on-surface-faint);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* Provenance chips — one quiet visual voice; informative, never loud. */
+.source-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 7px;
+  border-radius: var(--shape-xs);
+  background: var(--surface-container-highest);
+  color: var(--on-surface-variant);
+  vertical-align: 2px;
+  margin-left: 8px;
+}
+.source-chip.local { color: var(--ok); }
+.source-chip.community { color: color-mix(in srgb, var(--primary) 80%, var(--on-surface)); }
+.source-chip.external {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--outline-variant);
+}
+
+/* "RESONTUNE ORIGINAL" — a quiet wordmark, identity through typography. */
+.original-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary);
+  line-height: 1.4;
+  vertical-align: 2px;
+  white-space: nowrap;
+}
+
+.original-badge.compact { letter-spacing: 0.12em; }
+
+/* Home greeting — quiet, human, gone in one line. */
+.home-greeting {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 4px 0 16px;
+}
+
+/* Featured release — one compact tonal row. Never a hero. */
+.featured {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 18px;
+  align-items: center;
+  margin: 0 0 4px;
+  background: var(--surface-container-low);
+  border-radius: var(--shape-lg);
+  padding: 14px;
+}
+
+.featured img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--shape-sm);
+  display: block;
+}
+
+.featured .kicker {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--on-surface-faint);
+  margin-bottom: 3px;
+}
+
+.featured h2 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  margin: 0 0 1px;
+}
+
+.featured .featured-artist {
+  font-size: 13px;
+  color: var(--on-surface-muted);
+  margin-bottom: 10px;
+}
+
+.featured p.blurb { display: none; }
+
+@media (max-width: 640px) {
+  .featured { grid-template-columns: 80px 1fr; gap: 14px; padding: 12px; }
+}
+
+/* Collection tile: wider than a track tile */
+.collection-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+
+.collection-tile .collection-art {
+  aspect-ratio: 16 / 10;
+  border-radius: var(--shape-sm);
+  overflow: hidden;
+  background: var(--surface-container);
+}
+
+.collection-tile .collection-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.collection-tile:hover .collection-art img { transform: scale(1.03); }
+
+.collection-tile .tile-title { font-weight: 600; }
+
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px;
+}
+
+/* Radio station cards */
+.station-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.station-card {
+  border: none;
+  border-radius: var(--shape-lg);
+  padding: 18px;
+  text-align: left;
+  background: var(--surface-container);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: background 0.15s var(--ease-standard), transform 0.12s var(--ease-standard);
+}
+
+.station-card:hover { background: var(--surface-container-high); }
+.station-card:active { transform: scale(0.985); }
+
+.station-card .station-name {
+  font-weight: 600;
+  font-size: 14.5px;
+  margin-bottom: 3px;
+}
+
+.station-card .station-desc { font-size: 12.5px; color: var(--on-surface-muted); line-height: 1.45; }
+
+/* About / Contribute / Support — plain application sections. Text
+   hierarchy and spacing do the work; no box per paragraph. */
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 28px 40px;
+  margin-bottom: 40px;
+}
+
+.about-grid.three { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+
+/* Release Music: link-only intake */
+.release-hero { text-align: center; max-width: 560px; margin: 24px auto 30px; color: var(--on-surface-variant); }
+.channel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.channel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 16px;
+  border-radius: var(--shape-md);
+  background: var(--surface-container);
+  border: 1px solid var(--outline);
+  text-decoration: none;
+  transition: background var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
+}
+.channel-card:hover { background: var(--state-hover); }
+.channel-card:active { transform: scale(0.99); }
+.channel-name { font-weight: 600; font-size: 14.5px; color: var(--on-surface); display: inline-flex; align-items: center; gap: 6px; }
+.channel-desc { font-size: 12.5px; color: var(--on-surface-muted); line-height: 1.5; }
+.plain-list { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.7; color: var(--on-surface-variant); }
+
+.about-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.about-card h3 {
+  font-size: 14.5px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.about-card p { margin: 0; font-size: 13px; line-height: 1.65; color: var(--on-surface-variant); }
+.about-card a { color: var(--primary); }
+.about-card .btn { color: inherit; }
+.about-card code {
+  font-size: 12px;
+  background: color-mix(in srgb, var(--on-surface) 7%, transparent);
+  padding: 1px 5px;
+  border-radius: var(--shape-xs);
+}
+
+.about-steps {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13.5px;
+  line-height: 1.9;
+  color: var(--on-surface-variant);
+}
+
+.about-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13.5px;
+}
+
+.about-links a { display: inline-flex; align-items: center; gap: 5px; }
+
+.qris-img {
+  width: 100%;
+  max-width: 220px;
+  border-radius: 8px;
+  border: 1px solid var(--outline-variant);
+  background: #fff;
+}
+
+.supporter-wall { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Catalog-style release footer (rights / credits / license) */
+.release-notes {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--outline-variant);
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--on-surface-faint);
+  max-width: 560px;
+}
+.release-notes p { margin: 0; }
+.release-notes a { color: inherit; text-decoration: underline; }
+
+/* Footer */
+.site-footer {
+  margin-top: 56px;
+  padding: 28px 0 12px;
+  border-top: 1px solid var(--outline-variant);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.site-footer .f-brand {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.site-footer .f-brand em { font-style: normal; color: var(--primary); }
+
+.site-footer .f-tagline {
+  font-size: 12px;
+  color: var(--on-surface-faint);
+  margin-top: 4px;
+}
+
+.site-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  font-size: 12.5px;
+}
+
+.site-footer nav a {
+  color: var(--on-surface-muted);
+  text-decoration: none;
+}
+
+.site-footer nav a:hover { color: var(--on-surface); text-decoration: underline; }
+
+/* ---------------------------------------------------------------- buttons */
+
+/* M3 buttons — default is the TONAL button (secondary container);
+   `.primary` is the FILLED button, used sparingly for the single most
+   important action on a surface. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: var(--shape-full);
+  border: none;
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: background 0.15s var(--ease-standard), transform 0.1s var(--ease-standard), box-shadow 0.15s var(--ease-standard);
+}
+.btn:hover { background: color-mix(in srgb, var(--on-secondary-container) 8%, var(--secondary-container)); }
+.btn:active { transform: scale(0.97); }
+.btn.primary {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.btn.primary:hover {
+  background: color-mix(in srgb, var(--on-primary) 8%, var(--primary));
+  box-shadow: var(--elev-1);
+}
+.btn.small { padding: 6px 14px; font-size: 12.5px; }
+.btn.danger { color: var(--on-error-container); background: var(--error-container); }
+.btn.danger:hover { background: color-mix(in srgb, var(--on-error-container) 8%, var(--error-container)); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 36px; height: 36px;
+  border-radius: var(--shape-full);
+  border: none;
+  background: none;
+  color: var(--on-surface-muted);
+  transition: color 0.12s var(--ease-standard), background 0.12s var(--ease-standard);
+}
+.icon-btn:hover { background: var(--state-hover); color: var(--on-surface); }
+.icon-btn:active { background: var(--state-press); }
+.icon-btn.active { color: var(--accent); }
+.icon-btn:disabled { opacity: 0.35; cursor: default; }
+.icon-btn:disabled:hover { background: none; color: var(--on-surface-muted); }
+
+/* ---------------------------------------------------------------- forms */
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.field { margin-bottom: 16px; }
+.field label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: var(--on-surface-variant);
+}
+.field .hint { font-size: 12px; color: var(--on-surface-faint); margin-top: 4px; }
+/* M3 outlined text fields */
+.field input[type='text'], .field input[type='url'], .field input[type='email'],
+.field input[type='password'], .field textarea, .field select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--outline);
+  border-radius: var(--shape-xs);
+  background: transparent;
+  color: var(--on-surface);
+  font-size: 14px;
+  transition: border-color 0.12s var(--ease-standard), box-shadow 0.12s var(--ease-standard);
+}
+.field textarea { resize: vertical; min-height: 90px; }
+/* Standalone input (outside a .field wrapper) */
+.input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--outline);
+  border-radius: var(--shape-xs);
+  background: transparent;
+  font-size: 14px;
+  color: var(--on-surface);
+  transition: border-color 0.12s var(--ease-standard), box-shadow 0.12s var(--ease-standard);
+}
+.input:focus { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); outline: none; }
+textarea.input { resize: vertical; }
+.field input:focus, .field textarea:focus, .field select:focus {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+  outline: none;
+}
+.field-check { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; }
+.field-check input { margin-top: 3px; accent-color: var(--primary); }
+
+.form-error {
+  background: var(--error-container);
+  color: var(--on-error-container);
+  padding: 10px 14px;
+  border-radius: var(--shape-md);
+  font-size: 13.5px;
+  margin-bottom: 16px;
+}
+.form-ok {
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  color: var(--ok);
+  padding: 10px 14px;
+  border-radius: var(--shape-md);
+  font-size: 13.5px;
+  margin-bottom: 16px;
+}
+
+/* ---------------------------------------------------------------- player bar
+   The player is a media surface, not a utility footer. Its background
+   carries a whisper of the playing artwork's accent, the spectrum lives
+   inside the composition (no box), and progress is a hairline on the
+   surface itself. */
+
+/* M3 media surface: a tonal container whose tint follows the playing
+   artwork (--player-tint). Only this surface adapts — the app doesn't. */
+.player-bar {
+  grid-area: player;
+  height: var(--player-h);
+  background: color-mix(in srgb, var(--player-tint) 8%, var(--surface-container));
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(280px, 4fr) minmax(0, 3fr);
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  position: relative;
+  z-index: 40;
+  transition: background 0.6s var(--ease-standard);
+}
+/* Mobile: the mini player is part of the app surface — it shares the
+   Navigation Bar's tonal container and sits directly above it. No
+   floating card, no shadow, no margins. */
+@media (max-width: 860px) {
+  .player-bar {
+    grid-template-columns: 1fr auto;
+    height: 60px;
+    padding: 0 12px;
+    cursor: pointer;
+    background: color-mix(in srgb, var(--player-tint) 8%, var(--surface-container));
+    border-radius: var(--shape-md) var(--shape-md) 0 0;
+  }
+}
+
+.pb-now {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  position: relative;
+}
+.pb-art {
+  width: 50px; height: 50px;
+  border-radius: var(--shape-xs);
+  overflow: hidden;
+  background: var(--surface-container);
+  flex-shrink: 0;
+  cursor: pointer;
+  box-shadow: var(--elev-1);
+}
+@media (max-width: 860px) { .pb-art { width: 42px; height: 42px; } }
+.pb-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Metadata yields to ellipsis past ~65% of the row so the spectrum always
+   keeps a sliver of room to breathe. */
+.pb-meta { min-width: 0; flex: 0 1 auto; max-width: 65%; }
+@media (max-width: 640px) { .pb-meta .source-chip { display: none; } }
+.pb-title {
+  font-size: 13px; font-weight: 600; line-height: 1.4;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pb-sub {
+  font-size: 11.5px; color: var(--on-surface-muted); line-height: 1.4;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.pb-center { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+@media (max-width: 860px) { .pb-center .pb-seek { display: none; } }
+
+.pb-controls { display: flex; align-items: center; gap: 4px; }
+/* Play/Pause: M3 filled icon button on the dynamic player tone. */
+.pb-play {
+  width: 40px; height: 40px;
+  border-radius: var(--shape-full);
+  border: none;
+  background: color-mix(in srgb, var(--player-tint) 70%, var(--on-surface));
+  color: var(--surface);
+  display: grid; place-items: center;
+  margin: 0 6px;
+  transition: background 0.6s var(--ease-standard), transform 0.1s var(--ease-standard);
+}
+.pb-play:hover { transform: scale(1.05); }
+.pb-play:active { transform: scale(0.94); }
+.pb-play:disabled { opacity: 0.4; }
+
+.pb-seek {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 560px;
+}
+.pb-time {
+  font-size: 11px;
+  color: var(--on-surface-faint);
+  font-variant-numeric: tabular-nums;
+  min-width: 34px;
+}
+.pb-time:last-child { text-align: left; }
+
+.seek-track {
+  position: relative;
+  flex: 1;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+.seek-rail {
+  width: 100%; height: 4px;
+  border-radius: 2px;
+  background: var(--outline-strong);
+  overflow: hidden;
+}
+.seek-fill { height: 100%; background: var(--player-tint); border-radius: 2px; transition: background 0.6s var(--ease-standard); }
+.seek-track:hover .seek-rail { height: 6px; }
+
+.pb-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+@media (max-width: 860px) {
+  .pb-right .desktop-only,
+  .pb-center .desktop-only { display: none; }
+  /* Mobile mini player: metadata + spectrum + play/next only. */
+  .pb-controls .icon-btn[aria-label='Previous track'] { display: none; }
+}
+
+/* No music → no player. The bar is one persistent element that
+   *transitions* in when the first track arrives and back out when the
+   queue empties — both directions actually play because the element is
+   never unmounted. Track changes never re-animate the bar itself. */
+.player-bar {
+  transition:
+    background 0.6s var(--ease-standard),
+    transform var(--dur-standard) var(--ease-emphasized),
+    opacity var(--dur-standard) var(--ease-emphasized),
+    height var(--dur-standard) var(--ease-emphasized);
+}
+.player-bar:not(.has-item) {
+  height: 0;
+  opacity: 0;
+  transform: translateY(14px);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Track change: quiet crossfade + 2px settle. The bar itself stays
+   perfectly still — only the metadata block transitions. */
+.pb-now { animation: pb-fade var(--dur-quick) var(--ease-standard); }
+@keyframes pb-fade {
+  from { opacity: 0.3; transform: translateY(2px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pb-now { animation: none; }
+}
+
+/* Play/pause icon swap: the incoming icon scales in — a morph-feel
+   crossfade without an icon library. */
+.pb-play svg, .ps-play svg, .tile-play svg, .row-play svg {
+  animation: icon-in var(--dur-micro) var(--ease-standard);
+}
+@keyframes icon-in {
+  from { opacity: 0.4; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Favorite: one short pulse when the heart fills. */
+.icon-btn.active svg { animation: heart-pop 220ms var(--ease-emphasized); }
+@keyframes heart-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+/* The Minimal Spectrum is ambient behavior of the player surface — no box,
+   no border, no reserved panel. It fills the leftover space beside the
+   track metadata and fades out at its edges so it reads as part of the
+   surface, not a component. */
+.pb-spectrum {
+  /* basis 0: it consumes leftover space only and never squeezes the
+     title/artist — with a long title it gracefully yields. */
+  flex: 1 1 0;
+  min-width: 28px;
+  height: 30px;
+  align-self: center;
+  display: block;
+  opacity: 0.85;
+  pointer-events: none;
+  mask-image: linear-gradient(to right, transparent, #000 14%, #000 92%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 14%, #000 92%, transparent);
+}
+@media (max-width: 860px) {
+  .pb-spectrum { height: 24px; flex-basis: 30px; }
+}
+
+/* Ambient visualizer layer in the expanded player — a surface behavior,
+   not a component. Spans the sheet's lower region, fades upward, never
+   intercepts input. */
+.ps-ambient {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 46%;
+  width: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  mask-image: linear-gradient(to top, #000 30%, transparent 96%);
+  -webkit-mask-image: linear-gradient(to top, #000 30%, transparent 96%);
+}
+
+/* Contextual visualizer menu (M3 menu surface, opens off the player
+   controls — never a persistent settings panel). */
+.ps-vis-pop {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 50%;
+  transform: translateX(50%);
+  width: 232px;
+  padding: 14px;
+  border-radius: var(--shape-lg);
+  background: var(--surface-container-high);
+  box-shadow: var(--elev-3);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 5;
+  animation: menu-in var(--dur-quick) var(--ease-emphasized);
+  transform-origin: bottom center;
+}
+@keyframes menu-in {
+  from { opacity: 0; transform: translateX(50%) scale(0.94); }
+  to { opacity: 1; transform: translateX(50%) scale(1); }
+}
+
+.ps-vis-select {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  border-radius: var(--shape-sm);
+  border: 1px solid var(--outline-variant);
+  background: var(--surface-container);
+  color: var(--on-surface);
+}
+
+.ps-vis-dial {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  color: var(--on-surface-muted);
+}
+.ps-vis-dial input[type='range'] { width: 100%; accent-color: var(--accent); }
+
+.vol-wrap { display: flex; align-items: center; gap: 6px; width: 110px; }
+.vol-wrap input[type='range'] {
+  flex: 1;
+  accent-color: var(--accent);
+  height: 4px;
+}
+
+/* mini progress line on mobile bar */
+.pb-miniprogress {
+  position: absolute;
+  top: 0; left: 0;
+  height: 2px;
+  background: var(--player-tint);
+  z-index: 41;
+  border-radius: 0 2px 2px 0;
+}
+@media (max-width: 860px) {
+  /* progress hugs the top edge of the integrated mini player */
+  .pb-miniprogress { top: 0; left: 0; right: 0; border-radius: 0 2px 2px 0; }
+}
+
+/* ------------------------------------------------ M3 tabs (Library)
+   Secondary tabs: text labels on the surface with an active primary
+   underline indicator. */
+.seg-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 2px 0 20px;
+  border-bottom: 1px solid var(--outline-variant);
+}
+.seg-tabs a {
+  padding: 10px 16px 11px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--on-surface-variant);
+  position: relative;
+  border-radius: var(--shape-sm) var(--shape-sm) 0 0;
+  transition: background 0.12s var(--ease-standard), color 0.12s var(--ease-standard);
+}
+.seg-tabs a:hover { background: var(--state-hover); color: var(--on-surface); }
+.seg-tabs a.active { color: var(--primary); font-weight: 600; }
+.seg-tabs a.active::after {
+  content: '';
+  position: absolute;
+  left: 12px; right: 12px; bottom: -1px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--primary);
+  animation: tab-ind var(--dur-quick) var(--ease-emphasized);
+}
+@keyframes tab-ind {
+  from { transform: scaleX(0.4); opacity: 0.4; }
+  to { transform: scaleX(1); opacity: 1; }
+}
+@media (max-width: 640px) {
+  .seg-tabs { overflow-x: auto; scrollbar-width: none; margin: 0 -16px 18px; padding: 0 12px; }
+  .seg-tabs::-webkit-scrollbar { display: none; }
+  .seg-tabs a { white-space: nowrap; }
+}
+
+/* ----------------------------------------- M3 Navigation Bar (mobile)
+   Tonal surface-container bar; active destination gets the M3 pill
+   indicator behind its icon plus a stronger label. */
+
+.tabbar {
+  grid-area: tabs;
+  display: none;
+  background: var(--surface-container);
+  padding: 6px 0 max(8px, env(safe-area-inset-bottom));
+}
+@media (max-width: 860px) { .tabbar { display: flex; } }
+.tabbar a {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--on-surface-variant);
+  padding: 4px 0 2px;
+  -webkit-tap-highlight-color: transparent;
+}
+.tabbar a { transition: color var(--dur-micro) var(--ease-standard); }
+.tabbar a svg {
+  border-radius: var(--shape-full);
+  padding: 3px 14px;
+  box-sizing: content-box;
+  transition: background var(--dur-quick) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
+}
+.tabbar a:active svg { transform: scale(0.92); }
+.tabbar a.active { color: var(--on-surface); font-weight: 600; }
+.tabbar a.active svg {
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+}
+
+/* ---------------------------------------------------------------- expanded player */
+
+/* M3 bottom-sheet expansion of the player: slides up from the mini
+   player, rounded top corners, drag-handle affordance, and a tonal
+   surface that carries the dynamic player tint. */
+.player-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: color-mix(in srgb, var(--player-tint) 5%, var(--surface));
+  border-radius: var(--shape-xl) var(--shape-xl) 0 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: sheet-in var(--dur-sheet) var(--ease-emphasized);
+  transition: background 0.6s var(--ease-standard);
+}
+@keyframes sheet-in {
+  from { transform: translateY(48px); opacity: 0.4; }
+  to { transform: none; opacity: 1; }
+}
+/* returns toward the mini player it grew out of */
+.player-sheet.closing {
+  animation: sheet-out 240ms var(--ease-exit) forwards;
+}
+@keyframes sheet-out {
+  from { transform: none; opacity: 1; }
+  to { transform: translateY(48px); opacity: 0; }
+}
+/* drag handle */
+.player-sheet::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 4px;
+  border-radius: var(--shape-full);
+  background: color-mix(in srgb, var(--on-surface-variant) 40%, transparent);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.ps-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+.ps-backdrop img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  filter: blur(64px) saturate(1.1);
+  opacity: 0.24;
+  transform: scale(1.3);
+}
+[data-theme='dark'] .ps-backdrop img { opacity: 0.18; }
+
+.ps-body {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 4fr);
+  gap: 40px;
+  padding: 20px 48px 32px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  overflow: hidden;
+  min-height: 0;
+}
+@media (max-width: 860px) {
+  .ps-body { grid-template-columns: 1fr; padding: 12px 20px 24px; overflow-y: auto; }
+}
+
+.ps-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  min-height: 0;
+}
+.ps-art {
+  width: min(360px, 72vw, 42vh);
+  aspect-ratio: 1;
+  border-radius: var(--shape-md);
+  overflow: hidden;
+  box-shadow: var(--elev-3);
+  background: var(--surface-container);
+  /* track change: soft scale/fade into the new record */
+  animation: art-swap var(--dur-standard) var(--ease-emphasized);
+}
+@keyframes art-swap {
+  from { opacity: 0.4; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+.ps-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ps-art .art-fallback {
+  width: 100%; height: 100%;
+  display: grid; place-items: center;
+  font-size: 90px;
+  color: var(--on-surface-faint);
+}
+
+.ps-titleblock { text-align: center; max-width: 480px; }
+.ps-track-title {
+  font-size: clamp(20px, 2.6vw, 26px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+  line-height: 1.25;
+}
+.ps-track-artist { color: var(--on-surface-muted); font-size: 14px; margin: 4px 0 0; }
+.ps-track-artist a:hover { color: var(--primary); }
+
+.ps-right {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-top: 12px;
+}
+/* same tab language as .seg-tabs (Library) — one tab design app-wide */
+.ps-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--outline-variant);
+}
+.ps-tabs button {
+  border: none; background: none;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--on-surface-variant);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  border-radius: var(--shape-sm) var(--shape-sm) 0 0;
+  transition: background 0.12s var(--ease-standard), color 0.12s var(--ease-standard);
+}
+.ps-tabs button:hover { background: var(--state-hover); color: var(--on-surface); }
+.ps-tabs button.active { color: var(--primary); font-weight: 600; border-bottom-color: var(--primary); }
+.ps-panel { flex: 1; overflow-y: auto; min-height: 0; padding-right: 4px; }
+
+.lyrics-body {
+  white-space: pre-wrap;
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--on-surface-variant);
+  padding-bottom: 40px;
+}
+
+.ps-controls-zone {
+  position: relative;
+  z-index: 1;
+  padding: 8px 48px calc(20px + env(safe-area-inset-bottom));
+  max-width: 760px;
+  width: 100%;
+  margin: 0 auto;
+}
+@media (max-width: 860px) { .ps-controls-zone { padding: 8px 20px 20px; } }
+.ps-main-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+/* Primary control of the expanded player: large M3 filled button whose
+   tone follows the playing artwork. Squircle-to-circle shape morph on
+   press is the one playful M3 gesture we keep. */
+.ps-play {
+  width: 60px; height: 60px;
+  border-radius: var(--shape-lg);
+  border: none;
+  background: color-mix(in srgb, var(--player-tint) 70%, var(--on-surface));
+  color: var(--surface);
+  display: grid; place-items: center;
+  transition: transform 0.1s var(--ease-standard), border-radius 0.2s var(--ease-emphasized), background 0.6s var(--ease-standard);
+}
+.ps-play:hover { transform: scale(1.04); }
+.ps-play:active { border-radius: var(--shape-full); transform: scale(0.96); }
+
+.ps-topbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+}
+
+/* queue rows */
+.queue-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: var(--shape-sm);
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+}
+.queue-row:hover { background: var(--state-hover); }
+/* soft collapse while a queue item is being removed */
+.queue-item-wrap { transition: opacity var(--dur-quick) var(--ease-exit), transform var(--dur-quick) var(--ease-exit); }
+.queue-item-wrap.removing { opacity: 0; transform: translateX(14px); pointer-events: none; }
+.queue-row.current { background: color-mix(in srgb, var(--player-tint) 10%, transparent); }
+.queue-row .q-art {
+  width: 36px; height: 36px;
+  border-radius: var(--shape-xs);
+  overflow: hidden;
+  background: var(--surface-container);
+  flex-shrink: 0;
+}
+.queue-row .q-art img { width: 100%; height: 100%; object-fit: cover; }
+.queue-row .q-meta { min-width: 0; flex: 1; }
+.queue-row .q-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.queue-row.current .q-title { color: color-mix(in srgb, var(--player-tint) 80%, var(--on-surface)); }
+.queue-row .q-sub { font-size: 11.5px; color: var(--on-surface-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------------------------------------------------------------- immersive */
+
+.immersive {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #0c0b09;
+  color: #efeae0;
+}
+.immersive canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.imm-ui {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 24px 32px calc(24px + env(safe-area-inset-bottom));
+  transition: opacity 0.5s ease;
+  z-index: 2;
+}
+.imm-ui.hidden { opacity: 0; pointer-events: none; }
+.imm-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.imm-bottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; }
+
+.imm-lyrics {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: min(620px, 84vw);
+  max-height: 52vh;
+  overflow-y: auto;
+  padding: 24px 28px;
+  border-radius: 12px;
+  background: rgba(16, 15, 12, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(6px);
+  color: rgba(239, 234, 224, 0.92);
+  font-size: clamp(16px, 2.2vw, 21px);
+  line-height: 1.75;
+  white-space: pre-wrap;
+  text-align: center;
+}
+.imm-meta .t { font-size: 24px; font-weight: 600; }
+.imm-meta .a { color: rgba(239, 234, 224, 0.65); font-size: 15px; }
+.imm-controls { display: flex; gap: 6px; align-items: center; }
+.immersive .icon-btn { color: rgba(239, 234, 224, 0.7); }
+.immersive .icon-btn:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.imm-select {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #efeae0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+/* ---------------------------------------------------------------- misc */
+
+/* M3 filter chips */
+.pill-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Catalog administration */
+.mod-list { display: flex; flex-direction: column; gap: 10px; }
+.mod-card {
+  background: var(--surface-container);
+  border: 1px solid var(--outline);
+  border-radius: var(--shape-md);
+  padding: 14px 16px;
+}
+.mod-card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; }
+.status-chip {
+  font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: var(--shape-full);
+  background: var(--state-hover); color: var(--on-surface-variant); white-space: nowrap;
+}
+.status-chip.status-published { background: color-mix(in srgb, var(--primary) 16%, transparent); color: var(--primary); }
+.status-chip.status-taken_down { background: color-mix(in srgb, #d66 22%, transparent); }
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: var(--shape-sm);
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--on-surface-variant);
+  background: var(--surface-container-high);
+  transition: background 0.12s var(--ease-standard), color 0.12s var(--ease-standard);
+}
+.pill:hover { background: color-mix(in srgb, var(--on-surface) 8%, var(--surface-container-high)); color: var(--on-surface); }
+.pill.active {
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+  font-weight: 600;
+}
+
+/* Compact anchored menu (track ⋮, overflow actions) */
+.track-menu-wrap { position: relative; }
+.menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 190px;
+  padding: 6px;
+  border-radius: var(--shape-md);
+  background: var(--surface-container-high);
+  box-shadow: var(--elev-3);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  animation: menu-pop var(--dur-quick) var(--ease-emphasized);
+  transform-origin: top right;
+}
+/* exit: shrink back toward the ⋮ that opened it */
+.menu.closing { animation: menu-pop-out var(--dur-micro) var(--ease-exit) forwards; }
+@keyframes menu-pop-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.95); }
+}
+@keyframes menu-pop {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+.menu-item {
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--on-surface);
+  padding: 9px 12px;
+  border-radius: var(--shape-sm);
+  white-space: nowrap;
+  transition: background 0.1s var(--ease-standard);
+}
+.menu-item:hover { background: var(--state-hover); }
+.menu-item:active { background: var(--state-press); }
+
+.empty {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--on-surface-muted);
+}
+.empty h3 { color: var(--on-surface); margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+.empty p { margin: 0 0 14px; font-size: 13.5px; }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+}
+.stat {
+  border-radius: var(--shape-lg);
+  padding: 16px;
+  background: var(--surface-container);
+}
+.stat .n { font-size: 24px; font-weight: 600; }
+.stat .l { font-size: 12px; color: var(--on-surface-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+.status-badge {
+  display: inline-flex;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 3px 9px;
+  border-radius: var(--shape-xs);
+}
+.status-badge.pending { background: var(--tertiary-container); color: var(--on-tertiary-container); }
+.status-badge.reviewing { background: var(--secondary-container); color: var(--on-secondary-container); }
+.status-badge.approved { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+.status-badge.published { background: color-mix(in srgb, var(--ok) 25%, transparent); color: var(--ok); }
+.status-badge.rejected { background: var(--error-container); color: var(--on-error-container); }
+
+/* Catalog page heads (Originals / Community): title + inline actions. */
+.catalog-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.catalog-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* detail headers */
+.detail-head {
+  display: flex;
+  gap: 26px;
+  align-items: flex-end;
+  margin-bottom: 26px;
+  flex-wrap: wrap;
+}
+.detail-art {
+  width: 200px; height: 200px;
+  border-radius: var(--shape-sm);
+  overflow: hidden;
+  background: var(--surface-container);
+  box-shadow: var(--elev-2);
+  flex-shrink: 0;
+}
+.detail-art.round { border-radius: 50%; }
+.detail-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.detail-art .art-fallback {
+  width: 100%; height: 100%;
+  display: grid; place-items: center;
+  font-size: 64px;
+  color: var(--on-surface-faint);
+}
+@media (max-width: 640px) {
+  .detail-head { gap: 18px; }
+  .detail-art { width: 140px; height: 140px; }
+}
+.detail-kind {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--on-surface-faint);
+  margin-bottom: 6px;
+}
+.detail-title {
+  font-size: clamp(24px, 3.6vw, 36px);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.12;
+  margin: 0 0 8px;
+}
+.detail-meta { color: var(--on-surface-muted); font-size: 13.5px; }
+.detail-meta a { color: var(--on-surface-variant); font-weight: 500; }
+.detail-meta a:hover { color: var(--accent); }
+.detail-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
+
+.prose { color: var(--on-surface-variant); line-height: 1.7; max-width: 68ch; }
+
+/* dialogs */
+.dialog-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(20, 17, 12, 0.45);
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  animation: fade-in var(--dur-quick) var(--ease-standard);
+}
+.dialog {
+  background: var(--surface-container-high);
+  border-radius: var(--shape-xl);
+  box-shadow: var(--elev-3);
+  width: 100%;
+  max-width: 440px;
+  max-height: 85dvh;
+  overflow-y: auto;
+  padding: 24px;
+  animation: dialog-in var(--dur-quick) var(--ease-emphasized);
+}
+@keyframes dialog-in {
+  from { transform: scale(0.96); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.dialog h3 { margin: 0 0 4px; font-size: 17px; font-weight: 600; }
+.dialog .dialog-sub { color: var(--on-surface-muted); font-size: 13px; margin: 0 0 18px; }
+
+/* toast */
+.toast-zone {
+  position: fixed;
+  bottom: calc(var(--player-h) + 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  pointer-events: none;
+}
+@media (max-width: 860px) {
+  /* clear the mini player AND the navigation bar */
+  .toast-zone { bottom: calc(60px + 72px + env(safe-area-inset-bottom)); }
+}
+/* M3 snackbar: inverse surface */
+.toast {
+  background: var(--on-surface);
+  color: var(--surface-container-low);
+  font-size: 13px;
+  padding: 10px 18px;
+  border-radius: var(--shape-sm);
+  box-shadow: var(--elev-3);
+  /* lifecycle animation synced with the 2.8s auto-dismiss */
+  animation: toast-life 2.8s var(--ease-standard) both;
+}
+@keyframes toast-life {
+  0% { opacity: 0; transform: translateY(8px); }
+  7% { opacity: 1; transform: none; }
+  90% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* the lifecycle animation would end at opacity 0 instantly */
+  .toast { animation: none; opacity: 1; }
+}
+
+/* dropzone — dashed outline kept as the drop-target affordance */
+.dropzone {
+  border: 1.5px dashed var(--outline);
+  border-radius: var(--shape-lg);
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--on-surface-muted);
+  transition: border-color 0.15s var(--ease-standard), background 0.15s var(--ease-standard);
+  cursor: pointer;
+}
+.dropzone.over { border-color: var(--primary); background: var(--accent-soft); }
+.dropzone h3 { color: var(--on-surface); margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+
+.spin {
+  width: 18px; height: 18px;
+  border: 2px solid var(--outline-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-page { display: grid; place-items: center; padding: 80px 0; color: var(--on-surface-muted); }
+
+.kbd {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  background: var(--surface-container);
+  border: 1px solid var(--outline-strong);
+  border-bottom-width: 2px;
+  border-radius: var(--shape-xs);
+  padding: 1px 6px;
+}
+
+.note-card {
+  background: var(--surface-container);
+  border-radius: var(--shape-md);
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--on-surface-variant);
+}
+
+table.simple { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.simple th {
+  text-align: left; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--on-surface-faint);
+  padding: 6px 10px; border-bottom: 1px solid var(--outline-variant);
+}
+table.simple td { padding: 8px 10px; border-bottom: 1px solid var(--outline-variant); }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
