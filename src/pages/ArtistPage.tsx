@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
 import type { Artist, Album, Track } from '@/lib/types';
 import { TrackRow } from '@/components/TrackRow';
+import { Blurb } from '@/components/Blurb';
 import { Artwork } from '@/components/Artwork';
 import { usePlayer } from '@/player/store';
 import { trackToQueueItem } from '@/providers';
@@ -90,7 +91,7 @@ export default function ArtistPage() {
         <div className="detail-art round">
           <Artwork src={artist.imageUrl} alt={`Photo of ${artist.name}`} />
         </div>
-        <div style={{ minWidth: 240, flex: 1 }}>
+        <div className="detail-identity">
           <div className="detail-kind" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             Artist
             {artist.sourceType === 'original' ? <OriginalBadge /> : <SourceChip sourceType={artist.sourceType} />}
@@ -122,7 +123,7 @@ export default function ArtistPage() {
         </div>
       </div>
 
-      {artist.bio && <p className="prose">{artist.bio}</p>}
+      {artist.bio && <Blurb text={artist.bio} />}
 
       {popularTracks.length > 0 && (
         <>

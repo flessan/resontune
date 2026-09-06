@@ -5,6 +5,14 @@ development the same schema runs on **PGlite** (embedded Postgres, WASM)
 under `var/pglite`. The adapter (`server/db/index.ts`) exposes one
 `query(text, params)` interface for both.
 
+Set `PGLITE_DIR` (relative to the working directory) to point a dev server
+at a different embedded database — useful for running a second instance
+with an empty catalog beside a populated one, e.g.
+`PORT=8788 PGLITE_DIR=var/pglite-empty npm start`. PGlite is
+single-connection, so each directory belongs to exactly one process. The
+catalog is never seeded: a fresh database starts genuinely empty and the UI
+is expected to say so.
+
 Schema: [`server/db/migrations/`](../server/db/migrations/) — plain SQL
 files applied in filename order by the migration runner in
 `server/db/index.ts` and tracked in `schema_migrations`. Dev (PGlite) and

@@ -17,6 +17,7 @@ import { DialogHost } from './DialogHost';
 import { SignInDialog } from './SignInDialog';
 import { Avatar } from './Avatar';
 import { Footer } from './Footer';
+import { useScrollLock } from '@/lib/scrollLock';
 
 const REPO = 'https://github.com/flessan/resontune';
 
@@ -26,6 +27,9 @@ const inLibrary = (path: string) =>
 
 export function Layout() {
   const view = usePlayer((s) => s.view);
+  /* The shell reserves the mini player's row only while something is
+     queued; --player-h follows this class so overlays stay aligned. */
+  const hasPlayer = usePlayer((s) => s.queue.length > 0 && s.index >= 0 && !!s.queue[s.index]);
   const user = useAuth((s) => s.user);
   const toasts = useToasts((s) => s.toasts);
   const [signIn, setSignIn] = useState(false);
@@ -36,6 +40,9 @@ export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [q, setQ] = useState('');
+
+  /* An open drawer is modal on mobile: the page behind it holds still. */
+  useScrollLock(drawer);
 
   /* global shortcuts */
   useEffect(() => {
@@ -121,7 +128,7 @@ export function Layout() {
   );
 
   return (
-    <div className={`app ${collapsed ? 'nav-collapsed' : ''}`}>
+    <div className={`app ${collapsed ? 'nav-collapsed' : ''} ${hasPlayer ? 'has-player' : ''}`}>
       <a href="#main-content" className="visually-hidden">Skip to content</a>
 
       {/* ---- desktop sidebar ---- */}
@@ -229,6 +236,11 @@ export function Layout() {
             />
           </form>
           <div style={{ flex: 1 }} />
+          {/* Phones get a search *action* — the full field lives on the
+              Search destination, where there is room to type. */}
+          <NavLink to="/search" className="icon-btn topbar-search" aria-label="Search">
+            <IconSearch width={19} height={19} />
+          </NavLink>
           {user ? (
             <NavLink to={`/u/${user.handle}`} className="topbar-avatar" title={`${user.displayName} — your profile`}>
               <Avatar src={user.avatarThumbUrl ?? user.avatarUrl} name={user.displayName} size={30} />
@@ -247,14 +259,14 @@ export function Layout() {
 
       {/* ---- mobile navigation bar: core destinations only ---- */}
       <nav className="tabbar" aria-label="Mobile navigation">
-        <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}><IconHome width={20} height={20} />Home</NavLink>
-        <NavLink to="/search" className={({ isActive }) => (isActive ? 'active' : '')}><IconSearch width={20} height={20} />Search</NavLink>
-        <NavLink to="/radio" className={({ isActive }) => (isActive ? 'active' : '')}><IconWave width={20} height={20} />Radio</NavLink>
+        <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}><IconHome width={20} height={20} /><span>Home</span></NavLink>
+        <NavLink to="/search" className={({ isActive }) => (isActive ? 'active' : '')}><IconSearch width={20} height={20} /><span>Search</span></NavLink>
+        <NavLink to="/radio" className={({ isActive }) => (isActive ? 'active' : '')}><IconWave width={20} height={20} /><span>Radio</span></NavLink>
         <NavLink
           to="/playlists"
           className={({ isActive }) => (isActive || inLibrary(location.pathname) ? 'active' : '')}
         >
-          <IconLibrary width={20} height={20} />Library
+          <IconLibrary width={20} height={20} /><span>Library</span>
         </NavLink>
       </nav>
 

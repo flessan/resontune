@@ -44,10 +44,15 @@ async function createDb(): Promise<Db> {
   }
 
   const { PGlite } = await import('@electric-sql/pglite');
-  const dataDir = path.resolve(__dirname, '../../var/pglite');
+  /* PGLITE_DIR lets a developer run a second, independent instance — an
+     empty catalog next to a populated one, for example — without touching
+     the default database. Development only; production requires Neon. */
+  const dataDir = process.env.PGLITE_DIR
+    ? path.resolve(process.cwd(), process.env.PGLITE_DIR)
+    : path.resolve(__dirname, '../../var/pglite');
   fs.mkdirSync(path.dirname(dataDir), { recursive: true });
   const pg = await PGlite.create(dataDir);
-  console.log('[db] using embedded PGlite Postgres at var/pglite (development)');
+  console.log(`[db] using embedded PGlite Postgres at ${path.relative(process.cwd(), dataDir)} (development)`);
   return {
     driver: 'pglite',
     async query<T>(text: string, params: unknown[] = []) {

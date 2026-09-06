@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '@/stores/auth';
 import { toast } from '@/stores/toast';
 import { IconClose } from './Icons';
+import { useScrollLock } from '@/lib/scrollLock';
 
 /**
  * Sign in / create account — backed by Neon Auth (the single authentication
@@ -10,6 +11,7 @@ import { IconClose } from './Icons';
  */
 export function SignInDialog({ onClose }: { onClose: () => void }) {
   const available = useAuth((s) => s.available);
+  useScrollLock(true);
   const [mode, setMode] = useState<'in' | 'up'>('in');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');

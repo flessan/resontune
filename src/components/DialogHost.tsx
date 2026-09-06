@@ -11,12 +11,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useDialogs } from '@/stores/dialogs';
 import { AddToPlaylistDialog } from './AddToPlaylistDialog';
 import { IconClose } from './Icons';
+import { useScrollLock } from '@/lib/scrollLock';
 
 function PromptDialog() {
   const req = useDialogs((s) => s.prompt);
   const resolve = useDialogs((s) => s.resolvePrompt);
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  useScrollLock(!!req);
 
   useEffect(() => {
     if (!req) return;
@@ -74,6 +76,7 @@ function ConfirmDialog() {
   const req = useDialogs((s) => s.confirm);
   const resolve = useDialogs((s) => s.resolveConfirm);
   const confirmRef = useRef<HTMLButtonElement>(null);
+  useScrollLock(!!req);
 
   useEffect(() => {
     if (!req) return;

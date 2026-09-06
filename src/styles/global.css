@@ -99,7 +99,16 @@
 
   --font: 'Poppins', system-ui, -apple-system, sans-serif;
 
+  /* ---- shell metrics ---------------------------------------------- */
+  /* One horizontal rhythm for every page surface: headings, lists,
+     shelves, heroes and the top bar all read --gutter, so nothing drifts
+     out of alignment at any width. --player-h / --tabbar-h describe the
+     vertical space the player and the navigation bar occupy; fixed
+     overlays (toasts, sheets) position themselves against them instead
+     of hardcoding numbers. */
+  --gutter: 28px;
   --player-h: 76px;
+  --tabbar-h: 0px;
   --sidebar-w: 232px;
 
   --elev-1: 0 1px 2px rgb(0 0 0 / 0.1), 0 1px 3px rgb(0 0 0 / 0.06);
@@ -154,6 +163,22 @@
 }
 
 * { box-sizing: border-box; }
+
+/* ----------------------------------------------- responsive shell metrics
+   The whole layout scales through these four numbers. Compact phones get
+   a 16px gutter, larger phones 20px, tablets 24px, desktop 28px; the
+   mini player and navigation bar publish their real heights so content
+   and overlays can reserve exactly the space they need — no more, and
+   nothing when the player is idle. */
+@media (max-width: 1100px) { :root { --gutter: 24px; } }
+@media (max-width: 860px) {
+  :root {
+    --gutter: 20px;
+    --player-h: 64px;
+    --tabbar-h: calc(56px + env(safe-area-inset-bottom));
+  }
+}
+@media (max-width: 400px) { :root { --gutter: 16px; } }
 
 html, body {
   margin: 0;
@@ -220,6 +245,10 @@ input, textarea, select { font-family: inherit; color: inherit; }
       'tabs';
   }
 }
+
+/* Nothing queued → the player row genuinely takes no space, and every
+   overlay that positions itself above the player follows suit. */
+.app:not(.has-player) { --player-h: 0px; }
 
 /* ----------------------------------------------- sidebar (desktop)
    Streaming-app navigation column: quiet tonal surface, compact
@@ -361,21 +390,29 @@ input, textarea, select { font-family: inherit; color: inherit; }
   grid-area: main;
   overflow-y: auto;
   overflow-x: hidden;
+  /* the scroll container is the page body: keep its scrolling to itself
+     so a bounce never drags the shell, and never let a nested surface
+     chain into it */
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
+  /* anchors and focus scrolls stop clear of the sticky top bar */
+  scroll-padding-top: 64px;
+  min-height: 0;
   position: relative;
 }
 
 .page {
   max-width: 1360px;
   margin: 0 auto;
-  padding: 16px 28px 56px;
+  padding: 16px var(--gutter) 48px;
   animation: page-in var(--dur-quick) var(--ease-standard);
 }
 @keyframes page-in {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
-@media (max-width: 640px) { .page { padding: 12px 14px 40px; } }
+@media (max-width: 860px) { .page { padding: 8px var(--gutter) 28px; } }
 
 /* Top bar: quiet, useful — hamburger (mobile), search, account. */
 .topbar {
@@ -385,7 +422,7 @@ input, textarea, select { font-family: inherit; color: inherit; }
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 28px 8px;
+  padding: 10px var(--gutter) 8px;
   background: transparent;
   backdrop-filter: blur(14px);
   transition: background var(--dur-quick) var(--ease-standard), box-shadow var(--dur-quick) var(--ease-standard);
@@ -395,13 +432,37 @@ input, textarea, select { font-family: inherit; color: inherit; }
   background: color-mix(in srgb, var(--surface) 90%, transparent);
   box-shadow: 0 1px 0 var(--outline-variant);
 }
-@media (max-width: 640px) { .topbar { padding: 8px 12px; } }
 /* Hamburger + brand live in the top bar only on mobile; on desktop the
    sidebar carries both. */
-.topbar .hamburger, .topbar-brand { display: none; }
+.topbar .hamburger, .topbar .topbar-brand, .topbar .topbar-search { display: none; }
 @media (max-width: 860px) {
+  /* A header of its own, not a squeezed desktop bar: one comfortable
+     row — navigation, wordmark, search, account — with real breathing
+     room and 44px targets. The full search field is one tap away on the
+     Search destination instead of being crushed in here. */
+  .topbar {
+    gap: 4px;
+    padding: 6px var(--gutter);
+    min-height: 56px;
+  }
   .topbar .hamburger { display: inline-grid; }
-  .topbar-brand { display: inline; font-size: 17px; margin-right: 2px; }
+  .topbar .search-box { display: none; }
+  .topbar .topbar-search { display: inline-grid; }
+  .topbar .topbar-brand {
+    display: inline-flex;
+    align-items: center;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+    padding: 4px 6px;
+    margin-right: 2px;
+  }
+  .topbar .btn.small { padding: 9px 16px; font-size: 13px; }
+  .topbar .topbar-avatar {
+    display: inline-grid;
+    place-items: center;
+    width: 44px; height: 44px;
+    border-radius: var(--shape-full);
+  }
 }
 
 /* M3 search bar: full-round field on surface-container-high. */
@@ -443,6 +504,16 @@ input, textarea, select { font-family: inherit; color: inherit; }
   box-shadow: 0 0 0 2px var(--accent-soft);
   outline: none;
 }
+@media (max-width: 860px) {
+  /* Full-width, thumb-sized, 16px text (no iOS zoom on focus), and the
+     placeholder always fits. */
+  .search-hero {
+    max-width: none;
+    padding: 15px 20px;
+    min-height: 52px;
+    text-overflow: ellipsis;
+  }
+}
 
 .search-box svg {
   position: absolute;
@@ -476,6 +547,13 @@ h1.page-title {
   margin: 30px 0 12px;
 }
 .section-head:first-child { margin-top: 0; }
+@media (max-width: 860px) {
+  /* Sections read as a rhythm of shelves, not as one long column of
+     text: slightly tighter above, a touch more air below the heading. */
+  h1.page-title { font-size: 22px; }
+  .page-sub { margin-bottom: 20px; }
+  .section-head { margin: 24px 0 10px; }
+}
 .section-title {
   font-weight: 600;
   font-size: 16px;
@@ -486,6 +564,10 @@ h1.page-title {
 /* "See all" — quiet text action, consistent on every section */
 .section-link { font-size: 12.5px; color: var(--on-surface-muted); font-weight: 500; }
 .section-link:hover { color: var(--primary); }
+/* "See all" is a real target on touch, not 12px of text. */
+@media (max-width: 860px) {
+  .section-link { font-size: 13px; display: inline-flex; align-items: center; min-height: 32px; padding-left: 10px; }
+}
 
 /* ------------------------------------------------------- tiles & shelves */
 
@@ -495,16 +577,23 @@ h1.page-title {
   gap: 24px 16px;
 }
 .card-row.wide { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+@media (max-width: 640px) {
+  /* Two readable columns on a phone instead of three cramped ones. */
+  .card-row { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px 14px; }
+  .card-row.wide { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+}
 
 /* Horizontal shelf — the primary browsing pattern. Scrolls sideways,
-   snaps per tile, scrollbar hidden. */
+   snaps per tile, scrollbar hidden. The shelf bleeds to the screen edge
+   but its first tile always lines up with the page gutter. */
 .shelf {
   display: flex;
   gap: 14px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
-  padding: 4px 28px 8px;
-  margin: 0 -28px;
+  padding: 4px var(--gutter) 8px;
+  margin: 0 calc(-1 * var(--gutter));
   scrollbar-width: none;
 }
 .shelf::-webkit-scrollbar { display: none; }
@@ -524,9 +613,9 @@ h1.page-title {
 }
 .shelf > .collection-tile { flex-basis: 240px; }
 @media (max-width: 640px) {
-  .shelf { padding: 4px 14px 8px; margin: 0 -14px; gap: 12px; }
-  .shelf > * { flex-basis: 124px; }
-  .shelf > .collection-tile { flex-basis: 200px; }
+  .shelf { gap: 12px; }
+  .shelf > * { flex-basis: 132px; }
+  .shelf > .collection-tile { flex-basis: 210px; }
 }
 
 /* Tiles are free artwork + two text lines — never boxes. */
@@ -605,6 +694,12 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
   overflow: hidden;
   text-overflow: ellipsis;
 }
+@media (max-width: 860px) {
+  /* Card text stays legible at arm's length; the whole tile is the tap
+     target, so the type can breathe a little more. */
+  .tile-title { font-size: 13.5px; margin-top: 9px; }
+  .tile-sub { font-size: 12.5px; }
+}
 .tile-sub a:hover { color: var(--primary); }
 
 .artist-tile .tile-art { border-radius: 50%; }
@@ -612,6 +707,7 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
 /* ---------------------------------------------------------------- track list */
 
 .tracklist { margin: 0 -10px; }
+@media (max-width: 860px) { .tracklist { margin: 0 -8px; } }
 /* Home lists: two dense columns on wide screens for quick scanning. */
 @media (min-width: 1000px) {
   .home-tracklist {
@@ -721,6 +817,44 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
   font-variant-numeric: tabular-nums;
   min-width: 40px;
   text-align: right;
+}
+
+/* ---- touch track rows -------------------------------------------------
+   Same markup, same data, same player calls as the desktop row — only the
+   density changes. The index column and the duration give their width to
+   the title (the scarcest resource on a phone), artwork grows to a
+   legible 48px, the row is a 64px target, and the ⋮ is permanently
+   available because there is no hover to reveal it. The "now playing"
+   tell moves onto the artwork, where the index used to carry it. */
+.track-row .art-state { display: none; }
+@media (max-width: 860px) {
+  .track-row {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 12px;
+    min-height: 64px;
+    padding: 6px 8px;
+    border-radius: var(--shape-md);
+  }
+  .track-row .idx, .track-row .dur { display: none; }
+  .track-row .art { width: 48px; height: 48px; border-radius: var(--shape-sm); position: relative; }
+  .track-row .t-title { font-size: 14.5px; line-height: 1.35; }
+  .track-row .t-sub { font-size: 12.5px; margin-top: 1px; }
+  .track-row .actions { gap: 0; }
+  .track-row.playing .art-state {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+  }
+  .track-row.playing .art-state .eq i { background: #fff; }
+}
+/* On the narrowest phones the row keeps one unambiguous overflow button:
+   the heart stays only when it is carrying state (already a favourite);
+   "Add to favorites" is one tap away in the sheet. */
+@media (max-width: 520px) {
+  .track-row .actions .fav-btn:not(.active) { display: none; }
 }
 
 /* Provenance chips — one quiet visual voice; informative, never loud. */
@@ -1176,12 +1310,19 @@ textarea.input { resize: vertical; }
    floating card, no shadow, no margins. */
 @media (max-width: 860px) {
   .player-bar {
-    grid-template-columns: 1fr auto;
-    height: 60px;
-    padding: 0 12px;
+    /* three columns in ONE row: metadata · transport · overflow.
+       (With two columns the overflow button wrapped onto a second row
+       and spilled over the navigation bar.) */
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    height: var(--player-h);
+    padding: 0 10px 0 12px;
+    gap: 6px;
     cursor: pointer;
     background: color-mix(in srgb, var(--player-tint) 8%, var(--surface-container));
     border-radius: var(--shape-md) var(--shape-md) 0 0;
+    /* a hairline is all it takes to read as a surface the page scrolls
+       under, rather than something floating on top of the content */
+    box-shadow: 0 -1px 0 var(--outline-variant);
   }
 }
 
@@ -1201,11 +1342,17 @@ textarea.input { resize: vertical; }
   cursor: pointer;
   box-shadow: var(--elev-1);
 }
-@media (max-width: 860px) { .pb-art { width: 42px; height: 42px; } }
+@media (max-width: 860px) { .pb-art { width: 44px; height: 44px; } }
 .pb-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 /* Metadata yields to ellipsis past ~65% of the row so the spectrum always
    keeps a sliver of room to breathe. */
 .pb-meta { min-width: 0; flex: 0 1 auto; max-width: 65%; }
+@media (max-width: 860px) {
+  /* On a phone the title is the point: the spectrum steps aside and the
+     metadata takes the whole column. */
+  .pb-meta { flex: 1 1 auto; max-width: none; }
+  .pb-now { gap: 10px; }
+}
 @media (max-width: 640px) { .pb-meta .source-chip { display: none; } }
 .pb-title {
   font-size: 13px; font-weight: 600; line-height: 1.4;
@@ -1214,6 +1361,10 @@ textarea.input { resize: vertical; }
 .pb-sub {
   font-size: 11.5px; color: var(--on-surface-muted); line-height: 1.4;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+@media (max-width: 860px) {
+  .pb-title { font-size: 13.5px; }
+  .pb-sub { font-size: 12px; }
 }
 
 .pb-center { display: flex; flex-direction: column; align-items: center; gap: 2px; }
@@ -1276,8 +1427,14 @@ textarea.input { resize: vertical; }
 @media (max-width: 860px) {
   .pb-right .desktop-only,
   .pb-center .desktop-only { display: none; }
-  /* Mobile mini player: metadata + spectrum + play/next only. */
+  /* Mobile mini player: play/pause and next, both thumb-sized, plus the
+     overflow button that opens the same action sheet as a long press.
+     Previous lives in the expanded player. */
   .pb-controls .icon-btn[aria-label='Previous track'] { display: none; }
+  .pb-controls { gap: 2px; }
+  .pb-controls .icon-btn { width: 44px; height: 44px; }
+  .pb-play { width: 44px; height: 44px; margin: 0 2px; }
+  .pb-right .ctx-trigger { min-width: 44px; min-height: 44px; }
 }
 
 /* No music → no player. The bar is one persistent element that
@@ -1346,7 +1503,8 @@ textarea.input { resize: vertical; }
   -webkit-mask-image: linear-gradient(to right, transparent, #000 14%, #000 92%, transparent);
 }
 @media (max-width: 860px) {
-  .pb-spectrum { height: 24px; flex-basis: 30px; }
+  /* the mini player gives its width to the title instead */
+  .pb-spectrum { display: none; }
 }
 
 /* Ambient visualizer layer in the expanded player — a surface behavior,
@@ -1476,21 +1634,28 @@ textarea.input { resize: vertical; }
   grid-area: tabs;
   display: none;
   background: var(--surface-container);
-  padding: 6px 0 max(8px, env(safe-area-inset-bottom));
+  /* a fixed, predictable height the rest of the layout can reason about */
+  height: var(--tabbar-h);
+  padding: 0 4px env(safe-area-inset-bottom);
+  box-shadow: 0 -1px 0 var(--outline-variant);
 }
 @media (max-width: 860px) { .tabbar { display: flex; } }
 .tabbar a {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 3px;
   font-size: 11px;
   font-weight: 500;
   color: var(--on-surface-variant);
-  padding: 4px 0 2px;
+  padding: 6px 2px;
+  min-height: 48px;
   -webkit-tap-highlight-color: transparent;
 }
+.tabbar a span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tabbar a { transition: color var(--dur-micro) var(--ease-standard); }
 .tabbar a svg {
   border-radius: var(--shape-full);
@@ -1950,16 +2115,22 @@ textarea.input { resize: vertical; }
   to { transform: translateY(8px); opacity: 0; }
 }
 @keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
-.ctx-sheet::before {
+/* Grab handle: part of the header, so the same element people reach for
+   is the one that accepts the dismissing drag. */
+.ctx-sheet-head::before {
   content: '';
   display: block;
   width: 32px;
   height: 4px;
-  margin: 4px auto 10px;
+  margin: 0 auto 12px;
   border-radius: var(--shape-full);
   background: var(--outline-variant);
 }
-.ctx-sheet-head { padding: 0 8px 10px; }
+.ctx-sheet-head {
+  padding: 6px 8px 10px;
+  touch-action: none;
+  cursor: grab;
+}
 .ctx-sheet-title { font-size: 15px; font-weight: 600; color: var(--on-surface); }
 .ctx-sheet-sub { font-size: 12px; color: var(--on-surface-muted); margin-top: 2px; }
 .ctx-sheet .ctx-item { font-size: 15px; padding: 13px 10px; gap: 14px; }
@@ -2047,10 +2218,6 @@ textarea.input { resize: vertical; }
   font-size: 64px;
   color: var(--on-surface-faint);
 }
-@media (max-width: 640px) {
-  .detail-head { gap: 18px; }
-  .detail-art { width: 140px; height: 140px; }
-}
 .detail-kind {
   font-size: 10.5px;
   font-weight: 600;
@@ -2072,6 +2239,31 @@ textarea.input { resize: vertical; }
 .detail-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
 
 .prose { color: var(--on-surface-variant); line-height: 1.7; max-width: 68ch; }
+
+@media (max-width: 640px) {
+  /* Mobile hero: artwork over name, not beside it. A 140px thumbnail
+     next to three lines of type left neither enough room; stacked, the
+     art can be big enough to recognise and the title gets the full
+     width. Actions sit directly under the metadata, thumb-height, with
+     Play taking the lead. */
+  .detail-head {
+    display: block;
+    margin-bottom: 20px;
+  }
+  .detail-art {
+    width: min(46vw, 190px);
+    height: min(46vw, 190px);
+    margin-bottom: 14px;
+  }
+  .detail-art .art-fallback { font-size: 48px; }
+  .detail-title { font-size: 26px; }
+  .detail-meta { font-size: 13px; }
+  .detail-actions { margin-top: 14px; gap: 8px; }
+  .detail-actions .btn { min-height: 44px; }
+  .detail-actions .btn.primary { flex: 1 1 auto; min-width: 140px; }
+  .detail-actions .icon-btn { width: 44px; height: 44px; }
+  .prose { font-size: 13.5px; line-height: 1.65; }
+}
 
 /* dialogs */
 .dialog-backdrop {
@@ -2104,7 +2296,9 @@ textarea.input { resize: vertical; }
 /* toast */
 .toast-zone {
   position: fixed;
-  bottom: calc(var(--player-h) + 16px);
+  /* always clears whatever is actually at the bottom: the player when it
+     is playing, the navigation bar on mobile, neither when idle */
+  bottom: calc(var(--player-h) + var(--tabbar-h) + 14px);
   left: 50%;
   transform: translateX(-50%);
   z-index: 200;
@@ -2113,10 +2307,7 @@ textarea.input { resize: vertical; }
   gap: 8px;
   align-items: center;
   pointer-events: none;
-}
-@media (max-width: 860px) {
-  /* clear the mini player AND the navigation bar */
-  .toast-zone { bottom: calc(60px + 72px + env(safe-area-inset-bottom)); }
+  max-width: calc(100vw - 2 * var(--gutter));
 }
 /* M3 snackbar: inverse surface */
 .toast {
@@ -2612,4 +2803,209 @@ table.simple td { padding: 8px 10px; border-bottom: 1px solid var(--outline-vari
   .field-pair { grid-template-columns: 1fr; }
   .link-row { grid-template-columns: 1fr auto; }
   .link-row input:first-child { grid-column: 1 / -1; }
+}
+
+/* ============================================================
+   Mobile pass — touch density, safe areas and sheet behaviour.
+   Everything here is presentation only: same components, same
+   state, same player. It lives at the end of the sheet so it
+   reliably wins over the desktop defaults it refines.
+   ============================================================ */
+
+/* ---- long strings never push a phone sideways ---- */
+h1.page-title, .detail-title, .profile-name, .ps-track-title, .section-title {
+  overflow-wrap: anywhere;
+}
+
+/* ---- comfortable targets wherever there is no hover ---- */
+@media (hover: none) and (max-width: 1024px) {
+  .icon-btn { width: 42px; height: 42px; }
+  .ctx-trigger { min-width: 42px; min-height: 42px; padding: 9px; }
+  .btn { padding: 11px 20px; font-size: 13.5px; }
+  .btn.small { padding: 9px 16px; font-size: 13px; }
+  .tile-more, .card-more { opacity: 1; }
+  /* a long press on an entity opens our sheet — the OS text-selection
+     callout must not race it. Ordinary text stays selectable. */
+  [data-ctx-target] { -webkit-touch-callout: none; }
+  [data-ctx-target] .t-title, [data-ctx-target] .t-sub,
+  [data-ctx-target] .tile-title, [data-ctx-target] .tile-sub {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+/* ---- library / page tabs line up with the page gutter ---- */
+@media (max-width: 640px) {
+  .seg-tabs {
+    margin: 2px calc(-1 * var(--gutter)) 18px;
+    padding: 0 var(--gutter);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  .seg-tabs a { padding: 10px 12px; }
+}
+
+/* ---- empty states: intentional, never a hole in the page ---- */
+@media (max-width: 640px) {
+  .empty { padding: 36px 8px; }
+  .empty h3 { font-size: 16px; }
+  .empty p { font-size: 14px; max-width: 34ch; margin-inline: auto; }
+  .empty .btn { min-height: 44px; }
+}
+
+/* ---- profile header ---- */
+@media (max-width: 640px) {
+  .profile-head { gap: 14px; align-items: center; margin-bottom: 22px; }
+  .profile-name { font-size: 24px; margin-top: 4px; }
+  .profile-bio { font-size: 13.5px; }
+  .profile-playlists { grid-template-columns: 1fr; }
+  .profile-artist-row { flex-direction: column; align-items: stretch; }
+}
+
+/* ---- forms: 16px input text keeps iOS from zooming the viewport ---- */
+@media (max-width: 640px) {
+  .field input, .field textarea, .field select,
+  .link-row input, .admin-search, .search-box input {
+    font-size: 16px;
+  }
+  .field input, .field select { min-height: 46px; }
+  .edit-actions .btn, .dialog-actions .btn { min-height: 44px; }
+}
+
+/* ---- dialogs behave like sheets on a phone ---- */
+@media (max-width: 640px) {
+  .dialog-backdrop { place-items: end stretch; padding: 0; }
+  .dialog {
+    max-width: none;
+    max-height: 88dvh;
+    border-radius: var(--shape-xl) var(--shape-xl) 0 0;
+    padding: 20px var(--gutter) calc(20px + env(safe-area-inset-bottom));
+    animation: dialog-sheet-in var(--dur-quick) var(--ease-emphasized);
+    overscroll-behavior: contain;
+  }
+  .dialog-actions { margin-top: 20px; }
+  .dialog-actions .btn { flex: 1 1 auto; justify-content: center; }
+}
+@keyframes dialog-sheet-in {
+  from { transform: translateY(18px); opacity: 0.5; }
+  to { transform: none; opacity: 1; }
+}
+
+/* ---- action sheet: thumb-reachable, quick to dismiss ---- */
+@media (max-width: 640px) {
+  .ctx-sheet { padding-inline: 8px; }
+  .ctx-sheet .ctx-item { padding: 14px 12px; min-height: 52px; }
+  .ctx-sheet-head { padding: 0 12px 12px; }
+  /* the destructive group reads as separate before it is ever tapped */
+  .ctx-sheet .ctx-item.danger { margin-top: 2px; }
+}
+
+/* ---- expanded player: clear of the status bar and the home indicator ---- */
+@media (max-width: 860px) {
+  .ps-topbar { padding: max(14px, env(safe-area-inset-top)) 12px 10px; }
+  .ps-topbar .icon-btn { width: 44px; height: 44px; }
+  .ps-controls-zone { padding: 8px var(--gutter) calc(16px + env(safe-area-inset-bottom)); }
+  .ps-body { padding: 8px var(--gutter) 20px; }
+  .queue-row { padding: 10px 8px; min-height: 56px; }
+  .ps-main-controls .icon-btn { width: 48px; height: 48px; }
+}
+
+/* ---- drawer: its own scroll, never the page's ---- */
+.drawer { overscroll-behavior: contain; }
+@media (max-width: 860px) {
+  .drawer .nav-link { min-height: 46px; }
+  .drawer-head { padding-top: max(8px, env(safe-area-inset-top)); }
+}
+
+/* ---- the Search destination's field: one comfortable, clearable input ---- */
+.search-form { margin: 0 0 22px; }
+.search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 560px;
+}
+.search-field > svg {
+  position: absolute;
+  left: 18px;
+  color: var(--on-surface-faint);
+  pointer-events: none;
+}
+.search-field .search-hero { padding-left: 48px; padding-right: 50px; }
+.search-field .search-clear { position: absolute; right: 5px; }
+@media (max-width: 860px) {
+  .search-form { margin-bottom: 18px; }
+  .search-field { max-width: none; }
+}
+
+/* The identity column of a detail hero: roomy on desktop, free to shrink
+   to the phone's width instead of forcing a horizontal scroll. */
+.detail-identity { min-width: 240px; flex: 1; }
+@media (max-width: 640px) { .detail-identity { min-width: 0; } }
+
+/* ---- long descriptions ---- */
+.blurb { margin: 0 0 4px; }
+.blurb-toggle { display: none; font-size: 13px; margin-top: 8px; padding: 4px 0; }
+@media (max-width: 860px) {
+  .blurb:not(.open) .prose {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .blurb-toggle { display: inline-block; }
+}
+
+/* ---- home: the greeting stays a single quiet line on a phone ---- */
+@media (max-width: 640px) {
+  .home-greeting { font-size: 20px; margin: 2px 0 14px; }
+  .featured .btn { min-height: 40px; }
+}
+
+/* ---- modal surfaces hold the page still underneath them ----
+   Touch only: on a phone a scroll that starts on a sheet chains into the
+   page behind it, which then silently moves away. Desktop keeps its
+   scrollbar (and its layout) exactly as it was. */
+@media (hover: none), (max-width: 860px) {
+  body.scroll-locked .main { overflow: hidden; }
+}
+
+/* A collection's artwork is a landscape crop, not a sleeve. */
+.detail-art.landscape {
+  width: min(100%, 300px);
+  height: auto;
+  aspect-ratio: 16 / 10;
+}
+@media (max-width: 640px) { .detail-art.landscape { width: 100%; } }
+
+/* ---- expanded player: one scroll, not two ----
+   The sheet body already scrolls on a phone; a second scroller inside it
+   (the queue panel) makes the list feel stuck. On a phone the panel grows
+   and the body carries the scrolling. */
+@media (max-width: 860px) {
+  .ps-panel { overflow: visible; flex: none; padding-right: 0; }
+  .ps-right { padding-top: 16px; }
+}
+
+/* ---- pills stay tappable ---- */
+@media (hover: none) and (max-width: 860px) {
+  .pill { padding: 9px 16px; }
+}
+
+/* ---- footer: quieter and further out of the way on a phone ---- */
+@media (max-width: 640px) {
+  .site-footer { margin-top: 36px; padding: 20px 0 8px; gap: 16px; }
+  .site-footer nav { gap: 10px 16px; }
+  .site-footer nav a { padding: 4px 0; }
+}
+
+/* The profile avatar is sized in JS for the desktop header; on a phone the
+   inline size has to yield so the name and handle keep their line. */
+@media (max-width: 640px) {
+  .profile-head .profile-avatar {
+    width: 84px !important;
+    height: 84px !important;
+    font-size: 32px !important;
+  }
 }

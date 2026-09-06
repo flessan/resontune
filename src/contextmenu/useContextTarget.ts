@@ -85,10 +85,28 @@ export function useContextTarget(
     fired: false,
   });
 
+  /* A long press must lose to a scroll. Pointer movement past the slop
+     cancels it, but a touch that turns into a fling is taken over by the
+     browser, which may stop sending pointermove — so any scroll anywhere
+     cancels the pending press too. */
+  const scrollCancel = useRef<(() => void) | null>(null);
+
   const clearPress = useCallback(() => {
     if (press.current.timer) clearTimeout(press.current.timer);
     press.current.timer = null;
+    scrollCancel.current?.();
+    scrollCancel.current = null;
   }, []);
+
+  const watchScroll = useCallback(() => {
+    const cancel = () => clearPress();
+    document.addEventListener('scroll', cancel, { capture: true, passive: true });
+    window.addEventListener('wheel', cancel, { capture: true, passive: true });
+    scrollCancel.current = () => {
+      document.removeEventListener('scroll', cancel, true);
+      window.removeEventListener('wheel', cancel, true);
+    };
+  }, [clearPress]);
 
   useEffect(() => clearPress, [clearPress]);
 
@@ -143,6 +161,7 @@ export function useContextTarget(
       press.current.y = e.clientY;
       const el = e.currentTarget as HTMLElement;
       clearPress();
+      watchScroll();
       press.current.timer = setTimeout(() => {
         press.current.fired = true;
         const current = latest.current;
@@ -158,7 +177,7 @@ export function useContextTarget(
         navigator.vibrate?.(8);
       }, LONG_PRESS_MS);
     },
-    [openMenu, longPress, disabled, clearPress],
+    [openMenu, longPress, disabled, clearPress, watchScroll],
   );
 
   const onPointerMove = useCallback(

@@ -92,6 +92,13 @@ export const TrackRow = memo(function TrackRow({ track, index, context, showArt 
       {showArt ? (
         <div className="art">
           <Artwork src={track.artworkUrl} alt="" />
+          {/* On touch the index column is gone, so the artwork carries the
+              "this is the one playing" tell. */}
+          {isCurrent && (
+            <span className="art-state" aria-hidden>
+              {playing ? <span className="eq"><i /><i /><i /></span> : <IconPlay width={16} height={16} />}
+            </span>
+          )}
         </div>
       ) : (
         <div />
@@ -108,7 +115,7 @@ export const TrackRow = memo(function TrackRow({ track, index, context, showArt 
         </div>
       </div>
       <div className="actions">
-        <button className={`icon-btn ${isFav ? 'active' : ''}`} onClick={handleFav} aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}>
+        <button className={`icon-btn fav-btn ${isFav ? 'active' : ''}`} onClick={handleFav} aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}>
           <IconHeart width={16} height={16} filled={isFav} />
         </button>
         <ContextMenuButton target={target} className="icon-btn" />

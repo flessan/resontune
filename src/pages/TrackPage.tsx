@@ -6,6 +6,7 @@ import { usePlayer } from '@/player/store';
 import { useAuth } from '@/stores/auth';
 import { trackToQueueItem } from '@/providers';
 import { TrackRow } from '@/components/TrackRow';
+import { Blurb } from '@/components/Blurb';
 import { Artwork } from '@/components/Artwork';
 import { formatDuration, formatCount, formatDate } from '@/lib/format';
 import { toast } from '@/stores/toast';
@@ -89,7 +90,7 @@ export default function TrackPage() {
         <div className="detail-art">
           <Artwork src={track.artworkUrl} alt={`Artwork for ${track.title}`} />
         </div>
-        <div style={{ minWidth: 240, flex: 1 }}>
+        <div className="detail-identity">
           <div className="detail-kind" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             Track
             {track.sourceType === 'original' ? <OriginalBadge /> : <SourceChip sourceType={track.sourceType} />}
@@ -129,7 +130,7 @@ export default function TrackPage() {
         </div>
       </div>
 
-      {track.description && <p className="prose">{track.description}</p>}
+      {track.description && <Blurb text={track.description} />}
 
       {track.lyrics?.body && (
         <>

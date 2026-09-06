@@ -118,6 +118,22 @@ title, the target kind and larger hit areas. Presentation differs;
 semantics do not. Tiles and rows expose a ⋮ trigger so the actions are
 discoverable without knowing about long press.
 
+The sheet behaves like a native one:
+
+- the page behind it does not scroll (reference-counted lock in
+  `src/lib/scrollLock.ts`), so it also never dismisses itself when a finger
+  brushes the list underneath — unlike the floating menu, whose anchor
+  scrolls away and which therefore still closes on scroll;
+- a downward drag on its header dismisses it, as does a tap on the
+  backdrop, Escape, or running an action;
+- items are 52px tall with the destructive group separated at the end, and
+  destructive actions still route through a confirmation dialog.
+
+A pending long press always loses to a scroll: movement past 10px cancels
+it, and so does any scroll or wheel event while the finger is down (a fling
+can stop pointer events reaching us). The click that would follow a long
+press is swallowed, so a press never plays the row it opened a menu for.
+
 ## Dialogs
 
 Actions run far from the component that rendered them, so flows that need
@@ -140,6 +156,23 @@ queue rows, the persistent player's now-playing area, and the admin catalog
 lists. Anything that repeats a music entity gets one; decorative surfaces do
 not.
 
+## Staying honest while open
+
+The menu is derived state, and it closes rather than lie:
+
+| change while open | behaviour |
+| --- | --- |
+| route change | closes (the context it was opened from is gone) |
+| sign in / sign out | closes — ownership, admin rights and favourites all change |
+| target loses every valid action (deleted, dequeued) | closes |
+| the row it was opened from unmounts | closes cleanly; focus falls back to the scroll container instead of a detached node |
+| viewport resize, window blur | closes |
+| scroll (pointer menu only) | closes |
+
+Listeners are attached only while a menu is open, all on `document` /
+`window`, and every one is removed in the same effect's cleanup — asserted
+in `ContextMenu.mobile.test.tsx`.
+
 ## Tests
 
 `src/contextmenu/actions.test.ts` covers the action model (per-type sets,
@@ -147,4 +180,9 @@ favourite state, ownership, admin roles, queue semantics against the real
 player store). `src/contextmenu/ContextMenu.test.tsx` covers the surface:
 right-click opens the correct menu, ordinary content keeps the browser menu,
 keyboard navigation, Escape and focus restoration, dismissal, viewport
-clamping, reduced motion, and the mobile sheet. Run them with `npm test`.
+clamping, reduced motion, and the mobile sheet.
+`src/contextmenu/ContextMenu.mobile.test.tsx` covers the touch half and the
+state hygiene above: long press opening the sheet, scroll and slop
+cancellation, the scroll lock, drag-to-dismiss, closing on identity change
+and on an emptied action list, listener cleanup, and focus restoration.
+Run them with `npm test`.

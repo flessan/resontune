@@ -29,6 +29,49 @@ src/
   lib/          api client, types, formatting, artwork color
 ```
 
+## Responsive shell
+
+One product, one information architecture, one player — only density and
+presentation adapt. `.app` is a CSS grid: `sidebar | main` with a full-width
+player row on desktop, and `main / player / tabs` rows below 860px. Because
+the mini player and the navigation bar are *rows*, not floating overlays,
+content is never hidden behind them and there is no dead space when nothing
+is playing.
+
+Four custom properties in `src/styles/global.css` carry the geometry:
+
+| token | desktop | ≤860px | ≤400px |
+| --- | --- | --- | --- |
+| `--gutter` | 28px (24px ≤1100) | 20px | 16px |
+| `--player-h` | 76px | 64px | 64px |
+| `--tabbar-h` | 0 | `56px + safe-area` | same |
+| `--sidebar-w` | 232px | — (drawer) | — |
+
+Every page surface reads `--gutter` (`.page`, `.topbar`, `.shelf`,
+`.seg-tabs`), so full-bleed scrollers can bleed to the screen edge while
+their first item still lines up with the headings above it. `Layout` puts
+`has-player` on `.app` while something is queued; `.app:not(.has-player)`
+sets `--player-h: 0px`, which is how fixed overlays (toasts) know what to
+clear without hardcoding a number.
+
+Mobile specifics worth knowing:
+
+- the header is its own design — hamburger, wordmark, a search *action* that
+  opens the Search destination, and the account control at 44px; the desktop
+  search field is hidden rather than squeezed;
+- track rows drop the index and duration columns, grow to a 64px row with
+  48px artwork, and move the "now playing" tell onto the artwork;
+- detail heroes stack (artwork over title) instead of squeezing a thumbnail
+  beside three lines of type;
+- modal surfaces (drawer, dialogs, action sheet) take a reference-counted
+  scroll lock (`src/lib/scrollLock.ts`) so the page behind them holds still;
+- dialogs become bottom sheets under 640px.
+
+`src/components/Shell.test.tsx` pins the parts of this that are behaviour
+rather than pixels: the navigation destinations, the header search action,
+`has-player`, accessible names in the mini player, and the drawer's scroll
+lock.
+
 ## The player
 
 - **One `HTMLAudioElement` for the app's lifetime** (`player/engine.ts`).

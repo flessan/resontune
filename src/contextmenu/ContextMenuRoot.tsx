@@ -10,10 +10,15 @@
  *  - the action list is derived on every render from live store state, so a
  *    menu that is open while the queue changes stays truthful;
  *  - the menu closes on action, Escape, outside pointer, scroll, resize,
- *    route change, and when its target stops being valid;
- *  - focus returns to whatever opened it.
+ *    route change, a change of signed-in identity, and when its target
+ *    stops being valid;
+ *  - focus returns to whatever opened it, unless that element has left the
+ *    document in the meantime;
+ *  - while the sheet is up the page behind it does not scroll, and a
+ *    downward drag on its handle dismisses it.
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePlayer } from '@/player/store';
@@ -21,6 +26,7 @@ import { useAuth } from '@/stores/auth';
 import { buildActions, type ActionContext } from './actions';
 import { useContextMenu, type Anchor } from './store';
 import { GROUP_ORDER, targetKind, targetLabel, type MenuAction } from './types';
+import { useScrollLock } from '@/lib/scrollLock';
 
 const EDGE = 8;       // viewport breathing room
 const GAP = 4;        // distance from an element anchor
@@ -107,10 +113,14 @@ export function ContextMenuRoot() {
   const coarse = useCoarsePointer();
 
   const menuRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ id: number; y: number } | null>(null);
   const [placement, setPlacement] = useState<Placement | null>(null);
   const [active, setActive] = useState(-1);
   const [closing, setClosing] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // The sheet is modal: the page behind it holds still.
+  useScrollLock(coarse && target !== null);
 
   const ctx: ActionContext = useMemo(
     () => ({
@@ -131,12 +141,20 @@ export function ContextMenuRoot() {
 
   /* --------------------------- open / close plumbing --------------------- */
 
+  /* The opener may have been removed while the menu was open (the row was
+     deleted, the page re-rendered). Focusing a detached node throws focus
+     to nowhere, so fall back to the scroll container. */
+  const restoreFocus = useCallback((el: HTMLElement | null) => {
+    if (el && el.isConnected) { el.focus?.(); return; }
+    document.querySelector<HTMLElement>('.main')?.focus?.();
+  }, []);
+
   const dismiss = useCallback(() => {
     if (!target) return;
     const restore = opener;
     if (prefersReducedMotion()) {
       closeMenu();
-      restore?.focus?.();
+      restoreFocus(restore);
       return;
     }
     setClosing(true);
@@ -146,9 +164,9 @@ export function ContextMenuRoot() {
     closeTimer.current = setTimeout(() => {
       if (useContextMenu.getState().openId !== leaving) return;
       closeMenu();
-      restore?.focus?.();
+      restoreFocus(restore);
     }, 110);
-  }, [target, opener, closeMenu, openId]);
+  }, [target, opener, closeMenu, openId, restoreFocus]);
 
   /* Reset per opening. Placement is deliberately *not* cleared here: the
      layout effect below recomputes it in the same commit, and clearing it
@@ -162,6 +180,19 @@ export function ContextMenuRoot() {
       closeTimer.current = null;
     };
   }, [openId, target, source]);
+
+  /* Signing in or out changes what a person may do with the entity the
+     menu was built for (ownership, admin rights, favourites). Rather than
+     silently re-deriving the list under their finger, the menu closes. */
+  const identity = user?.id ?? null;
+  const identityAtOpen = useRef(identity);
+  useEffect(() => {
+    if (!target) { identityAtOpen.current = identity; return; }
+    if (identityAtOpen.current !== identity) {
+      identityAtOpen.current = identity;
+      closeMenu();
+    }
+  }, [identity, target, closeMenu]);
 
   /* An open menu with nothing valid left to offer is not a menu. */
   useEffect(() => {
@@ -191,6 +222,9 @@ export function ContextMenuRoot() {
     };
     const onScroll = (e: Event) => {
       if (menuRef.current?.contains(e.target as Node)) return;
+      // The floating menu is positioned against a point that scrolls away;
+      // the sheet is anchored to the viewport and simply stays put.
+      if (coarse) return;
       dismiss();
     };
     const onResize = () => dismiss();
@@ -206,7 +240,7 @@ export function ContextMenuRoot() {
       window.removeEventListener('resize', onResize);
       window.removeEventListener('blur', onResize);
     };
-  }, [target, dismiss]);
+  }, [target, dismiss, coarse]);
 
   /* Focus the surface so Escape and the arrow keys work immediately. */
   useEffect(() => {
@@ -308,6 +342,23 @@ export function ContextMenuRoot() {
     </div>
   ));
 
+  /* A downward drag on the sheet's handle dismisses it — the gesture people
+     already expect from a bottom sheet. It lives on the header only, so it
+     can never fight scrolling inside a long action list. */
+  const onHandleDown = (e: ReactPointerEvent) => {
+    dragRef.current = { id: e.pointerId, y: e.clientY };
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+  const onHandleMove = (e: ReactPointerEvent) => {
+    const drag = dragRef.current;
+    if (!drag || drag.id !== e.pointerId) return;
+    if (e.clientY - drag.y > 56) {
+      dragRef.current = null;
+      dismiss();
+    }
+  };
+  const onHandleUp = () => { dragRef.current = null; };
+
   if (coarse) {
     return createPortal(
       <div
@@ -323,7 +374,13 @@ export function ContextMenuRoot() {
           tabIndex={-1}
           onKeyDown={onKeyDown}
         >
-          <div className="ctx-sheet-head">
+          <div
+            className="ctx-sheet-head"
+            onPointerDown={onHandleDown}
+            onPointerMove={onHandleMove}
+            onPointerUp={onHandleUp}
+            onPointerCancel={onHandleUp}
+          >
             <div className="ctx-sheet-title">{label}</div>
             <div className="ctx-sheet-sub">{targetKind(target)}</div>
           </div>

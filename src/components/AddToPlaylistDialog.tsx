@@ -4,6 +4,7 @@ import type { Playlist } from '@/lib/types';
 import { useAuth } from '@/stores/auth';
 import { toast } from '@/stores/toast';
 import { IconClose, IconPlus } from './Icons';
+import { useScrollLock } from '@/lib/scrollLock';
 
 /**
  * Add one track — or a whole release — to a playlist. The API takes one
@@ -21,6 +22,7 @@ export function AddToPlaylistDialog({
   onClose: () => void;
 }) {
   const user = useAuth((s) => s.user);
+  useScrollLock(true);
   const [playlists, setPlaylists] = useState<Playlist[] | null>(null);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');

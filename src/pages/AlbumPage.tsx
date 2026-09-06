@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
 import type { Album, Track } from '@/lib/types';
 import { TrackRow } from '@/components/TrackRow';
+import { Blurb } from '@/components/Blurb';
 import { Artwork } from '@/components/Artwork';
 import { usePlayer } from '@/player/store';
 import { trackToQueueItem } from '@/providers';
@@ -50,7 +51,7 @@ export default function AlbumPage() {
         <div className="detail-art">
           <Artwork src={album.artworkUrl} alt={`Cover of ${album.title}`} />
         </div>
-        <div style={{ minWidth: 240, flex: 1 }}>
+        <div className="detail-identity">
           <div className="detail-kind" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {album.type}
             {album.sourceType === 'original' ? <OriginalBadge /> : <SourceChip sourceType={album.sourceType} />}
@@ -71,7 +72,7 @@ export default function AlbumPage() {
         </div>
       </div>
 
-      {album.description && <p className="prose" style={{ marginBottom: 24 }}>{album.description}</p>}
+      {album.description && <Blurb text={album.description} style={{ marginBottom: 24 }} />}
 
       <div className="tracklist">
         {tracks.map((t, i) => <TrackRow key={t.id} track={t} index={i} context={tracks} />)}
