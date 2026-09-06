@@ -3011,3 +3011,234 @@ h1.page-title, .detail-title, .profile-name, .ps-track-title, .section-title {
     font-size: 32px !important;
   }
 }
+
+/* ============================================================
+   Mobile polish — second pass.
+   Findings from rendering the app in a real mobile viewport
+   (320-1024) rather than reasoning about the cascade: the fixes
+   below are the layout faults that only show up on a device.
+   ============================================================ */
+
+/* ---- short pages: the footer belongs at the bottom of the shell ----
+   Search, an empty library or a 404 leave the footer stranded in the
+   middle of the screen with a dead zone under it. The scroll container
+   is a column; the last block takes the slack. */
+.main { display: flex; flex-direction: column; }
+.main > * { flex: 0 0 auto; }
+.main > .page:last-child { margin-top: auto; }
+
+/* ---- expanded player: the mobile column must be allowed to shrink ----
+   `1fr` resolves to minmax(auto, 1fr), so one long queue title made the
+   single column wider than the phone and pushed the artwork, the title
+   block and the queue off the right edge. */
+@media (max-width: 860px) {
+  .ps-body { grid-template-columns: minmax(0, 1fr); }
+  .ps-left, .ps-right, .ps-panel { min-width: 0; }
+  .ps-titleblock { max-width: 100%; }
+}
+
+/* ---- provenance chips are a desktop detail ----
+   In a list row the chip competes with the title for the scarcest space
+   on the screen, and on a narrow phone it was pushed past the viewport
+   edge. Provenance still shows on every detail page, where it belongs. */
+@media (max-width: 860px) {
+  .track-row .t-title .source-chip,
+  .track-row .t-title .original-badge,
+  .queue-row .source-chip,
+  .queue-row .original-badge { display: none; }
+}
+
+/* ---- tablet rows keep their duration column ----
+   Between 641 and 860 there is room for it, and without it the row is a
+   title on the left and two icons a long way to the right. */
+@media (min-width: 641px) and (max-width: 860px) {
+  .track-row { grid-template-columns: 48px minmax(0, 1fr) auto auto; }
+  .track-row .dur { display: block; }
+}
+
+/* ---- detail heroes: the music starts higher up the screen ----
+   A 180px cover plus a bio pushed the first track under the fold on a
+   360px phone. Cover, gaps and the actions row all tighten; the primary
+   action becomes a full-width target. */
+@media (max-width: 640px) {
+  .detail-head { gap: 14px; margin-bottom: 18px; }
+  .detail-art:not(.landscape) { width: min(40vw, 156px); height: min(40vw, 156px); }
+  .detail-art.round { width: min(33vw, 128px); height: min(33vw, 128px); }
+  .detail-art .art-fallback { font-size: 40px; }
+  .detail-kind { margin-bottom: 4px; }
+  .detail-actions { margin-top: 14px; gap: 8px; }
+  .detail-actions > .btn.primary {
+    flex: 1 1 100%;
+    justify-content: center;
+    min-height: 48px;
+  }
+  .detail-actions > .btn { flex: 0 1 auto; }
+  /* secondary actions that the ⋯ menu also carries */
+  .compact-hide { display: none; }
+}
+
+/* ---- targets you can hit with a thumb ----
+   Text links in the footer and the "see all" links were 19-32px tall. */
+@media (hover: none) and (max-width: 1024px) {
+  .site-footer nav a,
+  .section-link,
+  .profile-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+  }
+  .pill, .btn.small, .seg-tabs a { min-height: 40px; }
+  .site-footer nav { gap: 0 18px; }
+}
+
+/* The support hint explains the links it sits under; on a phone those
+   links are one thumb away and the sentence only delays the music. */
+@media (max-width: 640px) { .support-note { display: none; } }
+
+/* ---------------------------------------------------- legal pages */
+/* Privacy, terms and music rights: long-form reading, so the measure is
+   narrow, the sections are separated by rhythm rather than boxes, and the
+   whole thing works signed-out on a phone. */
+.legal-page { max-width: 820px; }
+.legal-page .page-sub { max-width: 68ch; }
+.legal-date {
+  margin: -8px 0 18px;
+  font-size: 12.5px;
+  color: var(--on-surface-faint);
+}
+.legal-section { margin-top: 34px; }
+.legal-section h2 {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 10px;
+  scroll-margin-top: 72px;
+}
+.legal-section .prose { margin: 0 0 12px; }
+.legal-list {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  color: var(--on-surface-variant);
+  line-height: 1.7;
+  max-width: 68ch;
+}
+.legal-list li { margin-bottom: 8px; }
+.legal-list code {
+  font-size: 12.5px;
+  padding: 1px 5px;
+  border-radius: var(--shape-xs);
+  background: var(--surface-container-high);
+}
+.legal-table-wrap { overflow-x: auto; margin: 0 0 14px; -webkit-overflow-scrolling: touch; }
+.legal-table { width: 100%; min-width: 460px; }
+.legal-table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--on-surface-faint);
+  font-weight: 600;
+  padding-bottom: 6px;
+}
+.legal-table td { vertical-align: top; line-height: 1.6; padding: 8px 14px 8px 0; }
+.legal-table tr + tr td { border-top: 1px solid var(--outline-variant); }
+.legal-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-top: 40px;
+  padding-top: 18px;
+  border-top: 1px solid var(--outline-variant);
+  font-size: 13px;
+}
+.legal-nav a { color: var(--primary); }
+.legal-note {
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--on-surface-faint);
+  max-width: 68ch;
+}
+@media (max-width: 640px) {
+  .legal-section { margin-top: 26px; }
+  .legal-section h2 { font-size: 16px; }
+  .legal-list { font-size: 13.5px; padding-left: 18px; }
+  .legal-table { font-size: 13px; min-width: 420px; }
+  .legal-nav { gap: 0 18px; }
+  .legal-nav a { min-height: 40px; display: inline-flex; align-items: center; }
+}
+
+/* ---- Settings → Your data: four plain rows, not a consent dashboard ---- */
+.data-actions {
+  display: grid;
+  gap: 2px;
+  max-width: 620px;
+  margin-bottom: 8px;
+}
+.data-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: var(--shape-md);
+  background: var(--surface-container-low);
+}
+.data-action strong { font-size: 13.5px; font-weight: 600; }
+.data-action p {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--on-surface-muted);
+  max-width: 46ch;
+}
+.data-action .btn { flex-shrink: 0; }
+@media (max-width: 640px) {
+  .data-action { flex-direction: column; align-items: stretch; gap: 12px; }
+  .data-action .btn { justify-content: center; min-height: 44px; }
+}
+
+.dialog-legal {
+  margin: 14px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--on-surface-faint);
+}
+.dialog-legal a { color: var(--on-surface-muted); text-decoration: underline; }
+
+/* ---- narrow screens: a flex column must be allowed to shrink -----------
+   .main is a flex column (so the last page block can push the footer down),
+   and a column flex line stretches to its widest item: one wide child — a
+   table, a long URL — would otherwise widen every page past the viewport.
+   Pinning the cross size keeps the page exactly as wide as the viewport and
+   lets wide content scroll inside its own box. */
+.main > * { min-width: 0; max-width: 100%; }
+
+/* Legal tables become stacked records on a phone: a scrolling table inside a
+   scrolling page is a worse way to read a policy than one field per line. */
+@media (max-width: 640px) {
+  .legal-table-wrap { overflow-x: visible; }
+  .legal-table,
+  .legal-table tbody,
+  .legal-table tr,
+  .legal-table td { display: block; width: auto; min-width: 0; }
+  .legal-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .legal-table tr {
+    padding: 12px 0;
+    border-top: 1px solid var(--outline-variant);
+  }
+  .legal-table tr:first-child { border-top: 0; padding-top: 0; }
+  .legal-table td,
+  .legal-table tr + tr td { border: 0; padding: 3px 0; }
+  .legal-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--on-surface-faint);
+    margin-bottom: 1px;
+  }
+  .legal-table td:first-child { font-weight: 600; color: var(--on-surface); }
+}

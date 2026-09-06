@@ -33,9 +33,12 @@ import { adminRouter } from './routes/admin/index.ts';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.API_PORT ?? process.env.PORT ?? 8787);
 
-async function main() {
-  await migrate();
-
+/**
+ * Build the fully wired Express app (routes, limits, auth, static, errors).
+ * Exported so tests can exercise the real server instead of a copy of its
+ * wiring; `main()` below is the only place that listens on a port.
+ */
+export async function createApp() {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1); // behind Cloudflare/reverse proxy in production
@@ -153,12 +156,24 @@ async function main() {
     res.status(status).json({ error: message ?? 'Server error.' });
   });
 
+  return app;
+}
+
+async function main() {
+  await migrate();
+  const app = await createApp();
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[resontune] API listening on http://0.0.0.0:${PORT}`);
   });
 }
 
-main().catch((err) => {
-  console.error('Failed to start ResonTune server:', err);
-  process.exit(1);
-});
+/* Started directly (`npm start` / `tsx server/index.ts`), not when a test
+   imports createApp(). */
+const startedDirectly =
+  Boolean(process.argv[1]) && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (startedDirectly) {
+  main().catch((err) => {
+    console.error('Failed to start ResonTune server:', err);
+    process.exit(1);
+  });
+}

@@ -75,7 +75,7 @@ export default function AlbumPage() {
       {album.description && <Blurb text={album.description} style={{ marginBottom: 24 }} />}
 
       <div className="tracklist">
-        {tracks.map((t, i) => <TrackRow key={t.id} track={t} index={i} context={tracks} />)}
+        {tracks.map((t, i) => <TrackRow key={t.id} track={t} index={i} context={tracks} showAlbum={false} />)}
       </div>
 
       <ReleaseNotes album={album} tracks={tracks} />

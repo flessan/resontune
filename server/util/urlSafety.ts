@@ -8,7 +8,8 @@
  * so no SSRF surface is created by validation itself.
  *
  * Rejected by construction:
- *  - anything but https (http allowed only for localhost in development)
+ *  - anything but https (http allowed for localhost only when the operator
+ *    sets ALLOW_LOCAL_MEDIA_URLS=1, a local-development escape hatch)
  *  - credentials embedded in the URL
  *  - literal private / loopback / link-local / carrier-NAT / multicast IPs
  *  - IPv6 literals and internal-looking hostnames (.local, .internal, .lan)
@@ -52,8 +53,12 @@ export function validateMediaUrl(raw: string, { allowRelative = false } = {}): s
     return 'Not a valid URL.';
   }
 
+  /* Loopback media is a local-development convenience and nothing else, so
+     it is opt-in through an explicit flag rather than inferred from
+     NODE_ENV — a deployment that forgets to set NODE_ENV=production must
+     not silently start accepting internal URLs. */
   const devHttpOk =
-    process.env.NODE_ENV !== 'production' &&
+    process.env.ALLOW_LOCAL_MEDIA_URLS === '1' &&
     url.protocol === 'http:' &&
     (url.hostname === 'localhost' || url.hostname === '127.0.0.1');
 

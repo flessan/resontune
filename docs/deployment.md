@@ -28,6 +28,7 @@ See [.env.example](../.env.example):
 | `ADMIN_USER_IDS` / `MODERATOR_USER_IDS` | comma-separated user ids granted roles server-side — the only way to bootstrap the first production admin |
 | `IMGBB_API_KEY` | **server-side only.** Enables member profile-photo upload (browser → API → ImgBB → stored URL). Unset → uploads answer 503 and avatars fall back to initials. Never expose it to the client; catalog audio/artwork never use it |
 | `AUDIO_CDN_BASE` | base URL for hosted-audio object keys (default `/media/audio`) |
+| `ALLOW_LOCAL_MEDIA_URLS` | dev only: `1` permits `http://localhost` media/link URLs. Leave unset everywhere else — it is the single exception in the SSRF-safe URL validator |
 | `GITHUB_SPONSORS_URL` / `SOCIABUZZ_URL` / `QRIS_IMAGE_URL` | support-page links (all optional; admin-editable at runtime via `PUT /api/site/config/support`, which overrides env) |
 | `REPO_URL` | public repository URL used on About/Contribute/footer (default `https://github.com/flessan/resontune`) |
 

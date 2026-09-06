@@ -26,7 +26,7 @@ import {
 } from '@/lib/entityPlayback';
 import { dialogs } from '@/stores/dialogs';
 import {
-  IconDisc, IconEdit, IconExternal, IconEye, IconEyeOff, IconHeart, IconLink, IconMic, IconPause,
+  IconDisc, IconDownload, IconEdit, IconExternal, IconEye, IconEyeOff, IconHeart, IconLink, IconMic, IconPause,
   IconPlay, IconPlaylist, IconPlus, IconQueue, IconShare, IconTop, IconTrash, IconWave,
 } from '@/components/Icons';
 import type { ContextTarget, MenuAction } from './types';
@@ -275,10 +275,10 @@ function playlistActions(target: Extract<ContextTarget, { type: 'playlist' }>, c
     actions.push({ id: 'open', label: 'Open playlist', icon: IconPlaylist, group: 'navigate', run: () => ctx.navigate(`/playlist/${playlist.slug}`) });
   }
 
-  if (ctx.user && !owned) {
+  if (ctx.user) {
     actions.push({
       id: 'duplicate',
-      label: 'Save a copy',
+      label: owned ? 'Duplicate' : 'Save a copy',
       icon: IconPlus,
       group: 'library',
       run: async () => {
@@ -356,8 +356,44 @@ function playlistActions(target: Extract<ContextTarget, { type: 'playlist' }>, c
     });
   }
 
+  if (playlist.trackCount > 0) {
+    actions.push({
+      id: 'export-m3u',
+      label: 'Export as M3U',
+      icon: IconDownload,
+      group: 'library',
+      run: async () => {
+        try {
+          const tracks = await load();
+          exportM3U(playlist.slug, tracks);
+        } catch {
+          toast('Could not export that playlist.');
+        }
+      },
+    });
+  }
+
   if (playlist.isPublic || owned) actions.push(...shareActions(`/playlist/${playlist.slug}`, playlist.title));
   return actions;
+}
+
+/**
+ * Write an .m3u playlist file from tracks already loaded through the API.
+ * Entries point at track pages: playback URLs are resolved server-side and
+ * are never handed out in an export.
+ */
+export function exportM3U(slug: string, tracks: Track[]) {
+  const lines = ['#EXTM3U'];
+  for (const t of tracks) {
+    lines.push(`#EXTINF:${t.duration ?? -1},${t.artist.name} - ${t.title}`);
+    lines.push(new URL(`/track/${t.slug}`, location.origin).toString());
+  }
+  const blob = new Blob([lines.join('\n')], { type: 'audio/x-mpegurl' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${slug}.m3u`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 /* ------------------------------- queue items ------------------------------ */

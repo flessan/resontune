@@ -19,13 +19,15 @@ interface Props {
   /** full list used to build the queue when this row is played */
   context?: Track[];
   showArt?: boolean;
+  /** Release pages repeat their own title on every row; they turn it off. */
+  showAlbum?: boolean;
   /** Set when this row is inside a playlist, to offer "Remove from this playlist". */
   playlist?: { id: string; title: string; owned: boolean };
   /** Called after a contextual action mutates the list this row belongs to. */
   onChanged?: () => void;
 }
 
-export const TrackRow = memo(function TrackRow({ track, index, context, showArt = true, playlist, onChanged }: Props) {
+export const TrackRow = memo(function TrackRow({ track, index, context, showArt = true, showAlbum = true, playlist, onChanged }: Props) {
   const currentId = usePlayer((s) => (s.queue[s.index]?.origin === 'remote' ? s.queue[s.index]?.id : null));
   const playing = usePlayer((s) => s.playing);
   const { playQueue, toggle } = usePlayer.getState();
@@ -111,7 +113,7 @@ export const TrackRow = memo(function TrackRow({ track, index, context, showArt 
         </div>
         <div className="t-sub">
           <Link to={`/artist/${track.artist.slug}`}>{track.artist.name}</Link>
-          {track.album?.title ? <> · {track.album.title}</> : null}
+          {showAlbum && track.album?.title ? <> · {track.album.title}</> : null}
         </div>
       </div>
       <div className="actions">

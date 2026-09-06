@@ -17,8 +17,9 @@ export function Footer() {
         <a href={REPO} target="_blank" rel="noreferrer">GitHub</a>
         <a href={`${REPO}/tree/main/docs`} target="_blank" rel="noreferrer">Documentation</a>
         <a href={`${REPO}/blob/main/SECURITY.md`} target="_blank" rel="noreferrer">Security</a>
-        <Link to="/about#licensing">Licensing</Link>
-        <Link to="/about#privacy">Privacy</Link>
+        <Link to="/privacy">Privacy</Link>
+        <Link to="/terms">Terms</Link>
+        <Link to="/copyright">Music rights</Link>
       </nav>
     </footer>
   );

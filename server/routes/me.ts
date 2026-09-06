@@ -343,28 +343,55 @@ export function meRouter(): Router {
     }),
   );
 
-  /* -------------------------------- export -------------------------------- */
+  /* -------------------------------- export --------------------------------
+   *
+   * Everything ResonTune holds about the signed-in account, in one JSON
+   * file, always scoped to `req.user.id` — the request cannot name another
+   * account. Deliberately excluded (and stated in the file itself):
+   * credentials, the Neon Auth subject identifier, other people's data and
+   * server-side operational logs.
+   */
+
+  const EXPORT_HISTORY_LIMIT = 10_000;
 
   r.get(
     '/export',
     asyncRoute(async (req, res) => {
       const db = await getDb();
       const uid = req.user!.id;
-      const [playlists, favorites] = await Promise.all([
+
+      const [profile, playlists, favorites, likedPlaylists, history, artists] = await Promise.all([
+        readOwnProfile(uid),
         db.query(
-          `SELECT p.id, p.slug, p.title, p.description, p.is_public, p.created_at FROM playlists p
-            WHERE p.owner_id = $1`, [uid],
+          `SELECT p.id, p.slug, p.title, p.description, p.is_public, p.created_at, p.updated_at
+             FROM playlists p WHERE p.owner_id = $1 ORDER BY p.created_at`, [uid],
         ),
         db.query(
           `SELECT f.track_id, f.created_at, t.title, t.slug, a.name AS artist_name
              FROM favorites f JOIN tracks t ON t.id = f.track_id JOIN artists a ON a.id = t.artist_id
-            WHERE f.user_id = $1`, [uid],
+            WHERE f.user_id = $1 ORDER BY f.created_at`, [uid],
+        ),
+        db.query(
+          `SELECT pl.slug, pl.title, pl.is_public, l.created_at
+             FROM playlist_likes l JOIN playlists pl ON pl.id = l.playlist_id
+            WHERE l.user_id = $1 ORDER BY l.created_at`, [uid],
+        ),
+        db.query(
+          `SELECT ph.played_at, t.slug, t.title, a.name AS artist_name
+             FROM play_history ph JOIN tracks t ON t.id = ph.track_id
+             JOIN artists a ON a.id = t.artist_id
+            WHERE ph.user_id = $1 ORDER BY ph.played_at DESC LIMIT $2`,
+          [uid, EXPORT_HISTORY_LIMIT],
+        ),
+        db.query(
+          `SELECT a.slug, a.name FROM artists a WHERE a.user_id = $1 ORDER BY a.created_at`, [uid],
         ),
       ]);
-      const playlistData = [] as any[];
+
+      const playlistData = [] as unknown[];
       for (const p of playlists as any[]) {
         const items = await db.query(
-          `SELECT pt.position, t.slug, t.title, a.name AS artist_name, t.duration_seconds
+          `SELECT pt.position, pt.added_at, t.slug, t.title, a.name AS artist_name, t.duration_seconds
              FROM playlist_tracks pt JOIN tracks t ON t.id = pt.track_id
              JOIN artists a ON a.id = t.artist_id
             WHERE pt.playlist_id = $1 ORDER BY pt.position`,
@@ -376,22 +403,118 @@ export function meRouter(): Router {
           description: p.description,
           isPublic: p.is_public,
           createdAt: p.created_at,
+          updatedAt: p.updated_at,
           tracks: (items as any[]).map((i) => ({
             position: i.position, slug: i.slug, title: i.title,
-            artist: i.artist_name, duration: i.duration_seconds,
+            artist: i.artist_name, duration: i.duration_seconds, addedAt: i.added_at,
           })),
         });
       }
+
       res.setHeader('Content-Disposition', 'attachment; filename="resontune-export.json"');
       res.json({
         format: 'resontune-export',
-        version: 1,
+        version: 2,
         exportedAt: new Date().toISOString(),
-        user: { handle: req.user!.handle },
+        account: {
+          id: profile.id,
+          username: profile.username,
+          displayName: profile.displayName,
+          bio: profile.bio,
+          location: profile.location,
+          websiteUrl: profile.websiteUrl,
+          avatarUrl: profile.avatarUrl,
+          avatarThumbUrl: profile.avatarThumbUrl,
+          role: profile.role,
+          joinedAt: profile.joinedAt,
+          links: profile.links,
+        },
         playlists: playlistData,
         favorites: (favorites as any[]).map((f) => ({
           slug: f.slug, title: f.title, artist: f.artist_name, favoritedAt: f.created_at,
         })),
+        likedPlaylists: (likedPlaylists as any[]).map((p) => ({
+          slug: p.slug, title: p.title, isPublic: p.is_public, likedAt: p.created_at,
+        })),
+        listeningHistory: (history as any[]).map((h) => ({
+          playedAt: h.played_at, slug: h.slug, title: h.title, artist: h.artist_name,
+        })),
+        // Catalog pages this account is credited on. The pages themselves
+        // belong to the catalog, not to the account.
+        linkedArtistPages: (artists as any[]).map((a) => ({ slug: a.slug, name: a.name })),
+        notIncluded: [
+          'Authentication credentials and the Neon Auth identity (held by Neon Auth, not by ResonTune).',
+          'Other people\u2019s data, including playlists you liked but do not own.',
+          'Catalog records (artists, releases, tracks) — public data maintained by ResonTune editors.',
+          'Music you added from your own device: it never leaves your browser, so ResonTune has no copy.',
+          `Listening history beyond the most recent ${EXPORT_HISTORY_LIMIT.toLocaleString('en-US')} plays.`,
+        ],
+      });
+    }),
+  );
+
+  /* ---------------------------- listening history --------------------------- */
+
+  /** Erase your own listening history. Anonymous play counts are unaffected. */
+  r.delete(
+    '/history',
+    asyncRoute(async (req, res) => {
+      const db = await getDb();
+      await db.query(`DELETE FROM play_history WHERE user_id = $1`, [req.user!.id]);
+      res.json({ cleared: true });
+    }),
+  );
+
+  /* ---------------------------- account deletion ---------------------------- */
+
+  /**
+   * Delete the signed-in account.
+   *
+   * Deliberate by construction: the request must repeat the account's own
+   * username. Scope is the account and the things it owns — playlists,
+   * favorites, likes, listening history, profile links. Shared catalog
+   * records are never removed: an artist page linked to this account keeps
+   * existing with its `user_id` cleared (ON DELETE SET NULL), and the same
+   * is true of curator/moderation references, which stay as anonymous audit
+   * trail. Nothing here touches another account's rows.
+   */
+  r.delete(
+    '/',
+    asyncRoute(async (req, res) => {
+      const uid = req.user!.id;
+      const handle = req.user!.handle;
+      const confirm = String(
+        (req.body as { confirm?: unknown } | undefined)?.confirm ?? req.query.confirm ?? '',
+      ).trim().toLowerCase();
+      if (confirm !== handle.toLowerCase()) {
+        throw new HttpError(400, `Type your username (${handle}) to confirm deletion.`);
+      }
+
+      const db = await getDb();
+
+      // Public counters are derived numbers, not history: keep them honest
+      // before the owning rows disappear.
+      await db.query(
+        `UPDATE tracks SET like_count = greatest(like_count - 1, 0)
+          WHERE id IN (SELECT track_id FROM favorites WHERE user_id = $1)`, [uid],
+      );
+      await db.query(
+        `UPDATE playlists SET like_count = greatest(like_count - 1, 0)
+          WHERE id IN (SELECT playlist_id FROM playlist_likes WHERE user_id = $1)`, [uid],
+      );
+      // entity_links is a polymorphic table with no foreign key to users.
+      await db.query(`DELETE FROM entity_links WHERE entity_kind = 'user' AND entity_id = $1`, [uid]);
+
+      // The row itself. Every other reference is either ON DELETE CASCADE
+      // (things the account owns) or ON DELETE SET NULL (shared records).
+      await db.query(`DELETE FROM users WHERE id = $1`, [uid]);
+
+      res.json({
+        deleted: true,
+        note:
+          'Your ResonTune account and the data it owned have been deleted. Your sign-in identity is '
+          + 'held by Neon Auth: delete it there as well if you want it removed. Signing in again '
+          + 'would create a new, empty ResonTune account.',
       });
     }),
   );

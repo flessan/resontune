@@ -13,6 +13,7 @@ import { canonicalUrl, shareLink } from '@/lib/share';
 import { IconPlay, IconHeart, IconTrash, IconDownload, IconEdit, IconCheck } from '@/components/Icons';
 import { ContextMenuButton } from '@/contextmenu/ContextMenuButton';
 import { useContextTarget } from '@/contextmenu/useContextTarget';
+import { exportM3U } from '@/contextmenu/actions';
 import type { ContextTarget } from '@/contextmenu/types';
 import { dialogs } from '@/stores/dialogs';
 
@@ -134,20 +135,8 @@ export default function PlaylistPage() {
     if (result === 'failed') toast('Could not share that link.');
   };
 
-  const exportM3U = () => {
-    const lines = ['#EXTM3U'];
-    for (const t of tracks) {
-      lines.push(`#EXTINF:${t.duration ?? -1},${t.artist.name} - ${t.title}`);
-      // Playback URLs are resolved server-side; export links point at the track page.
-      lines.push(new URL(`/track/${t.slug}`, location.origin).toString());
-    }
-    const blob = new Blob([lines.join('\n')], { type: 'audio/x-mpegurl' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${playlist.slug}.m3u`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
+  // Same exporter the contextual “Export as M3U” action uses.
+  const exportPlaylist = () => exportM3U(playlist.slug, tracks);
 
   return (
     <div className="page">
@@ -177,8 +166,8 @@ export default function PlaylistPage() {
               </button>
             )}
             {playlist.isPublic && <button className="btn" onClick={() => void share()}>Share</button>}
-            <button className="btn" onClick={() => void duplicate()}>Duplicate</button>
-            <button className="btn" onClick={exportM3U} title="Export as M3U">
+            <button className="btn compact-hide" onClick={() => void duplicate()}>Duplicate</button>
+            <button className="btn compact-hide" onClick={exportPlaylist} title="Export as M3U">
               <IconDownload width={14} height={14} /> M3U
             </button>
             {isOwner && (

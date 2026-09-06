@@ -116,7 +116,7 @@ export default function ArtistPage() {
             <ContextMenuButton target={target} className="icon-btn" />
           </div>
           {(artist.links?.some((l) => ['kofi', 'patreon', 'bandcamp'].includes(l.provider ?? l.kind ?? ''))) && (
-            <p style={{ fontSize: 12.5, color: 'var(--ink-faint)', marginTop: 10 }}>
+            <p className="support-note" style={{ fontSize: 12.5, color: 'var(--ink-faint)', marginTop: 10 }}>
               Like what you hear? Support {artist.name} directly through the links above.
             </p>
           )}

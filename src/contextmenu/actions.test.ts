@@ -105,13 +105,19 @@ describe('playlist actions', () => {
     const owner = makeUser({ id: playlist.ownerId! });
     const list = ids({ type: 'playlist', playlist }, baseCtx({ user: owner }));
     expect(list).toEqual(expect.arrayContaining(['rename', 'visibility', 'delete']));
-    expect(list).not.toContain('duplicate');
+    // copying your own playlist is a normal thing to want
+    expect(list).toContain('duplicate');
   });
 
   it('offers nothing destructive to a signed-out visitor', () => {
     const list = ids({ type: 'playlist', playlist });
     expect(list).not.toContain('delete');
     expect(list).not.toContain('duplicate');
+  });
+
+  it('exports a playlist anyone can see, but not one with no tracks', () => {
+    expect(ids({ type: 'playlist', playlist })).toContain('export-m3u');
+    expect(ids({ type: 'playlist', playlist: makePlaylist({ trackCount: 0 }) })).not.toContain('export-m3u');
   });
 
   it('does not offer playback for an empty playlist', () => {

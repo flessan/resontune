@@ -33,6 +33,9 @@ import CollectionPage from './pages/CollectionPage';
 import About from './pages/About';
 import Contribute from './pages/Contribute';
 import Support from './pages/Support';
+import Privacy from './pages/legal/Privacy';
+import Terms from './pages/legal/Terms';
+import Copyright from './pages/legal/Copyright';
 
 /* The catalog manager only loads for the people who open it. */
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
@@ -66,6 +69,9 @@ const router = createBrowserRouter([
       { path: '/about', element: <About /> },
       { path: '/contribute', element: <Contribute /> },
       { path: '/support', element: <Support /> },
+      { path: '/privacy', element: <Privacy /> },
+      { path: '/terms', element: <Terms /> },
+      { path: '/copyright', element: <Copyright /> },
       { path: '/search', element: <Search /> },
       { path: '/library', element: <Library /> },
       { path: '/track/:slug', element: <TrackPage /> },
