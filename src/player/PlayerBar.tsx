@@ -161,19 +161,32 @@ export function PlayerBar() {
         <button className="icon-btn desktop-only" onClick={() => setView('immersive')} aria-label="Full screen player" disabled={!item}>
           <IconWave width={17} height={17} />
         </button>
+        {/* The slider is a rarely-used control, so it stays out of the way:
+            the speaker button is always there, and the slider unfolds above
+            it on hover or keyboard focus. It floats, so nothing in the bar
+            shifts when it appears. */}
         <div className="vol-wrap desktop-only">
-          <button className="icon-btn" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'}>
+          <button
+            className="icon-btn vol-btn"
+            onClick={toggleMute}
+            aria-label={muted ? 'Unmute' : 'Mute'}
+            aria-pressed={muted}
+            title={`Volume ${Math.round((muted ? 0 : volume) * 100)}%`}
+          >
             {muted || volume === 0 ? <IconMute width={16} height={16} /> : <IconVolume width={16} height={16} />}
           </button>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.02}
-            value={muted ? 0 : volume}
-            onChange={(e) => setVolume(Number(e.target.value))}
-            aria-label="Volume"
-          />
+          <div className="vol-pop">
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.02}
+              value={muted ? 0 : volume}
+              onChange={(e) => setVolume(Number(e.target.value))}
+              aria-label="Volume"
+              aria-valuetext={`${Math.round((muted ? 0 : volume) * 100)} percent`}
+            />
+          </div>
         </div>
         <button className="icon-btn desktop-only" onClick={openExpanded} aria-label="Expand player" disabled={!item}>
           <IconExpand width={16} height={16} />

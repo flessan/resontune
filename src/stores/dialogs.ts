@@ -21,6 +21,11 @@ export interface ConfirmRequest {
   body?: string;
   confirmLabel?: string;
   danger?: boolean;
+  /**
+   * Informational: there is nothing to decline, so no Cancel button is
+   * offered. Used to report what a finished operation actually did.
+   */
+  acknowledge?: boolean;
 }
 
 interface DialogState {
@@ -76,4 +81,7 @@ export const dialogs = {
   addToPlaylist: (trackIds: string[], label: string) => useDialogs.getState().openAddToPlaylist(trackIds, label),
   prompt: (req: PromptRequest) => useDialogs.getState().askPrompt(req),
   confirm: (req: ConfirmRequest) => useDialogs.getState().askConfirm(req),
+  /** A dialog that only reports something; the promise resolves on dismissal. */
+  alert: (req: Omit<ConfirmRequest, 'acknowledge' | 'danger'>) =>
+    useDialogs.getState().askConfirm({ ...req, acknowledge: true, confirmLabel: req.confirmLabel ?? 'Close' }),
 };

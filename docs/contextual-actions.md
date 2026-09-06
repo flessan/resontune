@@ -89,8 +89,15 @@ sheet and swallows the click that would otherwise play the row.
   `Escape` closes, `Tab` closes and lets focus continue naturally.
 - The surface is `role="menu"` with `aria-label="Actions for <name>"`; items
   are `role="menuitem"` with roving `tabindex`.
-- Focus returns to the opener on close. Focus is not trapped — a context menu
-  is not a modal.
+- Focus returns to the opener on close. A row is a `<div>`, so the keyboard was
+  never on the row itself but on a link or button inside it: that element is
+  remembered as the opener and gets focus back. If it cannot take focus (an
+  unfocusable container, or a row that has since unmounted), focus lands on the
+  main scroll container rather than on `<body>`. Focus is not trapped — a
+  context menu is not a modal.
+- The pointer-opened menu is measured behind `visibility: hidden` for one
+  frame; it takes focus after that pass, because a hidden element cannot be
+  focused and `Escape` would otherwise go nowhere in a real browser.
 
 ## Positioning
 

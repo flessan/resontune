@@ -87,6 +87,7 @@ declare global {
 
 interface VerifiedIdentity {
   subject: string;           // Neon Auth user id (stable)
+  issuedAt: number | null;   // `iat`, seconds — used by the deletion tombstone
   name: string | null;
   email: string | null;
   image: string | null;
@@ -107,6 +108,7 @@ async function verifyToken(token: string): Promise<VerifiedIdentity | null> {
     if (!payload.sub || typeof payload.sub !== 'string') return null;
     return {
       subject: payload.sub,
+      issuedAt: typeof payload.iat === 'number' ? payload.iat : null,
       name: typeof payload.name === 'string' ? payload.name : null,
       email: typeof payload.email === 'string' ? payload.email : null,
       image: typeof payload.picture === 'string' ? payload.picture
@@ -115,6 +117,50 @@ async function verifyToken(token: string): Promise<VerifiedIdentity | null> {
   } catch {
     return null; // invalid signature / expired / malformed → anonymous
   }
+}
+
+/* --------------------------- deletion tombstones -------------------------- */
+
+/**
+ * Accounts are created on the first verified request, which is convenient
+ * until someone deletes theirs: a JWT is stateless and stays valid until it
+ * expires, so a tab still holding one would immediately recreate an empty
+ * account and make "deleted" look like a lie.
+ *
+ * So a deletion records the subject and the moment it happened, in memory
+ * (like the rate-limit counters — no schema, no persistence, nothing about
+ * the person beyond an opaque provider id). Tokens *issued before* that
+ * moment are then treated as anonymous, while a genuinely new sign-in —
+ * whose token is issued afterwards — creates a fresh, empty account as
+ * documented. Best effort by design: it is per-process, so a multi-instance
+ * deployment only covers the instance that served the deletion, and the
+ * entry is dropped after a day.
+ */
+const deletedSubjects = new Map<string, number>();
+const TOMBSTONE_TTL_SECONDS = 24 * 60 * 60;
+
+export function markIdentityDeleted(subject: string, atSeconds = Math.floor(Date.now() / 1000)) {
+  if (!subject) return;
+  const cutoff = atSeconds - TOMBSTONE_TTL_SECONDS;
+  for (const [key, when] of deletedSubjects) if (when < cutoff) deletedSubjects.delete(key);
+  deletedSubjects.set(subject, atSeconds);
+}
+
+/** True when this token predates the deletion of its own account. */
+function predatesDeletion(identity: VerifiedIdentity): boolean {
+  const deletedAt = deletedSubjects.get(identity.subject);
+  if (deletedAt === undefined) return false;
+  if (Date.now() / 1000 - deletedAt > TOMBSTONE_TTL_SECONDS) {
+    deletedSubjects.delete(identity.subject);
+    return false;
+  }
+  // No `iat` to compare against — refuse rather than resurrect.
+  return identity.issuedAt === null || identity.issuedAt <= deletedAt;
+}
+
+/** Test/maintenance helper: forget every tombstone in this process. */
+export function clearIdentityTombstones() {
+  deletedSubjects.clear();
 }
 
 /* ------------------------------ user mapping ----------------------------- */
@@ -170,7 +216,7 @@ export async function attachUser(req: Request, _res: Response, next: NextFunctio
     const header = req.headers.authorization;
     if (header?.startsWith('Bearer ')) {
       const identity = await verifyToken(header.slice(7));
-      if (identity) {
+      if (identity && !predatesDeletion(identity)) {
         const user = await userForIdentity(identity);
         req.user = { ...user, role: effectiveRole(user.id, user.role) };
       }

@@ -55,6 +55,49 @@ describe('legal pages', () => {
     expect(text.toLowerCase()).not.toContain('gdpr compliant');
   });
 
+  it('describes account deletion as two separate things', () => {
+    const { container } = renderPage(<Privacy />);
+    const text = container.textContent ?? '';
+    // the ResonTune half
+    expect(text).toMatch(/Your ResonTune data\s*is deleted outright/);
+    // the Neon Auth half, without pretending it always succeeds
+    expect(text).toMatch(/asks Neon Auth to delete that identity/);
+    expect(text).toMatch(/whether that request is allowed|self-service deletion is not enabled/);
+    expect(text).toMatch(/brand-new,\s*empty ResonTune account/);
+    // and the promise it must not make
+    expect(text).not.toMatch(/permanently erased everywhere|deleted from all backups/i);
+  });
+
+  it('distinguishes anonymous play counts from personal listening history', () => {
+    const { container } = renderPage(<Privacy />);
+    const text = container.textContent ?? '';
+    expect(text).toMatch(/no user column, no session id and no IP address/);
+    expect(text).toMatch(/additionally\s*writes a row to your own\s*listening history/);
+    expect(text).toMatch(/anonymous counter rows stay/);
+  });
+
+  it('does not claim compliance with any legal regime', () => {
+    for (const page of [<Privacy key="p" />, <Terms key="t" />, <Copyright key="c" />]) {
+      const { container, unmount } = renderPage(page);
+      const text = (container.textContent ?? '').toLowerCase();
+      for (const claim of ['gdpr compliant', 'fully compliant', 'ccpa compliant', 'legally compliant', 'certified']) {
+        expect(text, claim).not.toContain(claim);
+      }
+      expect(text).not.toMatch(/we guarantee/);
+      unmount();
+    }
+    const { container } = renderPage(<Privacy />);
+    expect(container.textContent).toMatch(/depend on the\s*jurisdiction|matter for that operator/i);
+  });
+
+  it('is honest about where catalog audio actually lives', () => {
+    const { container } = renderPage(<Copyright />);
+    const text = container.textContent ?? '';
+    expect(text).toMatch(/Linked recordings/);
+    expect(text).toMatch(/ResonTune Originals and hosted community releases/);
+    expect(text).toMatch(/only case in which ResonTune stores audio/);
+  });
+
   it('renders the terms, including the absence of payments', () => {
     const { container } = renderPage(<Terms />);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Terms of use');

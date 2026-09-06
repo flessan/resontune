@@ -98,7 +98,8 @@ function ConfirmDialog() {
         <h3>{req.title}</h3>
         {req.body && <p className="dialog-sub">{req.body}</p>}
         <div className="dialog-actions">
-          <button className="btn small" onClick={() => resolve(false)}>Cancel</button>
+          {/* An informational dialog has nothing to decline. */}
+          {!req.acknowledge && <button className="btn small" onClick={() => resolve(false)}>Cancel</button>}
           <button
             ref={confirmRef}
             className={`btn small ${req.danger ? 'danger' : 'primary'}`}

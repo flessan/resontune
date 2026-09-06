@@ -196,6 +196,48 @@ describe('keyboard support', () => {
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(entity));
   });
+
+  /* Real browsers only: a row is a <div>, so the keyboard is never on the row
+     itself — it is on a link or button inside it. Escape must return there. */
+  it('returns focus to the element inside the row that the keyboard was on', async () => {
+    renderWithMenu(<Page target={{ type: 'track', track: makeTrack() }} />);
+    const entity = screen.getByTestId('entity');
+    const inner = document.createElement('button');
+    inner.textContent = 'Open track';
+    entity.appendChild(inner);
+    inner.focus();
+    expect(document.activeElement).toBe(inner);
+
+    fireEvent.keyDown(inner, { key: 'F10', shiftKey: true });
+    const menu = await screen.findByRole('menu');
+    fireEvent.keyDown(menu, { key: 'Escape' });
+
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(inner));
+  });
+
+  /* The opener may be a plain <div> that silently refuses focus; the keyboard
+     must land on the scroll container rather than on <body>. */
+  it('falls back to the main scroll container when the opener cannot take focus', async () => {
+    const main = document.createElement('main');
+    main.className = 'main';
+    main.tabIndex = -1;
+    document.body.appendChild(main);
+    try {
+      renderWithMenu(<Page target={{ type: 'track', track: makeTrack() }} />);
+      const entity = screen.getByTestId('entity');
+      entity.removeAttribute('tabindex'); // now unfocusable, like a real row
+      rightClick(entity);
+      const menu = await screen.findByRole('menu');
+
+      fireEvent.keyDown(menu, { key: 'Escape' });
+
+      await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+      await waitFor(() => expect(document.activeElement).toBe(main));
+    } finally {
+      main.remove();
+    }
+  });
 });
 
 describe('dismissal', () => {

@@ -84,7 +84,14 @@ Things we consider vulnerabilities:
   `/api/auth`, `/api/me`, `/api/admin` and `/api/moderation` are `no-store`.
 - Local music never leaves the browser; there is no upload endpoint for it.
 - Account deletion is self-service and scoped to the account: shared catalog
-  records survive with their reference cleared.
+  records survive with their reference cleared. Because bearer tokens are
+  stateless, the server keeps an in-memory tombstone (provider subject +
+  timestamp, 24 hours) and treats tokens issued before a deletion as
+  anonymous, so a stale tab cannot recreate the account.
+- ResonTune holds **no administrator credential for Neon Auth**. Deleting the
+  sign-in identity is the account holder's own request from their own Neon
+  Auth session, made by the browser; if the deployment does not allow it, the
+  UI says the identity still exists rather than implying otherwise.
 
 ## Related documents
 

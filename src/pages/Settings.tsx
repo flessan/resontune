@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSettings, type Theme } from '@/stores/settings';
 import { useAuth } from '@/stores/auth';
 import { api } from '@/lib/api';
+import { clearAccountScopedCaches, deleteIdentity, type IdentityDeletion } from '@/lib/authClient';
 import { dialogs } from '@/stores/dialogs';
 import { toast } from '@/stores/toast';
 import { listModes } from '@/visualizer/engine';
@@ -106,6 +107,31 @@ function SupportConfigEditor() {
  * actions rather than a dashboard of toggles. Every one of them is a real
  * server-side operation scoped to the signed-in account.
  */
+/** Plain-language result of the Neon Auth half of an account deletion. */
+function identityOutcome(identity: IdentityDeletion): string {
+  const base = 'Everything ResonTune stored about your account has been deleted, and you are signed out. ';
+  switch (identity.status) {
+    case 'deleted':
+      return base + 'Your Neon Auth sign-in identity was deleted as well, so your email address is no longer held by the sign-in provider.';
+    case 'verification-sent':
+      return base
+        + 'Neon Auth sent a confirmation email for deleting your sign-in identity: until you open that '
+        + 'link, the identity — including your email address — still exists at Neon Auth.';
+    case 'unsupported':
+      return base
+        + 'Your Neon Auth sign-in identity has NOT been deleted: this deployment does not offer '
+        + 'self-service identity deletion. Your email address and sign-in still exist at Neon Auth, '
+        + 'where you can delete them directly. Signing in again here would create a new, empty ResonTune account.';
+    case 'failed':
+      return base
+        + `Your Neon Auth sign-in identity has NOT been deleted (${identity.message}). It still exists at `
+        + 'Neon Auth, where you can delete it directly.';
+    default:
+      return base
+        + 'This deployment has no sign-in provider configured, so there was no separate identity to delete.';
+  }
+}
+
 function AccountDataSection() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState<'export' | 'history' | 'delete' | null>(null);
@@ -147,16 +173,25 @@ function AccountDataSection() {
     }
   };
 
+  /**
+   * Two separate things carry the word "account", and conflating them would
+   * be a lie: the ResonTune rows (this API owns them, they always go) and
+   * the Neon Auth sign-in identity (Neon Auth owns it; deleting it is a
+   * self-service request from this browser, and some deployments do not
+   * allow it at all). The confirmation says so before anything happens, and
+   * the closing dialog reports what actually happened.
+   */
   const deleteAccount = async () => {
     const user = useAuth.getState().user;
     if (!user) return;
     const ok = await dialogs.confirm({
-      title: 'Delete your account?',
+      title: 'Delete your ResonTune account?',
       body:
-        'This deletes your profile, your playlists, your favorites and likes, your listening history '
-        + 'and your profile links. It cannot be undone. Catalog pages you are credited on stay in the '
-        + 'catalog with the link to your account removed. Your sign-in identity is held by Neon Auth '
-        + 'and should be deleted there as well.',
+        'ResonTune deletes your profile, playlists, favorites, likes, listening history and profile '
+        + 'links. It cannot be undone. Catalog pages you are credited on stay published with the link '
+        + 'to your account removed. ResonTune then asks Neon Auth — which holds your sign-in and your '
+        + 'email address — to delete that identity too; if this deployment does not allow self-service '
+        + 'identity deletion, you will be told and can remove it in Neon Auth yourself.',
       confirmLabel: 'Continue',
       danger: true,
     });
@@ -169,11 +204,25 @@ function AccountDataSection() {
     });
     if (!typed) return;
     setBusy('delete');
+    let identity: IdentityDeletion = { status: 'not-configured' };
     try {
       await api.del('/me', { confirm: typed });
-      await useAuth.getState().logout();
-      toast('Your account has been deleted.');
+      // Only now — the data is gone, so the identity can go too.
+      identity = await deleteIdentity();
+      // Signing out can fail precisely because the identity just went away;
+      // that must not turn a successful deletion into an error message.
+      try {
+        await useAuth.getState().logout();
+      } catch {
+        useAuth.setState({ user: null, favoriteIds: new Set() });
+      }
+      await clearAccountScopedCaches();
+      await useAuth.getState().refresh();
       navigate('/');
+      void dialogs.alert({
+        title: 'Your ResonTune account is deleted',
+        body: identityOutcome(identity),
+      });
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Could not delete your account.');
     } finally {
@@ -217,7 +266,11 @@ function AccountDataSection() {
         <div className="data-action">
           <div>
             <strong>Delete your account</strong>
-            <p>Removes your account and everything it owns. This cannot be undone.</p>
+            <p>
+              Erases everything ResonTune stores about you — profile, playlists, favorites,
+              likes and history. ResonTune then asks Neon Auth to delete your sign-in
+              identity, and tells you whether that succeeded. This cannot be undone.
+            </p>
           </div>
           <button className="btn small danger" onClick={() => void deleteAccount()} disabled={busy !== null}>
             {busy === 'delete' ? 'Deleting…' : 'Delete account'}

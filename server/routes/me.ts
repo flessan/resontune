@@ -9,7 +9,7 @@ import { Router, raw } from 'express';
 import { z } from 'zod';
 import { getDb, uuid } from '../db/index.ts';
 import { asyncRoute, pagination, HttpError } from '../util/http.ts';
-import { requireAuth, SESSION_USER_COLUMNS, publicUser, type SessionUser } from '../auth.ts';
+import { markIdentityDeleted, requireAuth, SESSION_USER_COLUMNS, publicUser, type SessionUser } from '../auth.ts';
 import { queryTracks } from './catalog.ts';
 import { listLinks, replaceLinks } from '../db/links.ts';
 import { PROFILE_COLUMNS, serializeProfile, type ProfileRow } from '../util/profile.ts';
@@ -442,10 +442,18 @@ export function meRouter(): Router {
         // Catalog pages this account is credited on. The pages themselves
         // belong to the catalog, not to the account.
         linkedArtistPages: (artists as any[]).map((a) => ({ slug: a.slug, name: a.name })),
+        // Everything named here is genuinely absent from the payload above.
         notIncluded: [
-          'Authentication credentials and the Neon Auth identity (held by Neon Auth, not by ResonTune).',
-          'Other people\u2019s data, including playlists you liked but do not own.',
-          'Catalog records (artists, releases, tracks) — public data maintained by ResonTune editors.',
+          'Authentication credentials and the Neon Auth identity — email address, password and the '
+            + 'provider subject id are held by Neon Auth, and the subject id is never exported.',
+          'Other people\u2019s data. Playlists you liked are listed as a reference (title, link, when '
+            + 'you liked it); the tracks inside someone else\u2019s playlist are theirs, not yours.',
+          'Catalog records (artists, releases, tracks) — public data maintained by ResonTune editors. '
+            + 'Your playlists and favorites reference them by slug and title.',
+          'Avatar image bytes: the profile photo lives at the image host, and only its URL is stored '
+            + 'and exported.',
+          'Moderation and editorial audit records, and the anonymous play counter, which has no user '
+            + 'column to select on.',
           'Music you added from your own device: it never leaves your browser, so ResonTune has no copy.',
           `Listening history beyond the most recent ${EXPORT_HISTORY_LIMIT.toLocaleString('en-US')} plays.`,
         ],
@@ -468,7 +476,7 @@ export function meRouter(): Router {
   /* ---------------------------- account deletion ---------------------------- */
 
   /**
-   * Delete the signed-in account.
+   * Delete the signed-in account's ResonTune data.
    *
    * Deliberate by construction: the request must repeat the account's own
    * username. Scope is the account and the things it owns — playlists,
@@ -477,6 +485,14 @@ export function meRouter(): Router {
    * existing with its `user_id` cleared (ON DELETE SET NULL), and the same
    * is true of curator/moderation references, which stay as anonymous audit
    * trail. Nothing here touches another account's rows.
+   *
+   * What this route deliberately does NOT do is delete the Neon Auth
+   * identity. Neon Auth's deletion endpoint is a self-service action
+   * authenticated by the user's own Neon Auth session; this API only ever
+   * sees a bearer JWT, and giving the server admin credentials for the
+   * identity provider would be a much larger blast radius than the feature
+   * deserves. The browser makes that request itself after this one
+   * succeeds, and the response below says plainly that the server did not.
    */
   r.delete(
     '/',
@@ -491,6 +507,12 @@ export function meRouter(): Router {
       }
 
       const db = await getDb();
+
+      // The provider subject, read before the row goes away, so this process
+      // can refuse to recreate the account from tokens issued before now.
+      const subjectRows = await db.query<{ auth_subject: string | null }>(
+        `SELECT auth_subject FROM users WHERE id = $1`, [uid],
+      );
 
       // Public counters are derived numbers, not history: keep them honest
       // before the owning rows disappear.
@@ -509,12 +531,36 @@ export function meRouter(): Router {
       // (things the account owns) or ON DELETE SET NULL (shared records).
       await db.query(`DELETE FROM users WHERE id = $1`, [uid]);
 
+      const subject = subjectRows[0]?.auth_subject ?? null;
+      if (subject) markIdentityDeleted(subject);
+
       res.json({
         deleted: true,
+        scope: 'resontune-application-data',
+        deletedData: [
+          'profile (display name, username, bio, location, website, avatar URL, profile links)',
+          'playlists and their contents',
+          'favorites and playlist likes',
+          'listening history',
+        ],
+        retainedData: [
+          'catalog records you are credited on — the artist page, releases and tracks stay published with the link to your account cleared',
+          'moderation and editorial records, with the account reference cleared',
+          'anonymous play counts, which never referenced your account',
+          'database backups, until the provider\u2019s retention window passes',
+        ],
+        identity: {
+          provider: 'neon-auth',
+          deletedByServer: false,
+          reason:
+            'Deleting a Neon Auth identity is a self-service request authenticated by your own '
+            + 'Neon Auth session. This API only receives a bearer token, so it cannot make that '
+            + 'request for you — your browser does it immediately after this call.',
+        },
         note:
-          'Your ResonTune account and the data it owned have been deleted. Your sign-in identity is '
-          + 'held by Neon Auth: delete it there as well if you want it removed. Signing in again '
-          + 'would create a new, empty ResonTune account.',
+          'Your ResonTune data has been deleted. Tokens issued before now are refused by this '
+          + 'server, so nothing recreates the account behind your back; signing in again with the '
+          + 'same identity creates a new, empty ResonTune account.',
       });
     }),
   );

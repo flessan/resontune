@@ -23,12 +23,35 @@ export default function Copyright() {
     >
       <LegalSection id="model" title="How music gets here">
         <p className="prose">
-          There is no upload pipeline and no crawler. An administrator enters a
-          release by hand: the artist, the release, the tracks, and a direct
-          link to a recording that is already hosted publicly by the artist,
-          their label or an archive. ResonTune stores the metadata and the link.
-          It does not copy, re-encode, mirror or redistribute audio files, and
-          it offers no download of catalog audio.
+          There is no upload pipeline for listeners and no crawler. An
+          administrator enters a release by hand: the artist, the release, the
+          tracks, and the recording itself. Nothing is ingested automatically,
+          nothing is scraped, and no third-party catalog is mirrored.
+        </p>
+        <p className="prose">
+          Where the audio physically lives depends on the release, and the track
+          page says which case applies:
+        </p>
+        <ul className="legal-list">
+          <li>
+            <strong>Linked recordings</strong> — the common case. The catalog
+            stores metadata and a direct link to a recording already published
+            by the artist, their label or an archive, and playback streams from
+            that host. ResonTune keeps no copy of the file.
+          </li>
+          <li>
+            <strong>ResonTune Originals and hosted community releases</strong> —
+            where the rights holder has agreed to it, the operator may serve the
+            audio file from the deployment's own storage, so the file is a copy
+            held by the operator with the rights holder's permission. This is
+            the only case in which ResonTune stores audio, and it is never done
+            without that permission.
+          </li>
+        </ul>
+        <p className="prose">
+          In neither case does ResonTune re-encode, mirror or redistribute
+          somebody else's catalog, and the player offers no download of catalog
+          audio.
         </p>
         <p className="prose">
           Before publishing, the administrator is required to establish that the

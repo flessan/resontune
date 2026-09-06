@@ -61,6 +61,7 @@ interface Ids {
   track: string;
 }
 const ids = {} as Ids;
+let deletedAliceId = '';
 
 async function call(
   pathname: string,
@@ -181,8 +182,45 @@ describe('data export', () => {
     expect(res.text).not.toContain('sub-alice');
     expect(res.text).not.toContain('auth_subject');
     expect(res.text).not.toContain('authSubject');
-    expect(res.text).not.toContain('password');
+    expect(res.text).not.toMatch(/"(password|passwordHash|token|secret|apiKey)"\s*:/i);
     expect(JSON.stringify(res.body.account)).not.toContain('sub-');
+  });
+});
+
+describe('export honesty', () => {
+  it('does not list anything as missing that is actually in the file', async () => {
+    const res = await call('/api/me/export', { auth: aliceToken });
+    const claims: string[] = res.body.notIncluded;
+    expect(claims.length).toBeGreaterThan(3);
+
+    // each "not included" claim, checked against the payload itself
+    expect(res.text).not.toContain('sub-alice');
+    expect(res.text).not.toContain('auth_provider');
+    expect(res.text).not.toMatch(/"(password|passwordHash|token|secret|apiKey|authSubject)"\s*:/i);
+    expect(res.body.account.email).toBeUndefined();
+    expect(claims.some((c) => /Neon Auth/i.test(c))).toBe(true);
+    expect(claims.some((c) => /own device/i.test(c))).toBe(true);
+
+    // ...while everything it implies is present, is present
+    for (const key of ['playlists', 'favorites', 'likedPlaylists', 'listeningHistory', 'linkedArtistPages']) {
+      expect(res.body[key], key).toBeDefined();
+    }
+    expect(res.body.account).toHaveProperty('links');
+  });
+
+  it('exports a liked playlist as a reference, not as somebody else\u2019s content', async () => {
+    const created = await call('/api/playlists', {
+      method: 'POST', auth: bobToken, body: { title: 'Bob public mix', isPublic: true },
+    });
+    const id = created.body.playlist.id;
+    await call(`/api/playlists/${id}/tracks`, { method: 'POST', auth: bobToken, body: { trackId: ids.track } });
+    expect((await call(`/api/playlists/${id}/like`, { method: 'POST', auth: aliceToken })).status).toBe(200);
+
+    const res = await call('/api/me/export', { auth: aliceToken });
+    const liked = res.body.likedPlaylists.find((p: any) => p.title === 'Bob public mix');
+    expect(liked).toBeTruthy();
+    expect(liked.tracks).toBeUndefined();
+    expect(res.body.playlists.map((p: any) => p.title)).not.toContain('Bob public mix');
   });
 });
 
@@ -295,6 +333,29 @@ describe('avatar upload', () => {
 /* ------------------------------------------------------------- history */
 
 describe('listening history', () => {
+  it('leaves anonymous play counters, playlists and the catalog alone', async () => {
+    const db = await getDb();
+    const [alice] = await db.query<{ id: string }>(`SELECT id FROM users WHERE auth_subject = 'sub-alice'`);
+    await db.query(`INSERT INTO play_events (id, track_id) VALUES ($1, $2)`, [uuid(), ids.track]);
+    await db.query(`INSERT INTO play_history (id, user_id, track_id) VALUES ($1, $2, $3)`, [uuid(), alice.id, ids.track]);
+    const before = {
+      events: (await db.query(`SELECT 1 FROM play_events`)).length,
+      plays: (await db.query<{ play_count: string }>(`SELECT play_count::text FROM tracks WHERE id = $1`, [ids.track]))[0],
+      playlists: (await db.query(`SELECT 1 FROM playlists WHERE owner_id = $1`, [alice.id])).length,
+      favorites: (await db.query(`SELECT 1 FROM favorites WHERE user_id = $1`, [alice.id])).length,
+    };
+
+    expect((await call('/api/me/history', { method: 'DELETE', auth: aliceToken })).status).toBe(200);
+
+    expect((await db.query(`SELECT 1 FROM play_history WHERE user_id = $1`, [alice.id])).length).toBe(0);
+    // The anonymous counter has no user column; clearing history must not touch it.
+    expect((await db.query(`SELECT 1 FROM play_events`)).length).toBe(before.events);
+    expect((await db.query<{ play_count: string }>(`SELECT play_count::text FROM tracks WHERE id = $1`, [ids.track]))[0])
+      .toEqual(before.plays);
+    expect((await db.query(`SELECT 1 FROM playlists WHERE owner_id = $1`, [alice.id])).length).toBe(before.playlists);
+    expect((await db.query(`SELECT 1 FROM favorites WHERE user_id = $1`, [alice.id])).length).toBe(before.favorites);
+  });
+
   it('clears only the caller\u2019s history', async () => {
     const db = await getDb();
     const [alice] = await db.query<{ id: string }>(`SELECT id FROM users WHERE auth_subject = 'sub-alice'`);
@@ -330,6 +391,7 @@ describe('account deletion', () => {
   it('removes the account and everything it owns, and nothing else', async () => {
     const db = await getDb();
     const [alice] = await db.query<{ id: string }>(`SELECT id FROM users WHERE auth_subject = 'sub-alice'`);
+    deletedAliceId = alice.id;
     await db.query(
       `INSERT INTO entity_links (id, entity_kind, entity_id, provider, label, url)
        VALUES ($1, 'user', $2, 'website', 'Site', 'https://example.com')`, [uuid(), alice.id],
@@ -341,7 +403,12 @@ describe('account deletion', () => {
     const res = await call('/api/me', { method: 'DELETE', auth: aliceToken, body: { confirm: 'Alice' } });
     expect(res.status).toBe(200);
     expect(res.body.deleted).toBe(true);
-    expect(res.body.note).toMatch(/Neon Auth/);
+    // The response must not imply the sign-in identity went with it.
+    expect(res.body.scope).toBe('resontune-application-data');
+    expect(res.body.identity.deletedByServer).toBe(false);
+    expect(res.body.identity.provider).toBe('neon-auth');
+    expect(String(res.body.identity.reason)).toMatch(/self-service|cannot/i);
+    expect(res.body.retainedData.join(' ')).toMatch(/catalog/i);
 
     // gone: account, playlists, favorites, history, profile links
     expect((await db.query(`SELECT 1 FROM users WHERE id = $1`, [alice.id])).length).toBe(0);
@@ -372,15 +439,34 @@ describe('account deletion', () => {
     expect(Number(likesAfter[0].like_count)).toBe(Math.max(0, Number(likesBefore[0].like_count) - 1));
   });
 
-  it('leaves the deleted account unable to act, and a new sign-in starts empty', async () => {
-    const res = await call('/api/auth/me', { auth: aliceToken });
-    expect(res.status).toBe(200);
-    // The same verified identity maps to a brand-new, empty account.
-    const exported = await call('/api/me/export', { auth: aliceToken });
+  it('refuses tokens issued before the deletion instead of recreating the account', async () => {
+    // The old token is still cryptographically valid — and must not work.
+    const me = await call('/api/auth/me', { auth: aliceToken });
+    expect(me.status).toBe(200);
+    expect(me.body.user).toBeNull();
+
+    expect((await call('/api/me/export', { auth: aliceToken })).status).toBe(401);
+    expect((await call('/api/me/profile', { method: 'PATCH', auth: aliceToken, body: { bio: 'back' } })).status).toBe(401);
+
+    const db = await getDb();
+    expect((await db.query(`SELECT 1 FROM users WHERE auth_subject = 'sub-alice'`)).length).toBe(0);
+  });
+
+  it('starts a brand-new empty account when the same identity signs in again', async () => {
+    // A fresh sign-in mints a token issued after the deletion.
+    await new Promise((r) => setTimeout(r, 1100));
+    const freshToken = await token('sub-alice', 'Alice');
+
+    const me = await call('/api/auth/me', { auth: freshToken });
+    expect(me.status).toBe(200);
+    expect(me.body.user).not.toBeNull();
+
+    const exported = await call('/api/me/export', { auth: freshToken });
     expect(exported.status).toBe(200);
     expect(exported.body.playlists).toEqual([]);
     expect(exported.body.favorites).toEqual([]);
     expect(exported.body.listeningHistory).toEqual([]);
+    expect(exported.body.account.id).not.toBe(deletedAliceId);
   });
 });
 

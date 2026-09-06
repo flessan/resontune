@@ -145,7 +145,12 @@ export function ContextMenuRoot() {
      deleted, the page re-rendered). Focusing a detached node throws focus
      to nowhere, so fall back to the scroll container. */
   const restoreFocus = useCallback((el: HTMLElement | null) => {
-    if (el && el.isConnected) { el.focus?.(); return; }
+    if (el && el.isConnected) {
+      el.focus?.();
+      // A plain <div> row accepts `focus()` without becoming the active
+      // element; don't leave the keyboard stranded on <body> when that happens.
+      if (document.activeElement === el) return;
+    }
     document.querySelector<HTMLElement>('.main')?.focus?.();
   }, []);
 
@@ -245,14 +250,18 @@ export function ContextMenuRoot() {
   /* Focus the surface so Escape and the arrow keys work immediately. */
   useEffect(() => {
     if (!target) return;
+    // The floating menu renders `visibility: hidden` for one frame while it is
+    // measured, and a hidden element cannot take focus — so wait for the
+    // placement pass. The sheet has no measuring step and is focusable at once.
+    if (!coarse && !placement) return;
     const el = menuRef.current;
     if (!el) return;
     if (source === 'keyboard') {
       el.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
-    } else {
+    } else if (!el.contains(document.activeElement)) {
       el.focus({ preventScroll: true });
     }
-  }, [target, source, openId]);
+  }, [target, source, openId, coarse, placement]);
 
   /* Keep DOM focus on the active row as it moves. */
   useEffect(() => {

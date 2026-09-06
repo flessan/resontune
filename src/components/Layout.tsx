@@ -218,7 +218,7 @@ export function Layout() {
         </a>
       </nav>
 
-      <main className="main" id="main-content">
+      <main className="main" id="main-content" tabIndex={-1}>
         <div className="topbar">
           <button ref={hamburgerRef} className="icon-btn hamburger" onClick={() => setDrawer(true)} aria-label="Open navigation" aria-expanded={drawer}>
             {drawer ? <IconClose width={19} height={19} /> : <IconMenu width={19} height={19} />}

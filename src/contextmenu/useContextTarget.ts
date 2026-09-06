@@ -141,11 +141,17 @@ export function useContextTarget(
       e.stopPropagation();
       const el = e.currentTarget as HTMLElement;
       const rect = el.getBoundingClientRect();
+      // The row itself is usually not focusable — the key press arrives from a
+      // link or button inside it. Remember *that* element so Escape puts the
+      // keyboard back exactly where it was.
+      const focused = document.activeElement;
+      const opener =
+        focused instanceof HTMLElement && el.contains(focused) ? focused : el;
       openMenu({
         target: t,
         anchor: { kind: 'element', rect: { top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom } },
         source: 'keyboard',
-        opener: el,
+        opener,
       });
     },
     [openMenu, disabled],

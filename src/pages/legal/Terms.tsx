@@ -44,7 +44,11 @@ export default function Terms() {
           <li>
             You can delete your account at any time from{' '}
             <Link to="/settings">Settings</Link>. No retention flow, no
-            “are you sure you want to lose your benefits” maze.
+            “are you sure you want to lose your benefits” maze. That deletes
+            everything ResonTune stores; your Neon Auth sign-in identity is a
+            separate thing, and ResonTune asks Neon Auth to delete it too and
+            tells you whether it could — see the{' '}
+            <Link to="/privacy">privacy page</Link>.
           </li>
         </ul>
       </LegalSection>

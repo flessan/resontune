@@ -91,7 +91,8 @@ in the catalog.
 | Neon (Postgres) | the database | everything in §1 |
 | Neon Auth | authentication | email, credentials, provider identities, sessions; issues the JWT this API verifies |
 | ImgBB | avatar hosting only | the image bytes of a profile photo, uploaded server-side with `IMGBB_API_KEY`; the URL comes back and is stored |
-| External media hosts | serve catalog audio/artwork | the listener's IP and user agent, because the browser fetches media directly from them |
+| External media hosts | serve catalog audio/artwork for linked releases | the listener's IP and user agent, because the browser fetches media directly from them |
+| The deployment itself | serves audio for ResonTune Originals / hosted community releases (`track_sources.object_key` → `/media/audio` or `AUDIO_CDN_BASE`) | ordinary web-server request logs, at the operator's configuration |
 | Hosting provider | runs the server | request logs, at the operator's configuration |
 
 No data-processing claims are made on any of their behalf; their own terms
@@ -118,12 +119,47 @@ There is **no scheduled deletion job in the codebase**. What exists:
 | Access / portability | `GET /api/me/export` | Settings → Your data → Export |
 | Rectification | `PATCH /api/me/profile`, `POST/DELETE /api/me/avatar` | Profile editor |
 | Erasure (history) | `DELETE /api/me/history` | Settings → Clear history |
-| Erasure (account) | `DELETE /api/me` (requires the username as confirmation) | Settings → Delete account |
+| Erasure (application data) | `DELETE /api/me` (requires the username as confirmation) | Settings → Delete account |
+| Erasure (sign-in identity) | `POST {NEON_AUTH_URL}/delete-user`, called by the browser from the user's own Neon Auth session | same flow, immediately after the call above |
 
-All four take the account from the verified token; none accepts a user id
-from the client. The export omits `auth_subject`, `auth_provider`, roles of
-other users and anything owned by anyone else, and says so in a
-`notIncluded` field.
+All the ResonTune endpoints take the account from the verified token; none
+accepts a user id from the client. The export omits `auth_subject`,
+`auth_provider`, roles of other users and anything owned by anyone else, and
+says so in a `notIncluded` field that is checked against the payload in
+`server/privacy.test.ts`.
+
+### Two-part account deletion
+
+"Delete account" covers two systems, and the product says so at every step:
+
+1. **ResonTune data** — `DELETE /api/me` cascades everything the account owns
+   and unlinks the shared records (§1). This always happens.
+2. **The Neon Auth identity** — email address, password, sessions. Neon Auth
+   is Better Auth, whose `POST /delete-user` endpoint is authenticated by the
+   *user's own session*, not by an API key. ResonTune deliberately holds no
+   Neon Auth admin credential, so the browser makes that call itself
+   (`deleteIdentity()` in `src/lib/authClient.ts`) right after step 1. Three
+   outcomes are possible and each is reported verbatim to the user:
+   identity deleted; a verification email sent (identity still exists until
+   the link is opened); or the endpoint is disabled for the deployment
+   (`user.deleteUser.enabled` off → HTTP 404), in which case the UI states
+   that the identity was *not* deleted and points at Neon Auth.
+
+Because a JWT is stateless, a token minted before the deletion would happily
+recreate an empty account on the next request. `server/auth.ts` therefore
+keeps an in-memory tombstone — the provider subject and the deletion
+timestamp, nothing else, dropped after 24 hours — and treats any token
+*issued before* that moment as anonymous. A genuinely new sign-in produces a
+token issued afterwards and creates a new, empty account, which is what the
+privacy page describes. The tombstone is per-process and therefore best
+effort on a multi-instance deployment; it is a safety net, not the security
+boundary (the security boundary is that the row is gone).
+
+Local browser state after deletion: the session token and the API response
+cache (`resontune-v1-api`) are cleared. IndexedDB `resontune-local` (the
+user's own music, artwork and queue) and `resontune-settings` are **not**
+touched — they are the person's own data on their own device, and deleting a
+server row is no reason to erase their files.
 
 ## 6. GDPR-shaped risk review
 
@@ -191,12 +227,18 @@ Consent surfaces audited:
 
 ## 9. Known gaps
 
-1. Deleting a ResonTune account does not delete the Neon Auth identity —
-   there is no server-side Neon Auth admin call configured. The API says so
-   in its response and the UI repeats it.
+1. Deleting the Neon Auth identity depends on the deployment: Better Auth's
+   self-service deletion must be enabled on the Neon Auth project, and it may
+   require a fresh session, the account password or an email confirmation.
+   When it is unavailable the UI says the identity still exists and where to
+   delete it. **Operator decision:** enable self-service deletion on the Neon
+   Auth project if you want one-step deletion.
 2. No automated retention/cleanup jobs; retention is manual.
 3. Hosting-layer logs are outside the application's control.
 4. Backups retain deleted rows for the provider's window.
 5. No age verification.
 6. Legal review of `/privacy`, `/terms` and `/copyright` has not happened;
    the pages describe behaviour, not obligations.
+7. The deletion tombstone is per-process. A multi-instance deployment that
+   wants the same guarantee everywhere would need shared state — deliberately
+   not built, since it would mean storing something about deleted users.

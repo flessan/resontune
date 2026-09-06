@@ -38,8 +38,10 @@ export default function Privacy() {
           </li>
           <li>
             You can export everything your account holds, correct your profile,
-            clear your listening history, and delete your account yourself from{' '}
-            <Link to="/settings">Settings</Link>.
+            clear your listening history, and delete your ResonTune account
+            yourself from <Link to="/settings">Settings</Link> — which then also
+            asks Neon Auth to delete your sign-in identity, and tells you
+            whether that worked.
           </li>
         </ul>
       </LegalSection>
@@ -52,6 +54,16 @@ export default function Privacy() {
           id and no IP address. Your player state — the queue, position, volume,
           theme, visualizer settings — is stored in your own browser and is
           never sent to the server.
+        </p>
+        <p className="prose">
+          Two different things are recorded when a track is played, and it is
+          worth being precise about which is which. Every play — signed in or
+          not — adds one row to that anonymous counter table. A play by a
+          signed-in listener <em>additionally</em> writes a row to your own
+          listening history, which is the only record tied to you. Clearing your
+          history deletes those personal rows; the anonymous counter rows stay,
+          because there is nothing in them to connect to you and public play
+          counts would otherwise be wrong.
         </p>
         <p className="prose">
           Like any web server, the API applies per-IP rate limits to resist
@@ -192,12 +204,15 @@ export default function Privacy() {
             stored. Catalog audio and artwork never go through ImgBB.
           </li>
           <li>
-            <strong>The hosts of the music itself</strong> — ResonTune's catalog
+            <strong>The hosts of the music itself</strong> — most of the catalog
             is metadata plus links to media hosted elsewhere by the artists,
             labels or archives that publish it. When you press play, your
             browser fetches the audio (and often the artwork) directly from that
             host, which therefore sees your IP address and user agent, exactly
-            as if you had opened that link yourself.
+            as if you had opened that link yourself. Some releases —
+            ResonTune Originals and hosted community releases — are served by
+            the deployment itself instead, in which case it is the operator's
+            own server and CDN logs that see the request.
           </li>
           <li>
             <strong>The hosting provider</strong> of the deployment you are
@@ -256,11 +271,41 @@ export default function Privacy() {
             <strong>Clear your history</strong> — one button in Settings.
           </li>
           <li>
-            <strong>Delete your account</strong> — in Settings. It removes your
-            profile, playlists, favorites, likes, history and profile links.
-            Catalog pages an account is credited on are shared records and are
-            kept, with the link to the account removed. Your sign-in identity
-            lives with Neon Auth and should also be deleted there.
+            <strong>Delete your account</strong> — in Settings. Two different
+            things carry that name, and the app treats them separately:
+          </li>
+        </ul>
+        <ul className="legal-list">
+          <li>
+            <strong>Your ResonTune data</strong> is deleted outright: profile,
+            playlists and their contents, favorites, playlist likes, listening
+            history and profile links. Catalog pages an account is credited on
+            are shared records and stay published, with the link to the account
+            removed.
+          </li>
+          <li>
+            <strong>Your Neon Auth sign-in identity</strong> — the email address
+            and password, which ResonTune never stores — belongs to Neon Auth.
+            After deleting your data, your browser asks Neon Auth to delete that
+            identity too, using the same self-service request its own account
+            screen uses. ResonTune holds no administrator credentials for Neon
+            Auth and cannot do it on your behalf, so the deployment decides
+            whether that request is allowed. The closing dialog tells you which
+            of these happened: identity deleted, a confirmation email sent, or
+            identity kept because self-service deletion is not enabled — in
+            which case you can delete it in Neon Auth directly.
+          </li>
+          <li>
+            Deleting also signs you out and drops the browser cache of API
+            responses. Music you added from your own device, your queue and your
+            display preferences are yours and stay on your device; ResonTune
+            does not delete them and never could, because it has no copy.
+          </li>
+          <li>
+            Sign-in tokens issued before the deletion are refused by the server,
+            so nothing quietly recreates the account. If you sign in again with
+            the same identity — because it still exists — you get a brand-new,
+            empty ResonTune account: none of the deleted data comes back.
           </li>
         </ul>
         <p className="prose">
