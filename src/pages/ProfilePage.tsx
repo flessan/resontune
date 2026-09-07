@@ -35,11 +35,9 @@ interface OwnStats {
 type ProfilePlaylist = ProfilePayload['playlists'][number];
 type ProfileArtist = ProfilePayload['artists'][number];
 
-/** Profile music sections carry the same contextual actions as anywhere else. */
 function PlaylistCard({ pl, ownerId }: { pl: ProfilePlaylist; ownerId: string | null }) {
   const target: ContextTarget = {
     type: 'playlist',
-    // Only public playlists are listed on a profile.
     playlist: { id: pl.id, slug: pl.slug, title: pl.title, isPublic: true, trackCount: pl.trackCount, ownerId },
   };
   const ctxProps = useContextTarget(target);
@@ -110,6 +108,11 @@ export default function ProfilePage() {
   }
 
   const p = data.profile;
+  const links = Array.isArray(p.links) ? p.links : [];
+  const playlists = Array.isArray(data.playlists) ? data.playlists : [];
+  const artists = Array.isArray(data.artists) ? data.artists : [];
+  const ownPlaylists = Array.isArray(own?.playlists) ? own.playlists : [];
+  const topGenres = Array.isArray(own?.topGenres) ? own.topGenres : [];
 
   return (
     <div className="page">
@@ -124,14 +127,14 @@ export default function ProfilePage() {
           <div className="profile-username">@{p.username}{p.location ? ` · ${p.location}` : ''}</div>
           {p.bio && <p className="profile-bio">{p.bio}</p>}
 
-          {(p.websiteUrl || p.links.length > 0) && (
+          {(p.websiteUrl || links.length > 0) && (
             <div className="profile-links">
               {p.websiteUrl && (
                 <a className="profile-link" href={p.websiteUrl} target="_blank" rel="noreferrer noopener nofollow">
                   {hostOf(p.websiteUrl) || 'Website'} <IconExternal width={12} height={12} />
                 </a>
               )}
-              {p.links.map((l) => (
+              {links.map((l) => (
                 <a key={l.url} className="profile-link" href={l.url} target="_blank" rel="noreferrer noopener nofollow">
                   {l.label} <IconExternal width={12} height={12} />
                 </a>
@@ -145,10 +148,7 @@ export default function ProfilePage() {
                 <IconSettings width={14} height={14} /> Edit profile
               </Link>
               <button className="btn small" onClick={() => void exportData()}>Export my data</button>
-              <button
-                className="btn small"
-                onClick={() => void useAuth.getState().logout().then(() => toast('Signed out.'))}
-              >
+              <button className="btn small" onClick={() => void useAuth.getState().logout().then(() => toast('Signed out.'))}>
                 Sign out
               </button>
             </div>
@@ -156,14 +156,14 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      {data.artists.length > 0 && (
+      {artists.length > 0 && (
         <>
           <div className="section-head">
             <h2 className="section-title">Artist pages</h2>
             <span className="section-note">catalog records linked to this account</span>
           </div>
           <div className="profile-artist-row">
-            {data.artists.map((a) => <ArtistCard key={a.id} artist={a} />)}
+            {artists.map((a) => <ArtistCard key={a.id} artist={a} />)}
           </div>
         </>
       )}
@@ -175,11 +175,11 @@ export default function ProfilePage() {
             <div className="stat"><div className="n">{own.stats.tracksPlayed}</div><div className="l">Tracks played</div></div>
             <div className="stat"><div className="n">{own.stats.artistsDiscovered}</div><div className="l">Artists discovered</div></div>
             <div className="stat"><div className="n">{own.stats.favorites}</div><div className="l">Favorites</div></div>
-            <div className="stat"><div className="n">{own.playlists.length}</div><div className="l">Playlists</div></div>
+            <div className="stat"><div className="n">{ownPlaylists.length}</div><div className="l">Playlists</div></div>
           </div>
-          {own.topGenres.length > 0 && (
+          {topGenres.length > 0 && (
             <div className="pill-row" style={{ marginBottom: 24 }}>
-              {own.topGenres.map((g) => (
+              {topGenres.map((g) => (
                 <Link key={g.id} to={`/genre/${g.id}`} className="pill">
                   {g.name} <span style={{ opacity: 0.5, marginLeft: 6 }}>{g.plays}</span>
                 </Link>
@@ -193,20 +193,14 @@ export default function ProfilePage() {
         <h2 className="section-title">{isOwner ? 'Your public playlists' : 'Public playlists'}</h2>
         {isOwner && <Link className="section-link" to="/playlists">Manage</Link>}
       </div>
-      {data.playlists.length === 0 ? (
+      {playlists.length === 0 ? (
         <div className="empty">
           <h3>Nothing public yet</h3>
-          <p>
-            {isOwner
-              ? 'Playlists you mark public will appear on your profile.'
-              : `${p.displayName} hasn't published a playlist yet.`}
-          </p>
+          <p>{isOwner ? 'Playlists you mark public will appear on your profile.' : `${p.displayName} hasn't published a playlist yet.`}</p>
         </div>
       ) : (
         <div className="profile-playlists">
-          {data.playlists.map((pl) => (
-            <PlaylistCard key={pl.id} pl={pl} ownerId={data.profile.id} />
-          ))}
+          {playlists.map((pl) => <PlaylistCard key={pl.id} pl={pl} ownerId={data.profile.id} />)}
         </div>
       )}
     </div>
