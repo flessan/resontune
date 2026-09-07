@@ -1,3 +1,6 @@
+/**
+ * Track detail page.
+ */
 import { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
@@ -31,10 +34,7 @@ export default function TrackPage() {
   const user = useAuth((s) => s.user);
   const isFav = useAuth((s) => (data ? s.favoriteIds.has(data.track.id) : false));
   const loaded = data?.track ?? null;
-  const target = useMemo<ContextTarget | null>(
-    () => (loaded ? { type: 'track', track: loaded } : null),
-    [loaded],
-  );
+  const target = useMemo<ContextTarget | null>(() => (loaded ? { type: 'track', track: loaded } : null), [loaded]);
   const headProps = useContextTarget(target);
 
   if (loading) return <div className="loading-page"><span className="spin" /></div>;
@@ -49,7 +49,14 @@ export default function TrackPage() {
     );
   }
 
-  const { track, related, moreFromArtist } = data;
+  const track: Track = {
+    ...data.track,
+    sources: Array.isArray(data.track.sources) ? data.track.sources : [],
+    genres: Array.isArray(data.track.genres) ? data.track.genres : [],
+    tags: Array.isArray(data.track.tags) ? data.track.tags : [],
+  };
+  const related = Array.isArray(data.related) ? data.related : [];
+  const moreFromArtist = Array.isArray(data.moreFromArtist) ? data.moreFromArtist : [];
   const isCurrent = currentId === track.id;
 
   const play = () => {
@@ -161,18 +168,13 @@ export default function TrackPage() {
             <tr><td style={{ color: 'var(--ink-muted)' }}>Attribution</td><td>{track.attributionText}</td></tr>
           )}
           <tr><td style={{ color: 'var(--ink-muted)' }}>Released</td><td>{formatDate(track.createdAt)}</td></tr>
-          <tr>
-            <td style={{ color: 'var(--ink-muted)' }}>Origin</td>
-            <td>{provenanceLabel(track.sourceType)}</td>
-          </tr>
+          <tr><td style={{ color: 'var(--ink-muted)' }}>Origin</td><td>{provenanceLabel(track.sourceType)}</td></tr>
         </tbody>
       </table>
 
       {moreFromArtist.length > 0 && (
         <>
-          <div className="section-head">
-            <h2 className="section-title">More from {track.artist.name}</h2>
-          </div>
+          <div className="section-head"><h2 className="section-title">More from {track.artist.name}</h2></div>
           <div className="tracklist">
             {moreFromArtist.map((t, i) => <TrackRow key={t.id} track={t} index={i} context={moreFromArtist} />)}
           </div>
