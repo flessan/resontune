@@ -52,6 +52,16 @@ export default function Moderation() {
   );
   const [reasons, setReasons] = useState<Record<string, string>>({});
 
+  const tracks = Array.isArray(data?.tracks)
+    ? data.tracks.filter(Boolean).map((track) => ({
+        ...track,
+        artist: track.artist && typeof track.artist === 'object' && typeof track.artist.name === 'string'
+          ? { name: track.artist.name, slug: typeof track.artist.slug === 'string' ? track.artist.slug : '' }
+          : { name: 'Unknown artist', slug: '' },
+      }))
+    : [];
+  const takedowns = Array.isArray(audit?.takedowns) ? audit.takedowns.filter(Boolean) : [];
+
   if (!canModerate) {
     return (
       <div className="page">
@@ -95,14 +105,14 @@ export default function Moderation() {
 
       {loading ? (
         <div className="loading-page"><span className="spin" /></div>
-      ) : !data?.tracks.length ? (
+      ) : tracks.length === 0 ? (
         <div className="empty">
           <h3>No catalog entries{filter ? ` in “${STATE_LABEL[filter]}”` : ''}</h3>
           <p>When music is published to the catalog it can be administered here.</p>
         </div>
       ) : (
         <div className="mod-list">
-          {data.tracks.map((t) => (
+          {tracks.map((t) => (
             <div key={t.id} className="mod-card">
               <div className="mod-card-head">
                 <div>
@@ -135,14 +145,14 @@ export default function Moderation() {
         </div>
       )}
 
-      {audit && audit.takedowns.length > 0 && (
+      {takedowns.length > 0 && (
         <>
           <div className="section-head" style={{ marginTop: 34 }}>
             <h2 className="section-title">Audit log</h2>
             <span className="section-note">every state change, permanently recorded</span>
           </div>
           <div className="mod-list">
-            {audit.takedowns.map((e) => (
+            {takedowns.map((e) => (
               <div key={e.id} className="mod-card" style={{ padding: '10px 14px' }}>
                 <div style={{ fontSize: 13 }}>
                   {e.trackSlug ? <Link to={`/track/${e.trackSlug}`}>{e.trackTitle}</Link> : e.trackTitle ?? 'Removed entry'}
