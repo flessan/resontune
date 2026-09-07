@@ -85,6 +85,10 @@ export default function Home() {
     );
   }
 
+  // Pages Functions currently omit risingArtists from /home in some deployments.
+  // Keep the home shell resilient until the API contract is restored server-side.
+  const risingArtists = Array.isArray(data.risingArtists) ? data.risingArtists : [];
+
   const feat = data.featuredRelease;
   const catalogEmpty =
     !feat && !data.originals.length && !data.trending.length &&
@@ -197,14 +201,14 @@ export default function Home() {
         </>
       )}
 
-      {!catalogEmpty && data.risingArtists.length > 0 && (
+      {!catalogEmpty && risingArtists.length > 0 && (
         <>
           <div className="section-head">
             <h2 className="section-title">Artists to watch</h2>
             <Link to="/artists" className="section-link">See all</Link>
           </div>
           <div className="shelf">
-            {data.risingArtists.map((a) => <ArtistTile key={a.id} artist={a} />)}
+            {risingArtists.map((a) => <ArtistTile key={a.id} artist={a} />)}
           </div>
         </>
       )}
