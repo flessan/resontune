@@ -1,4 +1,4 @@
-import { ApiError, database, json, session, type PagesContext } from '../_shared';
+import { ApiError, database, json, session, type PagesContext } from '../../_shared';
 
 async function requireModerator(c: PagesContext) {
   const u = await session(c, true);
