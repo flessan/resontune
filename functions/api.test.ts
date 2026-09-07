@@ -69,6 +69,30 @@ describe('Cloudflare Pages API adapter', () => {
     vi.mocked(session).mockResolvedValue(null);
   });
 
+  it('allows a different authenticated listener to like and unlike a public playlist', async () => {
+    const ownerId = crypto.randomUUID();
+    const listenerId = crypto.randomUUID();
+    const playlistId = crypto.randomUUID();
+    let liked = false;
+    vi.mocked(session).mockResolvedValue({ id: listenerId, handle: 'listener', effectiveRole: 'listener' } as any);
+    vi.mocked(database).mockResolvedValue({
+      query: vi.fn(async (sql: string) => {
+        if (sql.includes('FROM playlists')) return [{ id: playlistId, owner_id: ownerId, is_public: true, title: 'Public mix', slug: 'public-mix' }];
+        if (sql.includes('FROM playlist_likes')) return liked ? [{}] : [];
+        if (sql.includes('INSERT INTO playlist_likes')) { liked = true; return []; }
+        if (sql.includes('DELETE FROM playlist_likes')) { liked = false; return []; }
+        return [];
+      }),
+    } as any);
+
+    const post = await call(`/api/playlists/${playlistId}/like`, { method: 'POST' });
+    expect(post.status).toBe(200);
+    expect(await post.json()).toEqual({ liked: true });
+    const del = await call(`/api/playlists/${playlistId}/like`, { method: 'DELETE' });
+    expect(del.status).toBe(200);
+    expect(await del.json()).toEqual({ liked: false });
+  });
+
   it('serializes populated public profiles instead of dropping profile content', async () => {
     const userId = crypto.randomUUID();
     const artistId = crypto.randomUUID();
