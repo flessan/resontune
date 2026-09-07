@@ -68,4 +68,29 @@ describe('Cloudflare Pages API adapter', () => {
     expect((await response.json()) as Record<string, unknown>).toHaveProperty(key);
     vi.mocked(session).mockResolvedValue(null);
   });
+
+  it('serializes populated public profiles instead of dropping profile content', async () => {
+    const userId = crypto.randomUUID();
+    const artistId = crypto.randomUUID();
+    const playlistId = crypto.randomUUID();
+    vi.mocked(database).mockResolvedValue({
+      query: vi.fn(async (sql: string) => {
+        if (sql.includes('FROM users')) return [{ id: userId, handle: 'alice', display_name: 'Alice', avatar_url: null, avatar_thumb_url: null, bio: 'Music', location: 'Banjarmasin', website_url: null, role: 'listener', created_at: '2026-01-01T00:00:00.000Z' }];
+        if (sql.includes("entity_kind='user'")) return [{ provider: 'website', label: 'Site', url: 'https://example.com' }];
+        if (sql.includes('FROM playlists')) return [{ id: playlistId, slug: 'alice-mix', title: 'Alice Mix', description: 'Public songs', like_count: '3', updated_at: '2026-01-02T00:00:00.000Z', track_count: '7' }];
+        if (sql.includes('FROM artists')) return [{ id: artistId, slug: 'alice-artist', name: 'Alice Artist', image_url: 'https://example.com/a.png', location: 'Banjarmasin', source_type: 'community', track_count: '4' }];
+        if (sql.includes('FROM favorites')) return [{ n: '11' }];
+        return [];
+      }),
+    } as any);
+
+    const response = await call('/api/users/alice');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      profile: expect.objectContaining({ handle: 'alice', links: [{ provider: 'website', label: 'Site', url: 'https://example.com' }] }),
+      stats: { publicPlaylists: 1, favorites: 11 },
+      playlists: [{ id: playlistId, slug: 'alice-mix', title: 'Alice Mix', description: 'Public songs', likeCount: 3, trackCount: 7, isPublic: true, updatedAt: '2026-01-02T00:00:00.000Z' }],
+      artists: [{ id: artistId, slug: 'alice-artist', name: 'Alice Artist', imageUrl: 'https://example.com/a.png', location: 'Banjarmasin', sourceType: 'community', trackCount: 4 }],
+    });
+  });
 });
