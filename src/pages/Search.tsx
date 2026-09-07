@@ -7,6 +7,7 @@ import { ArtistTile, AlbumTile, PlaylistTile } from '@/components/Tiles';
 import { listLocalTracks } from '@/local/db';
 import type { LocalTrack } from '@/lib/types';
 import { LocalTrackRow } from '@/components/LocalTrackRow';
+import { IconSearch, IconClose } from '@/components/Icons';
 
 interface Results {
   tracks: Track[];
@@ -63,17 +64,37 @@ export default function Search() {
 
   return (
     <div className="page">
-      <form onSubmit={submit} role="search" style={{ marginBottom: 26 }}>
-        <input
-          type="search"
-          value={input}
-          onChange={(e) => { setInput(e.target.value); setParams(e.target.value.trim() ? { q: e.target.value.trim() } : {}, { replace: true }); }}
-          placeholder="Tracks, artists, releases, playlists…"
-          aria-label="Search query"
-          autoFocus
-          className="search-hero"
-        />
+      <form onSubmit={submit} role="search" className="search-form">
+        <div className="search-field">
+          <IconSearch width={18} height={18} aria-hidden />
+          <input
+            type="search"
+            value={input}
+            onChange={(e) => { setInput(e.target.value); setParams(e.target.value.trim() ? { q: e.target.value.trim() } : {}, { replace: true }); }}
+            placeholder="Tracks, artists, releases…"
+            aria-label="Search query"
+            autoFocus
+            className="search-hero"
+          />
+          {input && (
+            <button
+              type="button"
+              className="icon-btn search-clear"
+              aria-label="Clear search"
+              onClick={() => { setInput(''); setParams({}, { replace: true }); }}
+            >
+              <IconClose width={16} height={16} />
+            </button>
+          )}
+        </div>
       </form>
+
+      {!q && !loading && (
+        <div className="empty">
+          <h3>Search ResonTune</h3>
+          <p>Find tracks, artists, releases and playlists — or browse by <Link to="/genres" style={{ textDecoration: 'underline' }}>genre</Link>.</p>
+        </div>
+      )}
 
       {loading && <div className="loading-page"><span className="spin" /></div>}
 

@@ -24,16 +24,21 @@ import { catalogRouter } from './routes/catalog.ts';
 import { playlistsRouter } from './routes/playlists.ts';
 import { meRouter } from './routes/me.ts';
 import { moderationRouter } from './routes/moderation.ts';
-import { HttpError } from './util/http.ts';
+import { ACCOUNT_GONE_MESSAGE, HttpError, isDeletedAccountViolation } from './util/http.ts';
 import { playRouter } from './routes/play.ts';
 import { siteRouter } from './routes/site.ts';
+import { usersRouter } from './routes/users.ts';
+import { adminRouter } from './routes/admin/index.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.API_PORT ?? process.env.PORT ?? 8787);
 
-async function main() {
-  await migrate();
-
+/**
+ * Build the fully wired Express app (routes, limits, auth, static, errors).
+ * Exported so tests can exercise the real server instead of a copy of its
+ * wiring; `main()` below is the only place that listens on a port.
+ */
+export async function createApp() {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1); // behind Cloudflare/reverse proxy in production
@@ -69,7 +74,10 @@ async function main() {
   /* --------------------------- cache-aware reads --------------------------- */
 
   app.use('/api', (req, res, next) => {
-    if (req.method === 'GET' && !req.path.startsWith('/auth') && !req.path.startsWith('/me')) {
+    const privatePath =
+      req.path.startsWith('/auth') || req.path.startsWith('/me') || req.path.startsWith('/admin') ||
+      req.path.startsWith('/moderation');
+    if (req.method === 'GET' && !privatePath) {
       res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=60');
     } else {
       res.setHeader('Cache-Control', 'no-store');
@@ -84,6 +92,8 @@ async function main() {
   app.use('/api/site', siteRouter());
   app.use('/api/playlists', playlistsRouter());
   app.use('/api/me', meRouter());
+  app.use('/api/users', usersRouter());
+  app.use('/api/admin', adminRouter());
   app.use('/api/moderation', moderationRouter());
 
   app.get('/api/health', (_req, res) => res.json({ ok: true, name: 'resontune' }));
@@ -138,17 +148,39 @@ async function main() {
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Not found.')));
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    const status = err instanceof HttpError ? err.status : 500;
+    // A write that lost a race with account deletion reaches the database as
+    // a foreign-key violation against users. That is not a server fault and
+    // must not read like one: it is the account being gone, in one place, in
+    // one wording, for every router.
+    if (isDeletedAccountViolation(err)) {
+      return void res.status(401).json({ error: ACCOUNT_GONE_MESSAGE });
+    }
+    const status = err instanceof HttpError ? err.status : Number(err?.status ?? err?.statusCode) || 500;
     if (status >= 500) console.error('[api]', err);
-    res.status(status).json({ error: err.message ?? 'Server error.' });
+    // Only deliberate HttpErrors describe themselves to the client; anything
+    // else could carry a driver/stack detail, so it stays generic.
+    const message = err instanceof HttpError || status < 500 ? err.message : 'Something went wrong.';
+    res.status(status).json({ error: message ?? 'Server error.' });
   });
 
+  return app;
+}
+
+async function main() {
+  await migrate();
+  const app = await createApp();
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[resontune] API listening on http://0.0.0.0:${PORT}`);
   });
 }
 
-main().catch((err) => {
-  console.error('Failed to start ResonTune server:', err);
-  process.exit(1);
-});
+/* Started directly (`npm start` / `tsx server/index.ts`), not when a test
+   imports createApp(). */
+const startedDirectly =
+  Boolean(process.argv[1]) && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (startedDirectly) {
+  main().catch((err) => {
+    console.error('Failed to start ResonTune server:', err);
+    process.exit(1);
+  });
+}

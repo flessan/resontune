@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { usePlayer } from './store';
 import { engine } from './engine';
@@ -6,6 +6,9 @@ import { SeekBar } from './SeekBar';
 import { Artwork } from '@/components/Artwork';
 import { SourceChip } from '@/components/Provenance';
 import { MiniSpectrum } from './MiniSpectrum';
+import { ContextMenuButton } from '@/contextmenu/ContextMenuButton';
+import { useContextTarget } from '@/contextmenu/useContextTarget';
+import type { ContextTarget } from '@/contextmenu/types';
 import { extractAccent, applyAccent } from '@/lib/artworkColor';
 import {
   IconPlay, IconPause, IconPrev, IconNext, IconShuffle, IconRepeat,
@@ -14,6 +17,7 @@ import {
 
 export function PlayerBar() {
   const item = usePlayer((s) => s.queue[s.index] ?? null);
+  const index = usePlayer((s) => s.index);
   const playing = usePlayer((s) => s.playing);
   const loading = usePlayer((s) => s.loading);
   const shuffle = usePlayer((s) => s.shuffle);
@@ -47,6 +51,13 @@ export function PlayerBar() {
 
   const openExpanded = () => setView('expanded');
 
+  /* The bar acts on the playing queue entry, so its menu is the queue menu. */
+  const nowTarget = useMemo<ContextTarget | null>(
+    () => (item ? { type: 'queue-item', item, index } : null),
+    [item, index],
+  );
+  const ctxProps = useContextTarget(nowTarget);
+
   return (
     <div
       /* The bar is hidden while nothing is queued and *transitions* in when
@@ -64,7 +75,7 @@ export function PlayerBar() {
       }}
     >
       <div className="pb-miniprogress" ref={miniRef} style={{ width: 0 }} aria-hidden />
-      <div className="pb-now" key={item?.queueId ?? 'idle'}>
+      <div className="pb-now" key={item?.queueId ?? 'idle'} {...ctxProps}>
         {item ? (
           <>
             <button className="pb-art" onClick={openExpanded} aria-label="Open player" style={{ padding: 0, border: 'none' }}>
@@ -146,22 +157,36 @@ export function PlayerBar() {
         <button className="icon-btn desktop-only" onClick={openExpanded} aria-label="Open queue" disabled={!item}>
           <IconQueue width={17} height={17} />
         </button>
+        <ContextMenuButton target={nowTarget} className="icon-btn" size={17} label="More actions for the playing track" />
         <button className="icon-btn desktop-only" onClick={() => setView('immersive')} aria-label="Full screen player" disabled={!item}>
           <IconWave width={17} height={17} />
         </button>
+        {/* The slider is a rarely-used control, so it stays out of the way:
+            the speaker button is always there, and the slider unfolds above
+            it on hover or keyboard focus. It floats, so nothing in the bar
+            shifts when it appears. */}
         <div className="vol-wrap desktop-only">
-          <button className="icon-btn" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'}>
+          <button
+            className="icon-btn vol-btn"
+            onClick={toggleMute}
+            aria-label={muted ? 'Unmute' : 'Mute'}
+            aria-pressed={muted}
+            title={`Volume ${Math.round((muted ? 0 : volume) * 100)}%`}
+          >
             {muted || volume === 0 ? <IconMute width={16} height={16} /> : <IconVolume width={16} height={16} />}
           </button>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.02}
-            value={muted ? 0 : volume}
-            onChange={(e) => setVolume(Number(e.target.value))}
-            aria-label="Volume"
-          />
+          <div className="vol-pop">
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.02}
+              value={muted ? 0 : volume}
+              onChange={(e) => setVolume(Number(e.target.value))}
+              aria-label="Volume"
+              aria-valuetext={`${Math.round((muted ? 0 : volume) * 100)} percent`}
+            />
+          </div>
         </div>
         <button className="icon-btn desktop-only" onClick={openExpanded} aria-label="Expand player" disabled={!item}>
           <IconExpand width={16} height={16} />

@@ -64,7 +64,9 @@ export default function Playlists() {
           )}
           {mine?.playlists.length ? (
             <div className="card-row" style={{ marginBottom: 12 }}>
-              {mine.playlists.map((p) => <PlaylistTile key={p.id} playlist={p} />)}
+              {mine.playlists.map((p) => (
+                <PlaylistTile key={p.id} playlist={p} onChanged={() => setRefresh((n) => n + 1)} />
+              ))}
             </div>
           ) : (
             <p style={{ color: 'var(--ink-muted)', fontSize: 13.5 }}>No playlists yet — create one, or duplicate a public playlist you like.</p>
@@ -78,7 +80,9 @@ export default function Playlists() {
       </div>
       {loading ? <div className="loading-page"><span className="spin" /></div> : (
         <div className="card-row">
-          {pub?.playlists.map((p) => <PlaylistTile key={p.id} playlist={p} />)}
+          {pub?.playlists.map((p) => (
+            <PlaylistTile key={p.id} playlist={p} onChanged={() => setRefresh((n) => n + 1)} />
+          ))}
         </div>
       )}
     </div>

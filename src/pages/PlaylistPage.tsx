@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
 import type { Playlist, Track } from '@/lib/types';
@@ -9,7 +9,13 @@ import { trackToQueueItem } from '@/providers';
 import { api } from '@/lib/api';
 import { toast } from '@/stores/toast';
 import { formatDuration } from '@/lib/format';
-import { IconPlay, IconHeart, IconTrash, IconDownload, IconDots, IconCheck } from '@/components/Icons';
+import { canonicalUrl, shareLink } from '@/lib/share';
+import { IconPlay, IconHeart, IconTrash, IconDownload, IconEdit, IconCheck } from '@/components/Icons';
+import { ContextMenuButton } from '@/contextmenu/ContextMenuButton';
+import { useContextTarget } from '@/contextmenu/useContextTarget';
+import { exportM3U } from '@/contextmenu/actions';
+import type { ContextTarget } from '@/contextmenu/types';
+import { dialogs } from '@/stores/dialogs';
 
 interface Data { playlist: Playlist; tracks: Track[] }
 
@@ -20,6 +26,14 @@ export default function PlaylistPage() {
   const { data, loading, error } = useFetch<Data>(`/playlists/${slug}`, [slug, refresh]);
   const user = useAuth((s) => s.user);
   const [editing, setEditing] = useState(false);
+
+  /* The header carries the playlist's own contextual menu. */
+  const loaded = data?.playlist ?? null;
+  const target = useMemo<ContextTarget | null>(
+    () => (loaded ? { type: 'playlist', playlist: loaded, onChanged: () => setRefresh((n) => n + 1) } : null),
+    [loaded],
+  );
+  const headProps = useContextTarget(target);
 
   if (loading) return <div className="loading-page"><span className="spin" /></div>;
   if (error || !data) {
@@ -69,16 +83,27 @@ export default function PlaylistPage() {
   };
 
   const rename = async () => {
-    const title = window.prompt('Rename playlist', playlist.title);
-    if (!title?.trim() || title === playlist.title) return;
+    const title = await dialogs.prompt({
+      title: 'Rename playlist',
+      label: 'Playlist name',
+      value: playlist.title,
+      confirmLabel: 'Rename',
+    });
+    if (!title || title === playlist.title) return;
     try {
-      await api.patch(`/playlists/${playlist.id}`, { title: title.trim() });
+      await api.patch(`/playlists/${playlist.id}`, { title });
       setRefresh((n) => n + 1);
     } catch (e: any) { toast(e.message); }
   };
 
   const remove = async () => {
-    if (!window.confirm(`Delete “${playlist.title}”? This can't be undone.`)) return;
+    const ok = await dialogs.confirm({
+      title: `Delete “${playlist.title}”?`,
+      body: 'The playlist is removed for everyone it was shared with. This cannot be undone.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await api.del(`/playlists/${playlist.id}`);
       toast('Playlist deleted');
@@ -105,39 +130,23 @@ export default function PlaylistPage() {
   };
 
   const share = async () => {
-    const url = `${location.origin}/playlist/${playlist.slug}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      toast('Link copied to clipboard');
-    } catch {
-      window.prompt('Copy this link', url);
-    }
+    const result = await shareLink({ title: playlist.title, url: canonicalUrl(`/playlist/${playlist.slug}`) });
+    if (result === 'copied') toast('Link copied');
+    if (result === 'failed') toast('Could not share that link.');
   };
 
-  const exportM3U = () => {
-    const lines = ['#EXTM3U'];
-    for (const t of tracks) {
-      lines.push(`#EXTINF:${t.duration ?? -1},${t.artist.name} - ${t.title}`);
-      // Playback URLs are resolved server-side; export links point at the track page.
-      lines.push(new URL(`/track/${t.slug}`, location.origin).toString());
-    }
-    const blob = new Blob([lines.join('\n')], { type: 'audio/x-mpegurl' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${playlist.slug}.m3u`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
+  // Same exporter the contextual “Export as M3U” action uses.
+  const exportPlaylist = () => exportM3U(playlist.slug, tracks);
 
   return (
     <div className="page">
-      <div className="detail-head">
+      <div className="detail-head" {...headProps}>
         <div className="detail-art" style={{ display: 'grid', placeItems: 'center', background: 'var(--accent-soft)' }}>
           <span style={{ fontSize: 26, fontWeight: 600, color: 'var(--on-surface-faint)', textAlign: 'center', padding: '0 16px', lineHeight: 1.25 }}>
             {playlist.title}
           </span>
         </div>
-        <div style={{ minWidth: 240, flex: 1 }}>
+        <div className="detail-identity">
           <div className="detail-kind">
             {playlist.isCurated ? 'Editorial playlist' : playlist.isPublic ? 'Public playlist' : 'Private playlist'}
           </div>
@@ -157,17 +166,18 @@ export default function PlaylistPage() {
               </button>
             )}
             {playlist.isPublic && <button className="btn" onClick={() => void share()}>Share</button>}
-            <button className="btn" onClick={() => void duplicate()}>Duplicate</button>
-            <button className="btn" onClick={exportM3U} title="Export as M3U">
+            <button className="btn compact-hide" onClick={() => void duplicate()}>Duplicate</button>
+            <button className="btn compact-hide" onClick={exportPlaylist} title="Export as M3U">
               <IconDownload width={14} height={14} /> M3U
             </button>
             {isOwner && (
               <>
                 <button className="btn" onClick={() => setEditing((v) => !v)} aria-pressed={editing}>
-                  {editing ? <><IconCheck width={14} height={14} /> Done</> : <><IconDots width={14} height={14} /> Edit</>}
+                  {editing ? <><IconCheck width={14} height={14} /> Done</> : <><IconEdit width={14} height={14} /> Edit</>}
                 </button>
               </>
             )}
+            <ContextMenuButton target={target} className="icon-btn" />
           </div>
           {isOwner && editing && (
             <div className="detail-actions" style={{ marginTop: 8 }}>
@@ -187,7 +197,13 @@ export default function PlaylistPage() {
         {tracks.map((t, i) => (
           <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <TrackRow track={t} index={i} context={tracks} />
+              <TrackRow
+                track={t}
+                index={i}
+                context={tracks}
+                playlist={{ id: playlist.id, title: playlist.title, owned: Boolean(isOwner) }}
+                onChanged={() => setRefresh((n) => n + 1)}
+              />
             </div>
             {isOwner && editing && (
               <div style={{ display: 'flex', gap: 2 }}>

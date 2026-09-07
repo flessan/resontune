@@ -12,8 +12,12 @@ import {
   IconSubmit, IconUser, IconSettings, IconShield, IconWave, IconGitHub,
   IconPlaylist, IconHeart, IconQueue,
 } from './Icons';
+import { ContextMenuRoot } from '@/contextmenu/ContextMenuRoot';
+import { DialogHost } from './DialogHost';
 import { SignInDialog } from './SignInDialog';
+import { Avatar } from './Avatar';
 import { Footer } from './Footer';
+import { useScrollLock } from '@/lib/scrollLock';
 
 const REPO = 'https://github.com/flessan/resontune';
 
@@ -23,6 +27,9 @@ const inLibrary = (path: string) =>
 
 export function Layout() {
   const view = usePlayer((s) => s.view);
+  /* The shell reserves the mini player's row only while something is
+     queued; --player-h follows this class so overlays stay aligned. */
+  const hasPlayer = usePlayer((s) => s.queue.length > 0 && s.index >= 0 && !!s.queue[s.index]);
   const user = useAuth((s) => s.user);
   const toasts = useToasts((s) => s.toasts);
   const [signIn, setSignIn] = useState(false);
@@ -33,6 +40,9 @@ export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [q, setQ] = useState('');
+
+  /* An open drawer is modal on mobile: the page behind it holds still. */
+  useScrollLock(drawer);
 
   /* global shortcuts */
   useEffect(() => {
@@ -118,7 +128,7 @@ export function Layout() {
   );
 
   return (
-    <div className={`app ${collapsed ? 'nav-collapsed' : ''}`}>
+    <div className={`app ${collapsed ? 'nav-collapsed' : ''} ${hasPlayer ? 'has-player' : ''}`}>
       <a href="#main-content" className="visually-hidden">Skip to content</a>
 
       {/* ---- desktop sidebar ---- */}
@@ -135,14 +145,20 @@ export function Layout() {
         <div className="nav-section"><span>Create</span></div>
         <NavLink to="/submit" className={nav} title="Release music"><IconSubmit width={18} height={18} /><span>Release music</span></NavLink>
         {(user?.role === 'moderator' || user?.role === 'admin') && (
-          <NavLink to="/moderation" className={nav} title="Moderation"><IconShield width={18} height={18} /><span>Moderation</span></NavLink>
+          <>
+            <NavLink to="/admin" className={nav} title="Catalog manager"><IconDisc width={18} height={18} /><span>Catalog</span></NavLink>
+            <NavLink to="/moderation" className={nav} title="Moderation"><IconShield width={18} height={18} /><span>Moderation</span></NavLink>
+          </>
         )}
 
         <div style={{ flex: 1 }} />
 
         <NavLink to="/settings" className={nav} title="Settings"><IconSettings width={18} height={18} /><span>Settings</span></NavLink>
         {user ? (
-          <NavLink to="/profile" className={nav} title={user.displayName}><IconUser width={18} height={18} /><span>{user.displayName}</span></NavLink>
+          <NavLink to={`/u/${user.handle}`} className={nav} title={user.displayName}>
+            <Avatar src={user.avatarThumbUrl ?? user.avatarUrl} name={user.displayName} size={18} />
+            <span>{user.displayName}</span>
+          </NavLink>
         ) : (
           <button className="nav-link" onClick={() => setSignIn(true)} title="Sign in">
             <IconUser width={18} height={18} /><span>Sign in</span>
@@ -179,10 +195,19 @@ export function Layout() {
         <NavLink to="/favorites" className={nav}><IconHeart width={18} height={18} /><span>Favorites</span></NavLink>
         <NavLink to="/history" className={nav}><IconQueue width={18} height={18} /><span>History</span></NavLink>
         <NavLink to="/library" className={nav}><IconUser width={18} height={18} /><span>Local music</span></NavLink>
+        {user && (
+          <NavLink to={`/u/${user.handle}`} className={nav}>
+            <Avatar src={user.avatarThumbUrl ?? user.avatarUrl} name={user.displayName} size={18} />
+            <span>Your profile</span>
+          </NavLink>
+        )}
         <div className="nav-section"><span>More</span></div>
         <NavLink to="/submit" className={nav}><IconSubmit width={18} height={18} /><span>Release music</span></NavLink>
         {(user?.role === 'moderator' || user?.role === 'admin') && (
-          <NavLink to="/moderation" className={nav}><IconShield width={18} height={18} /><span>Moderation</span></NavLink>
+          <>
+            <NavLink to="/admin" className={nav}><IconDisc width={18} height={18} /><span>Catalog manager</span></NavLink>
+            <NavLink to="/moderation" className={nav}><IconShield width={18} height={18} /><span>Moderation</span></NavLink>
+          </>
         )}
         <NavLink to="/about" className={nav}><IconDisc width={18} height={18} /><span>About</span></NavLink>
         <NavLink to="/contribute" className={nav}><IconSubmit width={18} height={18} /><span>Contribute</span></NavLink>
@@ -193,7 +218,7 @@ export function Layout() {
         </a>
       </nav>
 
-      <main className="main" id="main-content">
+      <main className="main" id="main-content" tabIndex={-1}>
         <div className="topbar">
           <button ref={hamburgerRef} className="icon-btn hamburger" onClick={() => setDrawer(true)} aria-label="Open navigation" aria-expanded={drawer}>
             {drawer ? <IconClose width={19} height={19} /> : <IconMenu width={19} height={19} />}
@@ -211,7 +236,16 @@ export function Layout() {
             />
           </form>
           <div style={{ flex: 1 }} />
-          {!user && (
+          {/* Phones get a search *action* — the full field lives on the
+              Search destination, where there is room to type. */}
+          <NavLink to="/search" className="icon-btn topbar-search" aria-label="Search">
+            <IconSearch width={19} height={19} />
+          </NavLink>
+          {user ? (
+            <NavLink to={`/u/${user.handle}`} className="topbar-avatar" title={`${user.displayName} — your profile`}>
+              <Avatar src={user.avatarThumbUrl ?? user.avatarUrl} name={user.displayName} size={30} />
+            </NavLink>
+          ) : (
             <button className="btn small" onClick={() => setSignIn(true)}>Sign in</button>
           )}
         </div>
@@ -225,20 +259,25 @@ export function Layout() {
 
       {/* ---- mobile navigation bar: core destinations only ---- */}
       <nav className="tabbar" aria-label="Mobile navigation">
-        <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}><IconHome width={20} height={20} />Home</NavLink>
-        <NavLink to="/search" className={({ isActive }) => (isActive ? 'active' : '')}><IconSearch width={20} height={20} />Search</NavLink>
-        <NavLink to="/radio" className={({ isActive }) => (isActive ? 'active' : '')}><IconWave width={20} height={20} />Radio</NavLink>
+        <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}><IconHome width={20} height={20} /><span>Home</span></NavLink>
+        <NavLink to="/search" className={({ isActive }) => (isActive ? 'active' : '')}><IconSearch width={20} height={20} /><span>Search</span></NavLink>
+        <NavLink to="/radio" className={({ isActive }) => (isActive ? 'active' : '')}><IconWave width={20} height={20} /><span>Radio</span></NavLink>
         <NavLink
           to="/playlists"
           className={({ isActive }) => (isActive || inLibrary(location.pathname) ? 'active' : '')}
         >
-          <IconLibrary width={20} height={20} />Library
+          <IconLibrary width={20} height={20} /><span>Library</span>
         </NavLink>
       </nav>
 
       {view === 'expanded' && <ExpandedPlayer />}
       {view === 'immersive' && <ImmersivePlayer />}
       {signIn && <SignInDialog onClose={() => setSignIn(false)} />}
+
+      {/* Contextual menus and the dialogs their actions raise, mounted once
+          so any row anywhere in the app can reach them. */}
+      <ContextMenuRoot />
+      <DialogHost />
 
       <div className="toast-zone" aria-live="polite">
         {toasts.map((t) => (

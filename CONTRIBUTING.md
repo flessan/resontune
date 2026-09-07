@@ -28,7 +28,8 @@ surface has an honest empty state. Use local music (Library page) for
 playback during development, or publish test rows through SQL if you're
 working on catalog features.
 
-`npm run typecheck` must pass before you open a PR.
+`npm run typecheck` and `npm test` must pass before you open a PR. The test
+suite runs on Vitest + Testing Library in jsdom (`src/**/*.test.ts{,x}`).
 
 ## Project layout
 
@@ -38,6 +39,7 @@ src/player/      engine (audio element + Web Audio graph), store, UI
 src/visualizer/  engine + modes/ (one file per visualizer)
 src/providers/   provider abstraction (hosted, local, external)
 src/local/       IndexedDB library + importer
+src/contextmenu/ contextual action model, menus and action sheets
 src/pages/       route components
 docs/            architecture & operations documentation
 ```
@@ -48,6 +50,10 @@ docs/            architecture & operations documentation
   One file in `src/visualizer/modes/`, registered via `registerMode`.
 - **A provider** — see [docs/providers.md](docs/providers.md). Implement
   `MusicProvider`, register it, and document the terms it complies with.
+- **A contextual action** — see
+  [docs/contextual-actions.md](docs/contextual-actions.md). Extend
+  `buildActions` in `src/contextmenu/actions.ts`; never wire a one-off menu
+  into a component.
 - **API endpoints** — validate all input with zod, keep responses paginated
   and bounded, and never trust the client.
 
@@ -55,7 +61,7 @@ docs/            architecture & operations documentation
 
 1. Fork, branch from `main`.
 2. Keep PRs focused; describe *why*, not just *what*.
-3. `npm run typecheck && npm run build` must pass.
+3. `npm run typecheck && npm test && npm run build` must pass.
 4. UI changes: include a screenshot, check keyboard navigation and
    `prefers-reduced-motion` behavior.
 

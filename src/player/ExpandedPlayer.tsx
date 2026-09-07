@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { usePlayer } from './store';
 import { engine } from './engine';
 import { SeekBar } from './SeekBar';
+import { QueueRow } from './QueueRow';
 import { api } from '@/lib/api';
 import { Artwork } from '@/components/Artwork';
 import { SourceChip, provenanceLabel } from '@/components/Provenance';
@@ -15,7 +16,7 @@ import type { Track } from '@/lib/types';
 import { formatDuration } from '@/lib/format';
 import {
   IconPlay, IconPause, IconPrev, IconNext, IconShuffle, IconRepeat, IconRepeatOne,
-  IconClose, IconWave, IconTrash,
+  IconClose, IconWave,
 } from '@/components/Icons';
 
 type Tab = 'queue' | 'lyrics' | 'about';
@@ -268,28 +269,15 @@ export function ExpandedPlayer() {
             {tab === 'queue' && (
               <div>
                 {queue.map((q, i) => (
-                  <div
+                  <QueueRow
                     key={q.queueId}
-                    className={`queue-item-wrap ${removing === q.queueId ? 'removing' : ''}`}
-                    style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-                  >
-                    <button className={`queue-row ${i === index ? 'current' : ''}`} onClick={() => void jumpTo(i)}>
-                      <div className="q-art"><Artwork src={q.artworkUrl} alt="" /></div>
-                      <div className="q-meta">
-                        <div className="q-title">
-                          {q.title}
-                          <SourceChip origin={q.origin} sourceType={q.sourceType} />
-                        </div>
-                        <div className="q-sub">{q.artistName}</div>
-                      </div>
-                      <span style={{ fontSize: 11.5, color: 'var(--ink-faint)', fontVariantNumeric: 'tabular-nums' }}>
-                        {formatDuration(q.duration)}
-                      </span>
-                    </button>
-                    <button className="icon-btn" onClick={() => removeQueued(q.queueId)} aria-label={`Remove ${q.title} from queue`}>
-                      <IconTrash width={14} height={14} />
-                    </button>
-                  </div>
+                    item={q}
+                    index={i}
+                    current={i === index}
+                    removing={removing === q.queueId}
+                    onPlay={() => void jumpTo(i)}
+                    onRemove={() => removeQueued(q.queueId)}
+                  />
                 ))}
               </div>
             )}

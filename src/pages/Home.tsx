@@ -15,6 +15,7 @@ import { IconPlay } from '@/components/Icons';
 import { api } from '@/lib/api';
 import { toast } from '@/stores/toast';
 import { useAuth } from '@/stores/auth';
+import { Greeting } from '@/components/Greeting';
 
 interface FeaturedRelease extends Album {
   description?: string | null;
@@ -66,20 +67,32 @@ export default function Home() {
     void usePlayer.getState().toggle();
   };
 
-  if (loading) return <div className="loading-page"><span className="spin" /></div>;
-  if (error || !data) return <div className="page"><div className="empty"><h3>Couldn't load the catalog</h3><p>{error}</p></div></div>;
+  // The greeting never waits on the catalog — it belongs to the visitor.
+  if (loading) {
+    return (
+      <div className="page">
+        <Greeting />
+        <div className="loading-page"><span className="spin" /></div>
+      </div>
+    );
+  }
+  if (error || !data) {
+    return (
+      <div className="page">
+        <Greeting />
+        <div className="empty"><h3>Couldn't load the catalog</h3><p>{error}</p></div>
+      </div>
+    );
+  }
 
   const feat = data.featuredRelease;
   const catalogEmpty =
     !feat && !data.originals.length && !data.trending.length &&
     !data.newReleases.length && !data.communityPicks.length;
 
-  const hour = new Date().getHours();
-  const greeting = hour < 5 ? 'Late night listening' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-
   return (
     <div className="page">
-      <h1 className="home-greeting">{greeting}</h1>
+      <Greeting />
 
       {catalogEmpty && (
         <div className="empty" style={{ marginTop: 26 }}>

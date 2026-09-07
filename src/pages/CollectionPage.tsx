@@ -47,10 +47,10 @@ export default function CollectionPage() {
   return (
     <div className="page">
       <div className="detail-head">
-        <div className="detail-art" style={{ aspectRatio: '16/10', width: 300 }}>
+        <div className="detail-art landscape">
           <Artwork src={collection.artworkUrl} alt="" />
         </div>
-        <div className="detail-meta">
+        <div className="detail-identity detail-meta">
           <div className="detail-kind">Collection · {collection.curatorName}</div>
           <h1>{collection.title}</h1>
           {collection.description && <p className="detail-desc">{collection.description}</p>}

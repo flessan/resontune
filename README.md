@@ -84,6 +84,13 @@ music never require an account). Identity providers like GitHub are
 configured inside Neon Auth, not in this codebase. Roles come only from
 `ADMIN_USER_IDS` / `MODERATOR_USER_IDS` (see `.env.example`).
 
+**Profile photos are optional.** Set `IMGBB_API_KEY` (server-side only) to
+let members upload an avatar — the browser sends the image to ResonTune,
+ResonTune forwards it to ImgBB and stores just the URL. Without the key,
+avatars fall back to initials. Music and album artwork are never uploaded:
+administrators paste already-hosted URLs in the catalog manager at `/admin`
+(see [docs/profiles-and-catalog-admin.md](docs/profiles-and-catalog-admin.md)).
+
 ### Production (Neon Postgres + Neon Auth)
 
 ```bash
@@ -102,11 +109,16 @@ production execute identical DDL.
 | [docs/architecture.md](docs/architecture.md) | Domain boundaries, data flow, player/visualizer design |
 | [docs/database.md](docs/database.md) | Schema, migrations, relations, storage migration path |
 | [docs/catalog-model.md](docs/catalog-model.md) | Provenance, rights model, content states, collections, roles |
+| [docs/profiles-and-catalog-admin.md](docs/profiles-and-catalog-admin.md) | Member profiles, ImgBB avatars, the admin catalog manager |
+| [docs/contextual-actions.md](docs/contextual-actions.md) | Right-click menus, ⋮ overflow, action sheets — one action model |
 | [docs/radio.md](docs/radio.md) | Radio stations and deterministic selection |
 | [docs/providers.md](docs/providers.md) | Provider adapters and their rules |
 | [docs/visualizers.md](docs/visualizers.md) | Writing a visualizer mode |
 | [docs/moderation.md](docs/moderation.md) | Catalog administration and content states |
 | [docs/deployment.md](docs/deployment.md) | Deployment, env vars, security posture |
+| [docs/privacy-and-data.md](docs/privacy-and-data.md) | Data inventory, third parties, account deletion, privacy audit |
+| [docs/data-retention.md](docs/data-retention.md) | What is kept, for how long, and who controls it |
+| [docs/incident-response.md](docs/incident-response.md) | Security incident runbook |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
 | [SECURITY.md](SECURITY.md) | Reporting vulnerabilities |
 

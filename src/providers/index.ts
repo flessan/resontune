@@ -62,6 +62,7 @@ export function trackToQueueItem(track: Track): QueueItem | null {
     artistSlug: track.artist.slug,
     trackSlug: track.slug,
     albumTitle: track.album?.title ?? null,
+    albumSlug: track.album?.slug ?? null,
     artworkUrl: track.artworkUrl,
     duration: track.duration,
     sourceType: track.sourceType,

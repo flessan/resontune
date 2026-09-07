@@ -99,7 +99,16 @@
 
   --font: 'Poppins', system-ui, -apple-system, sans-serif;
 
+  /* ---- shell metrics ---------------------------------------------- */
+  /* One horizontal rhythm for every page surface: headings, lists,
+     shelves, heroes and the top bar all read --gutter, so nothing drifts
+     out of alignment at any width. --player-h / --tabbar-h describe the
+     vertical space the player and the navigation bar occupy; fixed
+     overlays (toasts, sheets) position themselves against them instead
+     of hardcoding numbers. */
+  --gutter: 28px;
   --player-h: 76px;
+  --tabbar-h: 0px;
   --sidebar-w: 232px;
 
   --elev-1: 0 1px 2px rgb(0 0 0 / 0.1), 0 1px 3px rgb(0 0 0 / 0.06);
@@ -154,6 +163,22 @@
 }
 
 * { box-sizing: border-box; }
+
+/* ----------------------------------------------- responsive shell metrics
+   The whole layout scales through these four numbers. Compact phones get
+   a 16px gutter, larger phones 20px, tablets 24px, desktop 28px; the
+   mini player and navigation bar publish their real heights so content
+   and overlays can reserve exactly the space they need — no more, and
+   nothing when the player is idle. */
+@media (max-width: 1100px) { :root { --gutter: 24px; } }
+@media (max-width: 860px) {
+  :root {
+    --gutter: 20px;
+    --player-h: 64px;
+    --tabbar-h: calc(56px + env(safe-area-inset-bottom));
+  }
+}
+@media (max-width: 400px) { :root { --gutter: 16px; } }
 
 html, body {
   margin: 0;
@@ -220,6 +245,10 @@ input, textarea, select { font-family: inherit; color: inherit; }
       'tabs';
   }
 }
+
+/* Nothing queued → the player row genuinely takes no space, and every
+   overlay that positions itself above the player follows suit. */
+.app:not(.has-player) { --player-h: 0px; }
 
 /* ----------------------------------------------- sidebar (desktop)
    Streaming-app navigation column: quiet tonal surface, compact
@@ -361,21 +390,29 @@ input, textarea, select { font-family: inherit; color: inherit; }
   grid-area: main;
   overflow-y: auto;
   overflow-x: hidden;
+  /* the scroll container is the page body: keep its scrolling to itself
+     so a bounce never drags the shell, and never let a nested surface
+     chain into it */
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
+  /* anchors and focus scrolls stop clear of the sticky top bar */
+  scroll-padding-top: 64px;
+  min-height: 0;
   position: relative;
 }
 
 .page {
   max-width: 1360px;
   margin: 0 auto;
-  padding: 16px 28px 56px;
+  padding: 16px var(--gutter) 48px;
   animation: page-in var(--dur-quick) var(--ease-standard);
 }
 @keyframes page-in {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
-@media (max-width: 640px) { .page { padding: 12px 14px 40px; } }
+@media (max-width: 860px) { .page { padding: 8px var(--gutter) 28px; } }
 
 /* Top bar: quiet, useful — hamburger (mobile), search, account. */
 .topbar {
@@ -385,7 +422,7 @@ input, textarea, select { font-family: inherit; color: inherit; }
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 28px 8px;
+  padding: 10px var(--gutter) 8px;
   background: transparent;
   backdrop-filter: blur(14px);
   transition: background var(--dur-quick) var(--ease-standard), box-shadow var(--dur-quick) var(--ease-standard);
@@ -395,13 +432,37 @@ input, textarea, select { font-family: inherit; color: inherit; }
   background: color-mix(in srgb, var(--surface) 90%, transparent);
   box-shadow: 0 1px 0 var(--outline-variant);
 }
-@media (max-width: 640px) { .topbar { padding: 8px 12px; } }
 /* Hamburger + brand live in the top bar only on mobile; on desktop the
    sidebar carries both. */
-.topbar .hamburger, .topbar-brand { display: none; }
+.topbar .hamburger, .topbar .topbar-brand, .topbar .topbar-search { display: none; }
 @media (max-width: 860px) {
+  /* A header of its own, not a squeezed desktop bar: one comfortable
+     row — navigation, wordmark, search, account — with real breathing
+     room and 44px targets. The full search field is one tap away on the
+     Search destination instead of being crushed in here. */
+  .topbar {
+    gap: 4px;
+    padding: 6px var(--gutter);
+    min-height: 56px;
+  }
   .topbar .hamburger { display: inline-grid; }
-  .topbar-brand { display: inline; font-size: 17px; margin-right: 2px; }
+  .topbar .search-box { display: none; }
+  .topbar .topbar-search { display: inline-grid; }
+  .topbar .topbar-brand {
+    display: inline-flex;
+    align-items: center;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+    padding: 4px 6px;
+    margin-right: 2px;
+  }
+  .topbar .btn.small { padding: 9px 16px; font-size: 13px; }
+  .topbar .topbar-avatar {
+    display: inline-grid;
+    place-items: center;
+    width: 44px; height: 44px;
+    border-radius: var(--shape-full);
+  }
 }
 
 /* M3 search bar: full-round field on surface-container-high. */
@@ -443,6 +504,16 @@ input, textarea, select { font-family: inherit; color: inherit; }
   box-shadow: 0 0 0 2px var(--accent-soft);
   outline: none;
 }
+@media (max-width: 860px) {
+  /* Full-width, thumb-sized, 16px text (no iOS zoom on focus), and the
+     placeholder always fits. */
+  .search-hero {
+    max-width: none;
+    padding: 15px 20px;
+    min-height: 52px;
+    text-overflow: ellipsis;
+  }
+}
 
 .search-box svg {
   position: absolute;
@@ -476,6 +547,13 @@ h1.page-title {
   margin: 30px 0 12px;
 }
 .section-head:first-child { margin-top: 0; }
+@media (max-width: 860px) {
+  /* Sections read as a rhythm of shelves, not as one long column of
+     text: slightly tighter above, a touch more air below the heading. */
+  h1.page-title { font-size: 22px; }
+  .page-sub { margin-bottom: 20px; }
+  .section-head { margin: 24px 0 10px; }
+}
 .section-title {
   font-weight: 600;
   font-size: 16px;
@@ -486,6 +564,10 @@ h1.page-title {
 /* "See all" — quiet text action, consistent on every section */
 .section-link { font-size: 12.5px; color: var(--on-surface-muted); font-weight: 500; }
 .section-link:hover { color: var(--primary); }
+/* "See all" is a real target on touch, not 12px of text. */
+@media (max-width: 860px) {
+  .section-link { font-size: 13px; display: inline-flex; align-items: center; min-height: 32px; padding-left: 10px; }
+}
 
 /* ------------------------------------------------------- tiles & shelves */
 
@@ -495,16 +577,23 @@ h1.page-title {
   gap: 24px 16px;
 }
 .card-row.wide { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+@media (max-width: 640px) {
+  /* Two readable columns on a phone instead of three cramped ones. */
+  .card-row { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px 14px; }
+  .card-row.wide { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+}
 
 /* Horizontal shelf — the primary browsing pattern. Scrolls sideways,
-   snaps per tile, scrollbar hidden. */
+   snaps per tile, scrollbar hidden. The shelf bleeds to the screen edge
+   but its first tile always lines up with the page gutter. */
 .shelf {
   display: flex;
   gap: 14px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
-  padding: 4px 28px 8px;
-  margin: 0 -28px;
+  padding: 4px var(--gutter) 8px;
+  margin: 0 calc(-1 * var(--gutter));
   scrollbar-width: none;
 }
 .shelf::-webkit-scrollbar { display: none; }
@@ -524,9 +613,9 @@ h1.page-title {
 }
 .shelf > .collection-tile { flex-basis: 240px; }
 @media (max-width: 640px) {
-  .shelf { padding: 4px 14px 8px; margin: 0 -14px; gap: 12px; }
-  .shelf > * { flex-basis: 124px; }
-  .shelf > .collection-tile { flex-basis: 200px; }
+  .shelf { gap: 12px; }
+  .shelf > * { flex-basis: 132px; }
+  .shelf > .collection-tile { flex-basis: 210px; }
 }
 
 /* Tiles are free artwork + two text lines — never boxes. */
@@ -574,6 +663,20 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
 .tile:hover .tile-play, .tile:focus-within .tile-play { opacity: 1; transform: none; }
 @media (hover: none) { .tile-play { opacity: 1; transform: none; width: 34px; height: 34px; } }
 
+/* Tile overflow trigger — the touch route into the same contextual menu. */
+.tile-more {
+  position: absolute;
+  top: 6px; right: 6px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity var(--dur-micro) var(--ease-standard), background var(--dur-micro) var(--ease-standard);
+}
+.tile-more:hover, .tile-more:focus-visible { background: rgba(0, 0, 0, 0.6); color: #fff; }
+.tile:hover .tile-more, .tile:focus-within .tile-more, .tile-more[aria-expanded='true'] { opacity: 1; }
+@media (hover: none) { .tile-more { opacity: 1; } }
+
 .tile-title {
   margin: 8px 1px 0;
   font-weight: 500;
@@ -591,6 +694,12 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
   overflow: hidden;
   text-overflow: ellipsis;
 }
+@media (max-width: 860px) {
+  /* Card text stays legible at arm's length; the whole tile is the tap
+     target, so the type can breathe a little more. */
+  .tile-title { font-size: 13.5px; margin-top: 9px; }
+  .tile-sub { font-size: 12.5px; }
+}
 .tile-sub a:hover { color: var(--primary); }
 
 .artist-tile .tile-art { border-radius: 50%; }
@@ -598,6 +707,7 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
 /* ---------------------------------------------------------------- track list */
 
 .tracklist { margin: 0 -10px; }
+@media (max-width: 860px) { .tracklist { margin: 0 -8px; } }
 /* Home lists: two dense columns on wide screens for quick scanning. */
 @media (min-width: 1000px) {
   .home-tracklist {
@@ -707,6 +817,44 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
   font-variant-numeric: tabular-nums;
   min-width: 40px;
   text-align: right;
+}
+
+/* ---- touch track rows -------------------------------------------------
+   Same markup, same data, same player calls as the desktop row — only the
+   density changes. The index column and the duration give their width to
+   the title (the scarcest resource on a phone), artwork grows to a
+   legible 48px, the row is a 64px target, and the ⋮ is permanently
+   available because there is no hover to reveal it. The "now playing"
+   tell moves onto the artwork, where the index used to carry it. */
+.track-row .art-state { display: none; }
+@media (max-width: 860px) {
+  .track-row {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 12px;
+    min-height: 64px;
+    padding: 6px 8px;
+    border-radius: var(--shape-md);
+  }
+  .track-row .idx, .track-row .dur { display: none; }
+  .track-row .art { width: 48px; height: 48px; border-radius: var(--shape-sm); position: relative; }
+  .track-row .t-title { font-size: 14.5px; line-height: 1.35; }
+  .track-row .t-sub { font-size: 12.5px; margin-top: 1px; }
+  .track-row .actions { gap: 0; }
+  .track-row.playing .art-state {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+  }
+  .track-row.playing .art-state .eq i { background: #fff; }
+}
+/* On the narrowest phones the row keeps one unambiguous overflow button:
+   the heart stays only when it is carrying state (already a favourite);
+   "Add to favorites" is one tap away in the sheet. */
+@media (max-width: 520px) {
+  .track-row .actions .fav-btn:not(.active) { display: none; }
 }
 
 /* Provenance chips — one quiet visual voice; informative, never loud. */
@@ -1162,12 +1310,19 @@ textarea.input { resize: vertical; }
    floating card, no shadow, no margins. */
 @media (max-width: 860px) {
   .player-bar {
-    grid-template-columns: 1fr auto;
-    height: 60px;
-    padding: 0 12px;
+    /* three columns in ONE row: metadata · transport · overflow.
+       (With two columns the overflow button wrapped onto a second row
+       and spilled over the navigation bar.) */
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    height: var(--player-h);
+    padding: 0 10px 0 12px;
+    gap: 6px;
     cursor: pointer;
     background: color-mix(in srgb, var(--player-tint) 8%, var(--surface-container));
     border-radius: var(--shape-md) var(--shape-md) 0 0;
+    /* a hairline is all it takes to read as a surface the page scrolls
+       under, rather than something floating on top of the content */
+    box-shadow: 0 -1px 0 var(--outline-variant);
   }
 }
 
@@ -1187,11 +1342,17 @@ textarea.input { resize: vertical; }
   cursor: pointer;
   box-shadow: var(--elev-1);
 }
-@media (max-width: 860px) { .pb-art { width: 42px; height: 42px; } }
+@media (max-width: 860px) { .pb-art { width: 44px; height: 44px; } }
 .pb-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 /* Metadata yields to ellipsis past ~65% of the row so the spectrum always
    keeps a sliver of room to breathe. */
 .pb-meta { min-width: 0; flex: 0 1 auto; max-width: 65%; }
+@media (max-width: 860px) {
+  /* On a phone the title is the point: the spectrum steps aside and the
+     metadata takes the whole column. */
+  .pb-meta { flex: 1 1 auto; max-width: none; }
+  .pb-now { gap: 10px; }
+}
 @media (max-width: 640px) { .pb-meta .source-chip { display: none; } }
 .pb-title {
   font-size: 13px; font-weight: 600; line-height: 1.4;
@@ -1200,6 +1361,10 @@ textarea.input { resize: vertical; }
 .pb-sub {
   font-size: 11.5px; color: var(--on-surface-muted); line-height: 1.4;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+@media (max-width: 860px) {
+  .pb-title { font-size: 13.5px; }
+  .pb-sub { font-size: 12px; }
 }
 
 .pb-center { display: flex; flex-direction: column; align-items: center; gap: 2px; }
@@ -1262,8 +1427,14 @@ textarea.input { resize: vertical; }
 @media (max-width: 860px) {
   .pb-right .desktop-only,
   .pb-center .desktop-only { display: none; }
-  /* Mobile mini player: metadata + spectrum + play/next only. */
+  /* Mobile mini player: play/pause and next, both thumb-sized, plus the
+     overflow button that opens the same action sheet as a long press.
+     Previous lives in the expanded player. */
   .pb-controls .icon-btn[aria-label='Previous track'] { display: none; }
+  .pb-controls { gap: 2px; }
+  .pb-controls .icon-btn { width: 44px; height: 44px; }
+  .pb-play { width: 44px; height: 44px; margin: 0 2px; }
+  .pb-right .ctx-trigger { min-width: 44px; min-height: 44px; }
 }
 
 /* No music → no player. The bar is one persistent element that
@@ -1332,7 +1503,8 @@ textarea.input { resize: vertical; }
   -webkit-mask-image: linear-gradient(to right, transparent, #000 14%, #000 92%, transparent);
 }
 @media (max-width: 860px) {
-  .pb-spectrum { height: 24px; flex-basis: 30px; }
+  /* the mini player gives its width to the title instead */
+  .pb-spectrum { display: none; }
 }
 
 /* Ambient visualizer layer in the expanded player — a surface behavior,
@@ -1394,11 +1566,66 @@ textarea.input { resize: vertical; }
 }
 .ps-vis-dial input[type='range'] { width: 100%; accent-color: var(--accent); }
 
-.vol-wrap { display: flex; align-items: center; gap: 6px; width: 110px; }
-.vol-wrap input[type='range'] {
-  flex: 1;
+/* Volume: the speaker button holds the space, the slider unfolds above it
+   on hover or focus. Floating keeps the transport buttons where they were
+   and stops a stray pointer from grabbing a slider nobody asked for. */
+.vol-wrap { position: relative; display: flex; align-items: center; }
+.vol-pop {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translate(-50%, 4px);
+  padding: 10px 12px;
+  border-radius: var(--shape-md);
+  background: var(--surface-container-highest, var(--surface-container-high));
+  border: 1px solid var(--outline-variant);
+  box-shadow: var(--elev-2, 0 8px 24px rgb(0 0 0 / 35%));
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 60;
+  transition: opacity 0.14s var(--ease-standard), transform 0.14s var(--ease-standard), visibility 0.14s;
+}
+/* A hover bridge: the pointer can travel from the button to the slider
+   without passing through a gap that would close it. */
+.vol-pop::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 100%;
+  height: 10px;
+}
+.vol-wrap:hover .vol-pop,
+.vol-wrap:focus-within .vol-pop {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+.vol-pop input[type='range'] {
+  display: block;
+  width: 104px;
   accent-color: var(--accent);
   height: 4px;
+  margin: 0;
+}
+.vol-btn[aria-pressed='true'] { color: var(--accent); }
+/* Touch and pen: there is no hover, so keep the slider in the bar. */
+@media (hover: none) {
+  .vol-pop {
+    position: static;
+    transform: none;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    padding: 0 0 0 6px;
+    background: none;
+    border: 0;
+    box-shadow: none;
+  }
+  .vol-pop::after { content: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vol-pop { transition: none; transform: translate(-50%, 0); }
 }
 
 /* mini progress line on mobile bar */
@@ -1462,21 +1689,28 @@ textarea.input { resize: vertical; }
   grid-area: tabs;
   display: none;
   background: var(--surface-container);
-  padding: 6px 0 max(8px, env(safe-area-inset-bottom));
+  /* a fixed, predictable height the rest of the layout can reason about */
+  height: var(--tabbar-h);
+  padding: 0 4px env(safe-area-inset-bottom);
+  box-shadow: 0 -1px 0 var(--outline-variant);
 }
 @media (max-width: 860px) { .tabbar { display: flex; } }
 .tabbar a {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 3px;
   font-size: 11px;
   font-weight: 500;
   color: var(--on-surface-variant);
-  padding: 4px 0 2px;
+  padding: 6px 2px;
+  min-height: 48px;
   -webkit-tap-highlight-color: transparent;
 }
+.tabbar a span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tabbar a { transition: color var(--dur-micro) var(--ease-standard); }
 .tabbar a svg {
   border-radius: var(--shape-full);
@@ -1812,47 +2046,161 @@ textarea.input { resize: vertical; }
   font-weight: 600;
 }
 
-/* Compact anchored menu (track ⋮, overflow actions) */
-.track-menu-wrap { position: relative; }
-.menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
-  min-width: 190px;
+/* ------------------------------------------------------------------ *
+ * Contextual menus: one surface for right-click, the ⋮ trigger and the
+ * mobile action sheet. Portalled to <body>, so positioning is fixed and
+ * nothing in the page can clip it.
+ * ------------------------------------------------------------------ */
+.ctx-trigger {
+  display: inline-grid;
+  place-items: center;
+  border: none;
+  background: none;
+  color: var(--on-surface-muted);
+  border-radius: var(--shape-full);
+  padding: 6px;
+  cursor: pointer;
+  transition: background var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard);
+}
+.ctx-trigger:hover { background: var(--state-hover); color: var(--on-surface); }
+.ctx-trigger:active { background: var(--state-press); }
+.ctx-trigger[aria-expanded='true'] { background: var(--state-press); color: var(--on-surface); }
+
+.ctx-menu {
+  position: fixed;
+  z-index: 190;                 /* above the player (100) and dialogs (120) */
+  min-width: 216px;
+  max-width: min(320px, calc(100vw - 16px));
   padding: 6px;
   border-radius: var(--shape-md);
   background: var(--surface-container-high);
+  border: 1px solid var(--line);
   box-shadow: var(--elev-3);
-  z-index: 60;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: ctx-in var(--dur-micro) var(--ease-emphasized);
+}
+.ctx-menu:focus { outline: none; }
+.ctx-menu.closing { animation: ctx-out 110ms var(--ease-exit) forwards; }
+
+/* Short, small, and mostly opacity — a menu should look placed, not thrown. */
+@keyframes ctx-in {
+  from { opacity: 0; transform: scale(0.97) translateY(-2px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ctx-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: scale(0.98); }
+}
+
+.ctx-group + .ctx-group {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid var(--line);
+}
+
+.ctx-item {
   display: flex;
-  flex-direction: column;
-  animation: menu-pop var(--dur-quick) var(--ease-emphasized);
-  transform-origin: top right;
-}
-/* exit: shrink back toward the ⋮ that opened it */
-.menu.closing { animation: menu-pop-out var(--dur-micro) var(--ease-exit) forwards; }
-@keyframes menu-pop-out {
-  from { opacity: 1; transform: scale(1); }
-  to { opacity: 0; transform: scale(0.95); }
-}
-@keyframes menu-pop {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-.menu-item {
+  align-items: center;
+  gap: 10px;
+  width: 100%;
   border: none;
   background: none;
   text-align: left;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 500;
+  line-height: 1.3;
   color: var(--on-surface);
-  padding: 9px 12px;
+  padding: 8px 10px;
   border-radius: var(--shape-sm);
-  white-space: nowrap;
-  transition: background 0.1s var(--ease-standard);
+  cursor: pointer;
+  transition: background var(--dur-micro) var(--ease-standard);
 }
-.menu-item:hover { background: var(--state-hover); }
-.menu-item:active { background: var(--state-press); }
+.ctx-item > svg { flex: none; color: var(--on-surface-muted); }
+.ctx-item .ctx-icon-space { width: 16px; flex: none; }
+.ctx-item .ctx-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ctx-item .ctx-hint {
+  flex: none;
+  max-width: 40%;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--on-surface-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ctx-item:hover, .ctx-item.active { background: var(--state-hover); }
+.ctx-item:active { background: var(--state-press); }
+.ctx-item:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.ctx-item.danger { color: var(--error); }
+.ctx-item.danger > svg { color: var(--error); }
+.ctx-item.danger:hover, .ctx-item.danger.active { background: color-mix(in srgb, var(--error) 12%, transparent); }
+
+/* ---- touch: the same actions as a bottom sheet ---- */
+.ctx-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  background: rgba(20, 17, 12, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fade-in var(--dur-micro) var(--ease-standard);
+}
+.ctx-sheet-backdrop.closing { animation: fade-out 110ms var(--ease-exit) forwards; }
+.ctx-sheet {
+  width: min(560px, 100%);
+  max-height: 76dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 10px calc(14px + env(safe-area-inset-bottom));
+  background: var(--surface-container-high);
+  border-radius: var(--shape-xl) var(--shape-xl) 0 0;
+  box-shadow: var(--elev-3);
+  animation: ctx-sheet-in var(--dur-quick) var(--ease-emphasized);
+}
+.ctx-sheet:focus { outline: none; }
+.ctx-sheet.closing { animation: ctx-sheet-out 110ms var(--ease-exit) forwards; }
+@keyframes ctx-sheet-in {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes ctx-sheet-out {
+  from { transform: none; opacity: 1; }
+  to { transform: translateY(8px); opacity: 0; }
+}
+@keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+/* Grab handle: part of the header, so the same element people reach for
+   is the one that accepts the dismissing drag. */
+.ctx-sheet-head::before {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 4px;
+  margin: 0 auto 12px;
+  border-radius: var(--shape-full);
+  background: var(--outline-variant);
+}
+.ctx-sheet-head {
+  padding: 6px 8px 10px;
+  touch-action: none;
+  cursor: grab;
+}
+.ctx-sheet-title { font-size: 15px; font-weight: 600; color: var(--on-surface); }
+.ctx-sheet-sub { font-size: 12px; color: var(--on-surface-muted); margin-top: 2px; }
+.ctx-sheet .ctx-item { font-size: 15px; padding: 13px 10px; gap: 14px; }
+.ctx-sheet .ctx-item .ctx-hint { font-size: 12.5px; }
+
+/* Reduced motion: the menu appears, it does not perform. */
+@media (prefers-reduced-motion: reduce) {
+  .ctx-menu, .ctx-menu.closing,
+  .ctx-sheet, .ctx-sheet.closing,
+  .ctx-sheet-backdrop, .ctx-sheet-backdrop.closing { animation: none; }
+}
+
+/* Dialogs raised by contextual actions */
+.dialog.compact { max-width: 400px; padding: 22px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 
 .empty {
   padding: 48px 24px;
@@ -1925,10 +2273,6 @@ textarea.input { resize: vertical; }
   font-size: 64px;
   color: var(--on-surface-faint);
 }
-@media (max-width: 640px) {
-  .detail-head { gap: 18px; }
-  .detail-art { width: 140px; height: 140px; }
-}
 .detail-kind {
   font-size: 10.5px;
   font-weight: 600;
@@ -1950,6 +2294,31 @@ textarea.input { resize: vertical; }
 .detail-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
 
 .prose { color: var(--on-surface-variant); line-height: 1.7; max-width: 68ch; }
+
+@media (max-width: 640px) {
+  /* Mobile hero: artwork over name, not beside it. A 140px thumbnail
+     next to three lines of type left neither enough room; stacked, the
+     art can be big enough to recognise and the title gets the full
+     width. Actions sit directly under the metadata, thumb-height, with
+     Play taking the lead. */
+  .detail-head {
+    display: block;
+    margin-bottom: 20px;
+  }
+  .detail-art {
+    width: min(46vw, 190px);
+    height: min(46vw, 190px);
+    margin-bottom: 14px;
+  }
+  .detail-art .art-fallback { font-size: 48px; }
+  .detail-title { font-size: 26px; }
+  .detail-meta { font-size: 13px; }
+  .detail-actions { margin-top: 14px; gap: 8px; }
+  .detail-actions .btn { min-height: 44px; }
+  .detail-actions .btn.primary { flex: 1 1 auto; min-width: 140px; }
+  .detail-actions .icon-btn { width: 44px; height: 44px; }
+  .prose { font-size: 13.5px; line-height: 1.65; }
+}
 
 /* dialogs */
 .dialog-backdrop {
@@ -1982,7 +2351,9 @@ textarea.input { resize: vertical; }
 /* toast */
 .toast-zone {
   position: fixed;
-  bottom: calc(var(--player-h) + 16px);
+  /* always clears whatever is actually at the bottom: the player when it
+     is playing, the navigation bar on mobile, neither when idle */
+  bottom: calc(var(--player-h) + var(--tabbar-h) + 14px);
   left: 50%;
   transform: translateX(-50%);
   z-index: 200;
@@ -1991,10 +2362,7 @@ textarea.input { resize: vertical; }
   gap: 8px;
   align-items: center;
   pointer-events: none;
-}
-@media (max-width: 860px) {
-  /* clear the mini player AND the navigation bar */
-  .toast-zone { bottom: calc(60px + 72px + env(safe-area-inset-bottom)); }
+  max-width: calc(100vw - 2 * var(--gutter));
 }
 /* M3 snackbar: inverse surface */
 .toast {
@@ -2076,3 +2444,864 @@ table.simple td { padding: 8px 10px; border-bottom: 1px solid var(--outline-vari
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* ============================================================
+   Profiles, the account editor and the catalog manager.
+   Same language as the rest of the app: tonal surfaces, one
+   typeface, short purposeful motion. The manager is denser than
+   the listener UI — never a different product.
+   ============================================================ */
+
+/* ------------------------------------------------------------ greeting */
+
+/* Re-mounted (keyed) whenever the phrase changes, so the rise replays on
+   sign-in/out and at each daypart boundary. */
+.home-greeting {
+  animation: greeting-in var(--dur-standard) var(--ease-emphasized) both;
+}
+@keyframes greeting-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* -------------------------------------------------------------- avatars */
+
+.avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  display: inline-block;
+  flex-shrink: 0;
+  background: var(--surface-container-high);
+}
+.avatar-fallback {
+  display: inline-grid;
+  place-items: center;
+  font-weight: 600;
+  color: var(--on-primary-container);
+  background: var(--primary-container);
+  line-height: 1;
+  user-select: none;
+}
+.topbar-avatar {
+  display: inline-flex;
+  border-radius: 50%;
+  padding: 2px;
+  transition: background var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
+}
+.topbar-avatar:hover { background: var(--state-hover); }
+.topbar-avatar:active { transform: scale(0.94); }
+
+/* ------------------------------------------------------- public profile */
+
+.profile-head {
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+  margin: 6px 0 30px;
+  animation: profile-in var(--dur-standard) var(--ease-standard) both;
+}
+@keyframes profile-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.profile-avatar { box-shadow: var(--elev-1); }
+.profile-identity { min-width: 0; flex: 1; }
+.profile-role-row {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 11.5px; color: var(--on-surface-faint);
+  text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500;
+}
+.role-chip {
+  padding: 2px 8px;
+  border-radius: var(--shape-full);
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+  letter-spacing: 0.06em;
+}
+.profile-name {
+  font-size: 32px; font-weight: 700; letter-spacing: -0.02em;
+  margin: 6px 0 2px; line-height: 1.15;
+}
+.profile-username { color: var(--on-surface-muted); font-size: 13.5px; }
+.profile-bio {
+  margin: 12px 0 0; max-width: 62ch;
+  font-size: 14px; line-height: 1.65; color: var(--on-surface-variant);
+  white-space: pre-wrap;
+}
+.profile-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.profile-link {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: var(--shape-full);
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+  font-size: 12.5px; font-weight: 500;
+  transition: background var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
+}
+.profile-link:hover { background: var(--surface-container-highest); color: var(--on-surface); }
+.profile-link:active { transform: scale(0.97); }
+
+.profile-artist-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+.profile-artist-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px 10px 10px;
+  border-radius: var(--shape-md);
+  background: var(--surface-container-low);
+  transition: background var(--dur-quick) var(--ease-standard), transform var(--dur-quick) var(--ease-standard);
+}
+.profile-artist-card:hover { background: var(--surface-container); }
+.profile-artist-card:active { transform: scale(0.99); }
+.profile-artist-card span { display: grid; }
+.profile-artist-card strong { font-size: 13.5px; font-weight: 600; }
+.profile-artist-card em { font-style: normal; font-size: 12px; color: var(--on-surface-muted); }
+
+.profile-playlists {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.profile-playlist {
+  display: grid; gap: 3px;
+  padding: 14px 16px;
+  border-radius: var(--shape-md);
+  background: var(--surface-container-low);
+  transition: background var(--dur-quick) var(--ease-standard), transform var(--dur-quick) var(--ease-standard);
+}
+.profile-playlist:hover { background: var(--surface-container); }
+.profile-playlist:active { transform: scale(0.99); }
+.profile-playlist strong { font-size: 14px; font-weight: 600; }
+.profile-playlist span { font-size: 12px; color: var(--on-surface-muted); }
+.profile-playlist em {
+  font-style: normal; font-size: 12.5px; color: var(--on-surface-faint);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Overflow trigger on a card that is itself a link. */
+.profile-playlist, .profile-artist-card { position: relative; }
+.card-more {
+  position: absolute;
+  top: 8px; right: 8px;
+  opacity: 0;
+}
+.profile-playlist:hover .card-more, .profile-playlist:focus-within .card-more,
+.profile-artist-card:hover .card-more, .profile-artist-card:focus-within .card-more,
+.card-more[aria-expanded='true'] { opacity: 1; }
+@media (hover: none) { .card-more { opacity: 1; } }
+
+@media (max-width: 640px) {
+  .profile-head { gap: 16px; }
+  .profile-name { font-size: 25px; }
+}
+
+/* ----------------------------------------------------- forms / editors */
+
+.page-narrow { max-width: 720px; }
+
+.edit-card {
+  background: var(--surface-container-low);
+  border-radius: var(--shape-lg);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  animation: card-in var(--dur-quick) var(--ease-standard) both;
+}
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.edit-card-title {
+  margin: 0 0 14px;
+  font-size: 13px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--on-surface-muted);
+}
+.edit-card-note {
+  margin: -6px 0 14px;
+  font-size: 12.5px; line-height: 1.55; color: var(--on-surface-muted);
+  max-width: 60ch;
+}
+.edit-actions {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  margin: 22px 0 8px;
+}
+.avatar-editor { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.optional {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--on-surface-faint); font-weight: 500; margin-left: 4px;
+}
+.hint-error { color: var(--error); }
+.hint-warn { color: var(--tertiary); }
+.input-prefix {
+  display: flex; align-items: center; gap: 6px;
+  padding-left: 12px;
+  background: var(--surface-container-high);
+  border-radius: var(--shape-sm);
+}
+.input-prefix span { color: var(--on-surface-faint); font-size: 14px; }
+.input-prefix input { background: transparent !important; padding-left: 0 !important; }
+
+.field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.link-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.5fr) 1fr auto;
+  gap: 8px; align-items: center; margin-bottom: 10px;
+}
+.link-row input {
+  padding: 9px 12px;
+  border: none; border-radius: var(--shape-sm);
+  background: var(--surface-container-high);
+  color: var(--on-surface); font-size: 13.5px; font-family: inherit;
+}
+.link-row input:focus { outline: none; box-shadow: inset 0 0 0 1px var(--primary); }
+.link-row-error { grid-column: 1 / -1; margin: -2px 0 2px; }
+
+/* ------------------------------------------------------ catalog manager */
+
+.admin-page { max-width: 1180px; }
+.admin-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.admin-sub {
+  margin: 4px 0 0; font-size: 13px; line-height: 1.55;
+  color: var(--on-surface-muted); max-width: 60ch;
+}
+.admin-readonly {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; border-radius: var(--shape-full);
+  background: var(--tertiary-container); color: var(--on-tertiary-container);
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.admin-tabs {
+  display: flex; gap: 2px; flex-wrap: wrap;
+  margin: 20px 0 18px;
+  border-bottom: 1px solid var(--outline-variant);
+}
+.admin-tab {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 14px;
+  font-size: 13px; font-weight: 500;
+  color: var(--on-surface-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color var(--dur-micro) var(--ease-standard), background var(--dur-micro) var(--ease-standard);
+  border-radius: var(--shape-sm) var(--shape-sm) 0 0;
+}
+.admin-tab:hover { background: var(--state-hover); color: var(--on-surface); }
+.admin-tab.active { color: var(--primary); font-weight: 600; border-bottom-color: var(--primary); }
+.admin-tab.active svg { color: var(--primary); }
+
+.admin-toolbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.admin-search {
+  flex: 1 1 220px; max-width: 320px;
+  padding: 9px 14px;
+  border: none; border-radius: var(--shape-full);
+  background: var(--surface-container-high);
+  color: var(--on-surface); font-size: 13.5px; font-family: inherit;
+  transition: box-shadow var(--dur-micro) var(--ease-standard);
+}
+.admin-search:focus { outline: none; box-shadow: 0 0 0 2px var(--accent-soft); }
+.admin-toolbar-end { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+.admin-stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px; margin-bottom: 26px;
+}
+.admin-stat {
+  padding: 16px 18px;
+  border-radius: var(--shape-lg);
+  background: var(--surface-container-low);
+  transition: background var(--dur-quick) var(--ease-standard), transform var(--dur-quick) var(--ease-standard);
+}
+.admin-stat:hover { background: var(--surface-container); }
+.admin-stat:active { transform: scale(0.99); }
+.admin-stat .n { font-size: 26px; font-weight: 600; line-height: 1.1; }
+.admin-stat .l {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--on-surface-muted); margin-top: 2px;
+}
+.admin-stat-split {
+  display: flex; gap: 10px; margin-top: 10px;
+  font-size: 11.5px; color: var(--on-surface-faint);
+}
+
+.admin-attention {
+  margin: 0 0 24px; padding: 12px 16px 12px 32px;
+  border-radius: var(--shape-md);
+  background: color-mix(in srgb, var(--tertiary-container) 60%, transparent);
+  font-size: 13px; line-height: 1.9;
+}
+.admin-attention a { color: var(--on-tertiary-container); text-decoration: underline; }
+.admin-quick { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.admin-list { display: flex; flex-direction: column; gap: 4px; }
+.admin-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--shape-md);
+  background: var(--surface-container-low);
+  font-size: 13.5px;
+  animation: row-in var(--dur-quick) var(--ease-standard) both;
+  transition: background var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
+}
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.admin-row:hover { background: var(--surface-container); }
+.admin-row:active { transform: scale(0.998); }
+.admin-row-main { min-width: 0; flex: 1; display: grid; gap: 1px; }
+.admin-row-main strong { font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-row-main em {
+  font-style: normal; font-size: 11.5px; color: var(--on-surface-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.admin-row-kind {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--on-surface-faint); width: 54px; flex-shrink: 0;
+}
+.admin-row-art {
+  width: 36px; height: 36px; border-radius: var(--shape-xs);
+  overflow: hidden; background: var(--surface-container); flex-shrink: 0;
+  display: grid; place-items: center;
+}
+.admin-row-art img { width: 100%; height: 100%; object-fit: cover; }
+.admin-row-counts, .admin-row-date {
+  font-size: 11.5px; color: var(--on-surface-faint); white-space: nowrap;
+}
+.admin-row-date { min-width: 84px; text-align: right; }
+
+.warn-chip {
+  padding: 2px 8px; border-radius: var(--shape-full);
+  background: var(--error-container); color: var(--on-error-container);
+  font-size: 10.5px; font-weight: 600; white-space: nowrap;
+}
+
+.status-chip.status-unlisted { background: var(--surface-container-highest); color: var(--on-surface-variant); }
+.status-chip.status-archived { background: color-mix(in srgb, var(--outline) 22%, transparent); color: var(--on-surface-variant); }
+
+.admin-editor { animation: card-in var(--dur-quick) var(--ease-standard) both; }
+.admin-editor-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 16px; margin-bottom: 18px;
+}
+.admin-back { font-size: 12.5px; color: var(--on-surface-muted); }
+.admin-back:hover { color: var(--primary); }
+.admin-editor-title { margin: 6px 0 4px; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.admin-editor-meta { font-size: 12.5px; color: var(--on-surface-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.admin-editor-meta a { color: var(--primary); }
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.admin-grid .edit-card { margin-bottom: 0; }
+
+.admin-mini-list { display: flex; flex-direction: column; gap: 2px; }
+.admin-mini-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--shape-sm);
+  font-size: 13px;
+  transition: background var(--dur-micro) var(--ease-standard);
+}
+.admin-mini-row:hover { background: var(--state-hover); }
+.admin-track-no { width: 20px; color: var(--on-surface-faint); font-size: 12px; }
+.admin-order { display: flex; gap: 2px; }
+.admin-order .icon-btn { width: 26px; height: 26px; font-size: 13px; }
+
+.admin-suggest {
+  display: flex; flex-direction: column; gap: 2px;
+  margin: -8px 0 14px;
+  background: var(--surface-container);
+  border-radius: var(--shape-sm);
+  overflow: hidden;
+  animation: menu-in var(--dur-quick) var(--ease-standard);
+}
+.admin-suggest-item {
+  text-align: left; padding: 8px 12px;
+  background: none; border: none; cursor: pointer;
+  color: var(--on-surface); font-family: inherit; font-size: 13px;
+}
+.admin-suggest-item em { font-style: normal; color: var(--on-surface-muted); margin-left: 6px; }
+.admin-suggest-item:hover, .admin-suggest-item.active { background: var(--state-hover); }
+
+.admin-empty { margin-top: 10px; }
+
+/* media URL fields: validation feedback + on-demand local preview */
+.media-url-foot {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 10px; margin-top: 5px; flex-wrap: wrap;
+}
+.media-url-foot .hint { display: inline-flex; align-items: center; gap: 5px; margin: 0; }
+.media-url-actions { display: inline-flex; gap: 12px; flex-shrink: 0; }
+.media-preview {
+  margin-top: 10px;
+  border-radius: var(--shape-sm);
+  animation: card-in var(--dur-quick) var(--ease-standard) both;
+}
+.media-preview-art { object-fit: cover; background: var(--surface-container); display: block; }
+.media-preview-audio {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; background: var(--surface-container); width: fit-content;
+}
+.media-preview-audio .hint { margin: 0; }
+.media-preview-failed {
+  padding: 8px 12px; background: var(--error-container);
+  color: var(--on-error-container); font-size: 12.5px;
+}
+
+@media (max-width: 720px) {
+  .admin-row { flex-wrap: wrap; }
+  .admin-row-date { display: none; }
+  .field-pair { grid-template-columns: 1fr; }
+  .link-row { grid-template-columns: 1fr auto; }
+  .link-row input:first-child { grid-column: 1 / -1; }
+}
+
+/* ============================================================
+   Mobile pass — touch density, safe areas and sheet behaviour.
+   Everything here is presentation only: same components, same
+   state, same player. It lives at the end of the sheet so it
+   reliably wins over the desktop defaults it refines.
+   ============================================================ */
+
+/* ---- long strings never push a phone sideways ---- */
+h1.page-title, .detail-title, .profile-name, .ps-track-title, .section-title {
+  overflow-wrap: anywhere;
+}
+
+/* ---- comfortable targets wherever there is no hover ---- */
+@media (hover: none) and (max-width: 1024px) {
+  .icon-btn { width: 42px; height: 42px; }
+  .ctx-trigger { min-width: 42px; min-height: 42px; padding: 9px; }
+  .btn { padding: 11px 20px; font-size: 13.5px; }
+  .btn.small { padding: 9px 16px; font-size: 13px; }
+  .tile-more, .card-more { opacity: 1; }
+  /* a long press on an entity opens our sheet — the OS text-selection
+     callout must not race it. Ordinary text stays selectable. */
+  [data-ctx-target] { -webkit-touch-callout: none; }
+  [data-ctx-target] .t-title, [data-ctx-target] .t-sub,
+  [data-ctx-target] .tile-title, [data-ctx-target] .tile-sub {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+/* ---- library / page tabs line up with the page gutter ---- */
+@media (max-width: 640px) {
+  .seg-tabs {
+    margin: 2px calc(-1 * var(--gutter)) 18px;
+    padding: 0 var(--gutter);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  .seg-tabs a { padding: 10px 12px; }
+}
+
+/* ---- empty states: intentional, never a hole in the page ---- */
+@media (max-width: 640px) {
+  .empty { padding: 36px 8px; }
+  .empty h3 { font-size: 16px; }
+  .empty p { font-size: 14px; max-width: 34ch; margin-inline: auto; }
+  .empty .btn { min-height: 44px; }
+}
+
+/* ---- profile header ---- */
+@media (max-width: 640px) {
+  .profile-head { gap: 14px; align-items: center; margin-bottom: 22px; }
+  .profile-name { font-size: 24px; margin-top: 4px; }
+  .profile-bio { font-size: 13.5px; }
+  .profile-playlists { grid-template-columns: 1fr; }
+  .profile-artist-row { flex-direction: column; align-items: stretch; }
+}
+
+/* ---- forms: 16px input text keeps iOS from zooming the viewport ---- */
+@media (max-width: 640px) {
+  .field input, .field textarea, .field select,
+  .link-row input, .admin-search, .search-box input {
+    font-size: 16px;
+  }
+  .field input, .field select { min-height: 46px; }
+  .edit-actions .btn, .dialog-actions .btn { min-height: 44px; }
+}
+
+/* ---- dialogs behave like sheets on a phone ---- */
+@media (max-width: 640px) {
+  .dialog-backdrop { place-items: end stretch; padding: 0; }
+  .dialog {
+    max-width: none;
+    max-height: 88dvh;
+    border-radius: var(--shape-xl) var(--shape-xl) 0 0;
+    padding: 20px var(--gutter) calc(20px + env(safe-area-inset-bottom));
+    animation: dialog-sheet-in var(--dur-quick) var(--ease-emphasized);
+    overscroll-behavior: contain;
+  }
+  .dialog-actions { margin-top: 20px; }
+  .dialog-actions .btn { flex: 1 1 auto; justify-content: center; }
+}
+@keyframes dialog-sheet-in {
+  from { transform: translateY(18px); opacity: 0.5; }
+  to { transform: none; opacity: 1; }
+}
+
+/* ---- action sheet: thumb-reachable, quick to dismiss ---- */
+@media (max-width: 640px) {
+  .ctx-sheet { padding-inline: 8px; }
+  .ctx-sheet .ctx-item { padding: 14px 12px; min-height: 52px; }
+  .ctx-sheet-head { padding: 0 12px 12px; }
+  /* the destructive group reads as separate before it is ever tapped */
+  .ctx-sheet .ctx-item.danger { margin-top: 2px; }
+}
+
+/* ---- expanded player: clear of the status bar and the home indicator ---- */
+@media (max-width: 860px) {
+  .ps-topbar { padding: max(14px, env(safe-area-inset-top)) 12px 10px; }
+  .ps-topbar .icon-btn { width: 44px; height: 44px; }
+  .ps-controls-zone { padding: 8px var(--gutter) calc(16px + env(safe-area-inset-bottom)); }
+  .ps-body { padding: 8px var(--gutter) 20px; }
+  .queue-row { padding: 10px 8px; min-height: 56px; }
+  .ps-main-controls .icon-btn { width: 48px; height: 48px; }
+}
+
+/* ---- drawer: its own scroll, never the page's ---- */
+.drawer { overscroll-behavior: contain; }
+@media (max-width: 860px) {
+  .drawer .nav-link { min-height: 46px; }
+  .drawer-head { padding-top: max(8px, env(safe-area-inset-top)); }
+}
+
+/* ---- the Search destination's field: one comfortable, clearable input ---- */
+.search-form { margin: 0 0 22px; }
+.search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 560px;
+}
+.search-field > svg {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--on-surface-faint);
+  pointer-events: none;
+}
+.search-field .search-hero { padding-left: 48px; padding-right: 50px; }
+.search-field .search-clear { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); }
+@media (max-width: 860px) {
+  .search-form { margin-bottom: 18px; }
+  .search-field { max-width: none; }
+}
+
+/* The identity column of a detail hero: roomy on desktop, free to shrink
+   to the phone's width instead of forcing a horizontal scroll. */
+.detail-identity { min-width: 240px; flex: 1; }
+@media (max-width: 640px) { .detail-identity { min-width: 0; } }
+
+/* ---- long descriptions ---- */
+.blurb { margin: 0 0 4px; }
+.blurb-toggle { display: none; font-size: 13px; margin-top: 8px; padding: 4px 0; }
+@media (max-width: 860px) {
+  .blurb:not(.open) .prose {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .blurb-toggle { display: inline-block; }
+}
+
+/* ---- home: the greeting stays a single quiet line on a phone ---- */
+@media (max-width: 640px) {
+  .home-greeting { font-size: 20px; margin: 2px 0 14px; }
+  .featured .btn { min-height: 40px; }
+}
+
+/* ---- modal surfaces hold the page still underneath them ----
+   Touch only: on a phone a scroll that starts on a sheet chains into the
+   page behind it, which then silently moves away. Desktop keeps its
+   scrollbar (and its layout) exactly as it was. */
+@media (hover: none), (max-width: 860px) {
+  body.scroll-locked .main { overflow: hidden; }
+}
+
+/* A collection's artwork is a landscape crop, not a sleeve. */
+.detail-art.landscape {
+  width: min(100%, 300px);
+  height: auto;
+  aspect-ratio: 16 / 10;
+}
+@media (max-width: 640px) { .detail-art.landscape { width: 100%; } }
+
+/* ---- expanded player: one scroll, not two ----
+   The sheet body already scrolls on a phone; a second scroller inside it
+   (the queue panel) makes the list feel stuck. On a phone the panel grows
+   and the body carries the scrolling. */
+@media (max-width: 860px) {
+  .ps-panel { overflow: visible; flex: none; padding-right: 0; }
+  .ps-right { padding-top: 16px; }
+}
+
+/* ---- pills stay tappable ---- */
+@media (hover: none) and (max-width: 860px) {
+  .pill { padding: 9px 16px; }
+}
+
+/* ---- footer: quieter and further out of the way on a phone ---- */
+@media (max-width: 640px) {
+  .site-footer { margin-top: 36px; padding: 20px 0 8px; gap: 16px; }
+  .site-footer nav { gap: 10px 16px; }
+  .site-footer nav a { padding: 4px 0; }
+}
+
+/* The profile avatar is sized in JS for the desktop header; on a phone the
+   inline size has to yield so the name and handle keep their line. */
+@media (max-width: 640px) {
+  .profile-head .profile-avatar {
+    width: 84px !important;
+    height: 84px !important;
+    font-size: 32px !important;
+  }
+}
+
+/* ============================================================
+   Mobile polish — second pass.
+   Findings from rendering the app in a real mobile viewport
+   (320-1024) rather than reasoning about the cascade: the fixes
+   below are the layout faults that only show up on a device.
+   ============================================================ */
+
+/* ---- short pages: the footer belongs at the bottom of the shell ----
+   Search, an empty library or a 404 leave the footer stranded in the
+   middle of the screen with a dead zone under it. The scroll container
+   is a column; the last block takes the slack. */
+.main { display: flex; flex-direction: column; }
+.main > * { flex: 0 0 auto; }
+.main > .page:last-child { margin-top: auto; }
+
+/* ---- expanded player: the mobile column must be allowed to shrink ----
+   `1fr` resolves to minmax(auto, 1fr), so one long queue title made the
+   single column wider than the phone and pushed the artwork, the title
+   block and the queue off the right edge. */
+@media (max-width: 860px) {
+  .ps-body { grid-template-columns: minmax(0, 1fr); }
+  .ps-left, .ps-right, .ps-panel { min-width: 0; }
+  .ps-titleblock { max-width: 100%; }
+}
+
+/* ---- provenance chips are a desktop detail ----
+   In a list row the chip competes with the title for the scarcest space
+   on the screen, and on a narrow phone it was pushed past the viewport
+   edge. Provenance still shows on every detail page, where it belongs. */
+@media (max-width: 860px) {
+  .track-row .t-title .source-chip,
+  .track-row .t-title .original-badge,
+  .queue-row .source-chip,
+  .queue-row .original-badge { display: none; }
+}
+
+/* ---- tablet rows keep their duration column ----
+   Between 641 and 860 there is room for it, and without it the row is a
+   title on the left and two icons a long way to the right. */
+@media (min-width: 641px) and (max-width: 860px) {
+  .track-row { grid-template-columns: 48px minmax(0, 1fr) auto auto; }
+  .track-row .dur { display: block; }
+}
+
+/* ---- detail heroes: the music starts higher up the screen ----
+   A 180px cover plus a bio pushed the first track under the fold on a
+   360px phone. Cover, gaps and the actions row all tighten; the primary
+   action becomes a full-width target. */
+@media (max-width: 640px) {
+  .detail-head { gap: 14px; margin-bottom: 18px; }
+  .detail-art:not(.landscape) { width: min(40vw, 156px); height: min(40vw, 156px); }
+  .detail-art.round { width: min(33vw, 128px); height: min(33vw, 128px); }
+  .detail-art .art-fallback { font-size: 40px; }
+  .detail-kind { margin-bottom: 4px; }
+  .detail-actions { margin-top: 14px; gap: 8px; }
+  .detail-actions > .btn.primary {
+    flex: 1 1 100%;
+    justify-content: center;
+    min-height: 48px;
+  }
+  .detail-actions > .btn { flex: 0 1 auto; }
+  /* secondary actions that the ⋯ menu also carries */
+  .compact-hide { display: none; }
+}
+
+/* ---- targets you can hit with a thumb ----
+   Text links in the footer and the "see all" links were 19-32px tall. */
+@media (hover: none) and (max-width: 1024px) {
+  .site-footer nav a,
+  .section-link,
+  .profile-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+  }
+  .pill, .btn.small, .seg-tabs a { min-height: 40px; }
+  .site-footer nav { gap: 0 18px; }
+}
+
+/* The support hint explains the links it sits under; on a phone those
+   links are one thumb away and the sentence only delays the music. */
+@media (max-width: 640px) { .support-note { display: none; } }
+
+/* ---------------------------------------------------- legal pages */
+/* Privacy, terms and music rights: long-form reading, so the measure is
+   narrow, the sections are separated by rhythm rather than boxes, and the
+   whole thing works signed-out on a phone. */
+.legal-page { max-width: 820px; }
+.legal-page .page-sub { max-width: 68ch; }
+.legal-date {
+  margin: -8px 0 18px;
+  font-size: 12.5px;
+  color: var(--on-surface-faint);
+}
+.legal-section { margin-top: 34px; }
+.legal-section h2 {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 10px;
+  scroll-margin-top: 72px;
+}
+.legal-section .prose { margin: 0 0 12px; }
+.legal-list {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  color: var(--on-surface-variant);
+  line-height: 1.7;
+  max-width: 68ch;
+}
+.legal-list li { margin-bottom: 8px; }
+.legal-list code {
+  font-size: 12.5px;
+  padding: 1px 5px;
+  border-radius: var(--shape-xs);
+  background: var(--surface-container-high);
+}
+.legal-table-wrap { overflow-x: auto; margin: 0 0 14px; -webkit-overflow-scrolling: touch; }
+.legal-table { width: 100%; min-width: 460px; }
+.legal-table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--on-surface-faint);
+  font-weight: 600;
+  padding-bottom: 6px;
+}
+.legal-table td { vertical-align: top; line-height: 1.6; padding: 8px 14px 8px 0; }
+.legal-table tr + tr td { border-top: 1px solid var(--outline-variant); }
+.legal-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-top: 40px;
+  padding-top: 18px;
+  border-top: 1px solid var(--outline-variant);
+  font-size: 13px;
+}
+.legal-nav a { color: var(--primary); }
+.legal-note {
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--on-surface-faint);
+  max-width: 68ch;
+}
+@media (max-width: 640px) {
+  .legal-section { margin-top: 26px; }
+  .legal-section h2 { font-size: 16px; }
+  .legal-list { font-size: 13.5px; padding-left: 18px; }
+  .legal-table { font-size: 13px; min-width: 420px; }
+  .legal-nav { gap: 0 18px; }
+  .legal-nav a { min-height: 40px; display: inline-flex; align-items: center; }
+}
+
+/* ---- Settings → Your data: four plain rows, not a consent dashboard ---- */
+.data-actions {
+  display: grid;
+  gap: 2px;
+  max-width: 620px;
+  margin-bottom: 8px;
+}
+.data-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: var(--shape-md);
+  background: var(--surface-container-low);
+}
+.data-action strong { font-size: 13.5px; font-weight: 600; }
+.data-action p {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--on-surface-muted);
+  max-width: 46ch;
+}
+.data-action .btn { flex-shrink: 0; }
+@media (max-width: 640px) {
+  .data-action { flex-direction: column; align-items: stretch; gap: 12px; }
+  .data-action .btn { justify-content: center; min-height: 44px; }
+}
+
+.dialog-legal {
+  margin: 14px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--on-surface-faint);
+}
+.dialog-legal a { color: var(--on-surface-muted); text-decoration: underline; }
+
+/* ---- narrow screens: a flex column must be allowed to shrink -----------
+   .main is a flex column (so the last page block can push the footer down),
+   and a column flex line stretches to its widest item: one wide child — a
+   table, a long URL — would otherwise widen every page past the viewport.
+   Pinning the cross size keeps the page exactly as wide as the viewport and
+   lets wide content scroll inside its own box. */
+.main > * { min-width: 0; max-width: 100%; }
+
+/* Legal tables become stacked records on a phone: a scrolling table inside a
+   scrolling page is a worse way to read a policy than one field per line. */
+@media (max-width: 640px) {
+  .legal-table-wrap { overflow-x: visible; }
+  .legal-table,
+  .legal-table tbody,
+  .legal-table tr,
+  .legal-table td { display: block; width: auto; min-width: 0; }
+  .legal-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .legal-table tr {
+    padding: 12px 0;
+    border-top: 1px solid var(--outline-variant);
+  }
+  .legal-table tr:first-child { border-top: 0; padding-top: 0; }
+  .legal-table td,
+  .legal-table tr + tr td { border: 0; padding: 3px 0; }
+  .legal-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--on-surface-faint);
+    margin-bottom: 1px;
+  }
+  .legal-table td:first-child { font-weight: 600; color: var(--on-surface); }
+}
+
+/* The scroll container is only ever focused programmatically — by the skip
+   link, and by the context menu when the row it was opened from cannot take
+   focus back. A ring around the entire viewport reads as a rendering bug
+   rather than as guidance, so it is suppressed; the elements inside it keep
+   their own focus rings. */
+.main:focus,
+.main:focus-visible { outline: none; }

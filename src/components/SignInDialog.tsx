@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/stores/auth';
 import { toast } from '@/stores/toast';
 import { IconClose } from './Icons';
+import { useScrollLock } from '@/lib/scrollLock';
 
 /**
  * Sign in / create account — backed by Neon Auth (the single authentication
@@ -10,6 +12,7 @@ import { IconClose } from './Icons';
  */
 export function SignInDialog({ onClose }: { onClose: () => void }) {
   const available = useAuth((s) => s.available);
+  useScrollLock(true);
   const [mode, setMode] = useState<'in' | 'up'>('in');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -101,6 +104,13 @@ export function SignInDialog({ onClose }: { onClose: () => void }) {
             </p>
           </form>
         )}
+
+        {/* Stated, not pre-ticked: no consent checkbox, no bundled opt-in. */}
+        <p className="dialog-legal">
+          Accounts are covered by our <Link to="/terms" onClick={onClose}>terms of use</Link>{' '}
+          and <Link to="/privacy" onClick={onClose}>privacy page</Link>, which lists
+          everything an account stores.
+        </p>
       </div>
     </div>
   );

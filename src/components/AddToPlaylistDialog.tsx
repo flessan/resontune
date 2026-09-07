@@ -4,12 +4,29 @@ import type { Playlist } from '@/lib/types';
 import { useAuth } from '@/stores/auth';
 import { toast } from '@/stores/toast';
 import { IconClose, IconPlus } from './Icons';
+import { useScrollLock } from '@/lib/scrollLock';
 
-export function AddToPlaylistDialog({ trackId, onClose }: { trackId: string; onClose: () => void }) {
+/**
+ * Add one track — or a whole release — to a playlist. The API takes one
+ * track per call, so a multi-track add is a short sequence of them and the
+ * dialog reports how many actually landed.
+ */
+export function AddToPlaylistDialog({
+  trackIds,
+  label,
+  onClose,
+}: {
+  trackIds: string[];
+  /** What the user picked, for the confirmation copy. */
+  label?: string;
+  onClose: () => void;
+}) {
   const user = useAuth((s) => s.user);
+  useScrollLock(true);
   const [playlists, setPlaylists] = useState<Playlist[] | null>(null);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+  const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,13 +44,25 @@ export function AddToPlaylistDialog({ trackId, onClose }: { trackId: string; onC
   }, [onClose]);
 
   const add = async (playlistId: string, title: string) => {
-    try {
-      await api.post(`/playlists/${playlistId}/tracks`, { trackId });
-      toast(`Added to “${title}”`);
-      onClose();
-    } catch (e: any) {
-      toast(e.message ?? 'Failed to add.');
+    if (busy) return;
+    setBusy(true);
+    let added = 0;
+    let failure: string | null = null;
+    for (const trackId of trackIds) {
+      try {
+        await api.post(`/playlists/${playlistId}/tracks`, { trackId });
+        added += 1;
+      } catch (e: any) {
+        failure = e?.message ?? 'Failed to add.';
+      }
     }
+    setBusy(false);
+    if (!added) {
+      toast(failure ?? 'Failed to add.');
+      return;
+    }
+    toast(added === 1 ? `Added to “${title}”` : `Added ${added} tracks to “${title}”`);
+    onClose();
   };
 
   const create = async () => {
@@ -50,7 +79,10 @@ export function AddToPlaylistDialog({ trackId, onClose }: { trackId: string; onC
     <div className="dialog-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()} role="presentation">
       <div className="dialog" role="dialog" aria-modal="true" aria-label="Add to playlist" ref={ref}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <h3>Add to playlist</h3>
+          <div>
+            <h3>Add to playlist</h3>
+            {label && <p className="dialog-sub" style={{ margin: 0 }}>{trackIds.length > 1 ? `${trackIds.length} tracks · ` : ''}{label}</p>}
+          </div>
           <button className="icon-btn" onClick={onClose} aria-label="Close"><IconClose /></button>
         </div>
         {!user ? (

@@ -1,19 +1,30 @@
+import { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
 import type { Album, Track } from '@/lib/types';
 import { TrackRow } from '@/components/TrackRow';
+import { Blurb } from '@/components/Blurb';
 import { Artwork } from '@/components/Artwork';
 import { usePlayer } from '@/player/store';
 import { trackToQueueItem } from '@/providers';
 import { formatDate } from '@/lib/format';
 import { IconPlay } from '@/components/Icons';
 import { OriginalBadge, SourceChip } from '@/components/Provenance';
+import { ContextMenuButton } from '@/contextmenu/ContextMenuButton';
+import { useContextTarget } from '@/contextmenu/useContextTarget';
+import { releaseRef, type ContextTarget } from '@/contextmenu/types';
 
 interface Data { album: Album; tracks: Track[] }
 
 export default function AlbumPage() {
   const { slug } = useParams();
   const { data, loading, error } = useFetch<Data>(`/albums/${slug}`, [slug]);
+  const loaded = data?.album ?? null;
+  const target = useMemo<ContextTarget | null>(
+    () => (loaded ? { type: 'release', release: releaseRef(loaded) } : null),
+    [loaded],
+  );
+  const headProps = useContextTarget(target);
 
   if (loading) return <div className="loading-page"><span className="spin" /></div>;
   if (error || !data) {
@@ -36,11 +47,11 @@ export default function AlbumPage() {
 
   return (
     <div className="page">
-      <div className="detail-head">
+      <div className="detail-head" {...headProps}>
         <div className="detail-art">
           <Artwork src={album.artworkUrl} alt={`Cover of ${album.title}`} />
         </div>
-        <div style={{ minWidth: 240, flex: 1 }}>
+        <div className="detail-identity">
           <div className="detail-kind" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {album.type}
             {album.sourceType === 'original' ? <OriginalBadge /> : <SourceChip sourceType={album.sourceType} />}
@@ -56,14 +67,15 @@ export default function AlbumPage() {
             <button className="btn primary" onClick={playAll}>
               <IconPlay width={15} height={15} /> Play
             </button>
+            <ContextMenuButton target={target} className="icon-btn" />
           </div>
         </div>
       </div>
 
-      {album.description && <p className="prose" style={{ marginBottom: 24 }}>{album.description}</p>}
+      {album.description && <Blurb text={album.description} style={{ marginBottom: 24 }} />}
 
       <div className="tracklist">
-        {tracks.map((t, i) => <TrackRow key={t.id} track={t} index={i} context={tracks} />)}
+        {tracks.map((t, i) => <TrackRow key={t.id} track={t} index={i} context={tracks} showAlbum={false} />)}
       </div>
 
       <ReleaseNotes album={album} tracks={tracks} />

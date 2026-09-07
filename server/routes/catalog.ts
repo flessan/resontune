@@ -4,7 +4,8 @@
  */
 import { Router } from 'express';
 import { getDb, uuid } from '../db/index.ts';
-import { asyncRoute, pagination, HttpError } from '../util/http.ts';
+import { asyncRoute, pagination, HttpError, isDeletedAccountViolation } from '../util/http.ts';
+import { listLinks } from '../db/links.ts';
 
 /* ------------------------------ serialization ----------------------------- */
 
@@ -127,9 +128,13 @@ export async function queryTracks(
   opts: { includeUnlisted?: boolean } = {},
 ) {
   const db = await getDb();
-  const statusClause = opts.includeUnlisted
-    ? `t.status IN ('published','unlisted')`
-    : `t.status = 'published'`;
+  // A track is only publicly visible while its artist — and its release, if
+  // it belongs to one — are themselves visible. Withdrawing an artist
+  // therefore withdraws their catalog everywhere, in one write.
+  const statusClause = `${
+    opts.includeUnlisted ? `t.status IN ('published','unlisted')` : `t.status = 'published'`
+  } AND a.status IN ('published','unlisted')
+    AND (t.album_id IS NULL OR al.status IN ('published','unlisted'))`;
   const rows = await db.query<TrackRow>(
     `SELECT ${TRACK_SELECT} ${TRACK_FROM} WHERE ${statusClause} ${where} ${orderLimit}`,
     params,
@@ -162,7 +167,7 @@ export function catalogRouter(): Router {
           `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on, al.source_type,
                   a.name AS artist_name, a.slug AS artist_slug,
                   (SELECT count(*) FROM tracks tr WHERE tr.album_id = al.id AND tr.status='published') AS track_count
-             FROM albums al JOIN artists a ON a.id = al.artist_id
+             FROM albums al JOIN artists a ON a.id = al.artist_id AND a.status IN ('published','unlisted')
             WHERE al.status = 'published'
             ORDER BY al.released_on DESC NULLS LAST LIMIT 8`,
         ),
@@ -172,6 +177,7 @@ export function catalogRouter(): Router {
                   COALESCE(sum(t.play_count), 0) AS plays,
                   count(t.id) AS track_count
              FROM artists a LEFT JOIN tracks t ON t.artist_id = a.id AND t.status='published'
+            WHERE a.status = 'published'
             GROUP BY a.id
             ORDER BY (COALESCE(sum(t.play_count),0) + 1)::float / (count(t.id) + 2) DESC, a.created_at DESC
             LIMIT 6`,
@@ -184,7 +190,7 @@ export function catalogRouter(): Router {
           `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on,
                   al.description, al.catalog_no, a.name AS artist_name, a.slug AS artist_slug,
                   (SELECT count(*) FROM tracks tr WHERE tr.album_id = al.id AND tr.status='published') AS track_count
-             FROM albums al JOIN artists a ON a.id = al.artist_id
+             FROM albums al JOIN artists a ON a.id = al.artist_id AND a.status IN ('published','unlisted')
             WHERE al.source_type = 'original' AND al.status = 'published'
             ORDER BY al.released_on DESC NULLS LAST LIMIT 1`,
         ),
@@ -284,8 +290,9 @@ export function catalogRouter(): Router {
       const track = tracks[0];
       if (!track) throw new HttpError(404, 'Track not found.');
       const db = await getDb();
-      const [lyrics, related, moreFromArtist] = await Promise.all([
+      const [lyrics, links, related, moreFromArtist] = await Promise.all([
         db.query<{ body: string; kind: string }>(`SELECT body, kind FROM lyrics WHERE track_id = $1`, [track.id]),
+        listLinks('track', track.id),
         // Related = shares a genre, not the same artist, ordered by plays
         queryTracks(
           `AND t.id <> $1 AND t.artist_id <> $2 AND t.id IN (
@@ -301,7 +308,11 @@ export function catalogRouter(): Router {
         ),
       ]);
       res.json({
-        track: { ...track, lyrics: lyrics[0] ?? null },
+        track: {
+          ...track,
+          lyrics: lyrics[0] ?? null,
+          links: links.map((l) => ({ provider: l.provider, label: l.label, url: l.url })),
+        },
         related,
         moreFromArtist,
       });
@@ -320,10 +331,18 @@ export function catalogRouter(): Router {
       await db.query(`UPDATE tracks SET play_count = play_count + 1 WHERE id = $1`, [id]);
       await db.query(`INSERT INTO play_events (id, track_id) VALUES ($1, $2)`, [uuid(), id]);
       if (req.user) {
-        await db.query(
-          `INSERT INTO play_history (id, user_id, track_id) VALUES ($1, $2, $3)`,
-          [uuid(), req.user.id, id],
-        );
+        // The play itself is already counted. Attaching it to an account is
+        // the optional part: if that account was deleted a moment ago, the
+        // foreign key says so and playback carries on anonymously rather
+        // than failing in the listener's face.
+        try {
+          await db.query(
+            `INSERT INTO play_history (id, user_id, track_id) VALUES ($1, $2, $3)`,
+            [uuid(), req.user.id, id],
+          );
+        } catch (err) {
+          if (!isDeletedAccountViolation(err)) throw err;
+        }
       }
       res.json({ ok: true });
     }),
@@ -339,10 +358,10 @@ export function catalogRouter(): Router {
           ? String(req.query.source)
           : null;
       const params: unknown[] = [];
-      let where = '';
+      let where = `WHERE a.status = 'published'`;
       if (source) {
         params.push(source);
-        where = `WHERE a.source_type = $${params.length}`;
+        where += ` AND a.source_type = $${params.length}`;
       }
       params.push(limit, offset);
       const rows = await db.query(
@@ -368,14 +387,18 @@ export function catalogRouter(): Router {
     asyncRoute(async (req, res) => {
       const db = await getDb();
       const rows = await db.query(
-        `SELECT id, slug, name, bio, image_url, location, source_type, created_at
+        `SELECT id, slug, name, bio, image_url, location, source_type, status, created_at
            FROM artists WHERE slug = $1`,
         [String(req.params.slug)],
       );
       const artist: any = rows[0];
       if (!artist) throw new HttpError(404, 'Artist not found.');
+      // Unlisted artists stay reachable by direct link; withdrawn ones do not.
+      if (artist.status === 'taken_down' || artist.status === 'archived') {
+        throw new HttpError(404, 'Artist not found.');
+      }
       const [links, albums, popular, genres] = await Promise.all([
-        db.query(`SELECT kind, label, url FROM artist_links WHERE artist_id = $1`, [artist.id]),
+        listLinks('artist', artist.id),
         db.query(
           `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on, al.catalog_no,
                   (SELECT count(*) FROM tracks t WHERE t.album_id = al.id AND t.status='published') AS track_count
@@ -397,7 +420,7 @@ export function catalogRouter(): Router {
           id: artist.id, slug: artist.slug, name: artist.name, bio: artist.bio,
           imageUrl: artist.image_url, location: artist.location,
           sourceType: artist.source_type, createdAt: artist.created_at,
-          links: links.map((l: any) => ({ kind: l.kind, label: l.label, url: l.url })),
+          links: links.map((l) => ({ kind: l.provider, provider: l.provider, label: l.label, url: l.url })),
           genres: genres.map((g: any) => ({ id: g.id, name: g.name })),
         },
         albums: albums.map((al: any) => ({
@@ -419,7 +442,7 @@ export function catalogRouter(): Router {
         `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on, al.description,
                 al.source_type, al.catalog_no, a.name AS artist_name, a.slug AS artist_slug,
                 (SELECT count(*) FROM tracks t WHERE t.album_id = al.id AND t.status='published') AS track_count
-           FROM albums al JOIN artists a ON a.id = al.artist_id
+           FROM albums al JOIN artists a ON a.id = al.artist_id AND a.status IN ('published','unlisted')
           WHERE al.status = 'published'
           ORDER BY al.released_on DESC NULLS LAST LIMIT $1 OFFSET $2`,
         [limit, offset],
@@ -442,7 +465,7 @@ export function catalogRouter(): Router {
       const db = await getDb();
       const rows = await db.query(
         `SELECT al.*, a.name AS artist_name, a.slug AS artist_slug
-           FROM albums al JOIN artists a ON a.id = al.artist_id WHERE al.slug = $1`,
+           FROM albums al JOIN artists a ON a.id = al.artist_id AND a.status IN ('published','unlisted') WHERE al.slug = $1`,
         [String(req.params.slug)],
       );
       const album: any = rows[0];
@@ -450,9 +473,10 @@ export function catalogRouter(): Router {
       if (album.status === 'taken_down' || album.status === 'archived') {
         throw new HttpError(404, 'Album not found.');
       }
-      const tracks = await queryTracks(
-        `AND t.album_id = $1`, [album.id], `ORDER BY t.track_no NULLS LAST, t.title`,
-      );
+      const [tracks, albumLinks] = await Promise.all([
+        queryTracks(`AND t.album_id = $1`, [album.id], `ORDER BY t.track_no NULLS LAST, t.title`),
+        listLinks('album', album.id),
+      ]);
       res.json({
         album: {
           id: album.id, slug: album.slug, title: album.title, type: album.type,
@@ -460,6 +484,7 @@ export function catalogRouter(): Router {
           description: album.description, sourceType: album.source_type,
           catalogNo: album.catalog_no,
           artist: { name: album.artist_name, slug: album.artist_slug },
+          links: albumLinks.map((l) => ({ provider: l.provider, label: l.label, url: l.url })),
         },
         tracks,
       });
@@ -506,12 +531,12 @@ export function catalogRouter(): Router {
         ),
         db.query(
           `SELECT id, slug, name, image_url, location FROM artists
-            WHERE lower(name) LIKE $1 ORDER BY name LIMIT 6`,
+            WHERE lower(name) LIKE $1 AND status = 'published' ORDER BY name LIMIT 6`,
           [like],
         ),
         db.query(
           `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, a.name AS artist_name, a.slug AS artist_slug
-             FROM albums al JOIN artists a ON a.id = al.artist_id
+             FROM albums al JOIN artists a ON a.id = al.artist_id AND a.status IN ('published','unlisted')
             WHERE lower(al.title) LIKE $1 ORDER BY al.released_on DESC NULLS LAST LIMIT 6`,
           [like],
         ),
@@ -552,7 +577,7 @@ export function catalogRouter(): Router {
           `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on,
                   al.description, al.catalog_no, a.name AS artist_name, a.slug AS artist_slug,
                   (SELECT count(*) FROM tracks t WHERE t.album_id = al.id AND t.status='published') AS track_count
-             FROM albums al JOIN artists a ON a.id = al.artist_id
+             FROM albums al JOIN artists a ON a.id = al.artist_id AND a.status IN ('published','unlisted')
             WHERE al.source_type = 'original' AND al.status = 'published'
             ORDER BY al.released_on DESC NULLS LAST`,
         ),
@@ -593,7 +618,7 @@ export function catalogRouter(): Router {
           `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on, al.description,
                   a.name AS artist_name, a.slug AS artist_slug,
                   (SELECT count(*) FROM tracks t WHERE t.album_id = al.id AND t.status='published') AS track_count
-             FROM albums al JOIN artists a ON a.id = al.artist_id
+             FROM albums al JOIN artists a ON a.id = al.artist_id AND a.status IN ('published','unlisted')
             WHERE al.source_type = 'community' AND al.status = 'published'
             ORDER BY al.released_on DESC NULLS LAST LIMIT 24`,
         ),
@@ -601,7 +626,7 @@ export function catalogRouter(): Router {
           `SELECT a.id, a.slug, a.name, a.bio, a.image_url, a.location,
                   COALESCE(sum(t.play_count),0) AS plays, count(t.id) AS track_count
              FROM artists a LEFT JOIN tracks t ON t.artist_id = a.id AND t.status='published'
-            WHERE a.source_type = 'community'
+            WHERE a.source_type = 'community' AND a.status = 'published'
             GROUP BY a.id ORDER BY plays DESC LIMIT 12`,
         ),
         queryTracks(`AND t.source_type = 'community'`, [], `ORDER BY t.created_at DESC LIMIT 12`),
@@ -679,7 +704,7 @@ export function catalogRouter(): Router {
               `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on, al.source_type,
                       a.name AS artist_name, a.slug AS artist_slug,
                       (SELECT count(*) FROM tracks t WHERE t.album_id = al.id AND t.status='published') AS track_count
-                 FROM albums al JOIN artists a ON a.id = al.artist_id
+                 FROM albums al JOIN artists a ON a.id = al.artist_id AND a.status IN ('published','unlisted')
                 WHERE al.id = ANY($1) AND al.status = 'published'`,
               [albumIds],
             )

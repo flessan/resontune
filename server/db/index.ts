@@ -15,8 +15,22 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+/** One statement of a transaction. */
+export interface DbStatement {
+  text: string;
+  params?: unknown[];
+}
+
 export interface Db {
   query<T = Record<string, unknown>>(text: string, params?: unknown[]): Promise<T[]>;
+  /**
+   * Run several statements as one all-or-nothing transaction and return the
+   * rows of each, in order. Deliberately non-interactive (a fixed list, no
+   * reads in between): that is the only shape the Neon HTTP driver can
+   * express, and it is all the server needs — account deletion, where the
+   * tombstone and the row removal must never be observable apart.
+   */
+  transaction<T = Record<string, unknown>>(statements: DbStatement[]): Promise<T[][]>;
   driver: 'neon' | 'pglite';
 }
 
@@ -34,6 +48,12 @@ async function createDb(): Promise<Db> {
         const rows = await sql.query(text, params);
         return rows as T[];
       },
+      async transaction<T>(statements: DbStatement[]) {
+        const results = await sql.transaction(
+          statements.map((s) => sql.query(s.text, s.params ?? [])),
+        );
+        return results as T[][];
+      },
     };
   }
   if (process.env.NODE_ENV === 'production') {
@@ -44,15 +64,30 @@ async function createDb(): Promise<Db> {
   }
 
   const { PGlite } = await import('@electric-sql/pglite');
-  const dataDir = path.resolve(__dirname, '../../var/pglite');
+  /* PGLITE_DIR lets a developer run a second, independent instance — an
+     empty catalog next to a populated one, for example — without touching
+     the default database. Development only; production requires Neon. */
+  const dataDir = process.env.PGLITE_DIR
+    ? path.resolve(process.cwd(), process.env.PGLITE_DIR)
+    : path.resolve(__dirname, '../../var/pglite');
   fs.mkdirSync(path.dirname(dataDir), { recursive: true });
   const pg = await PGlite.create(dataDir);
-  console.log('[db] using embedded PGlite Postgres at var/pglite (development)');
+  console.log(`[db] using embedded PGlite Postgres at ${path.relative(process.cwd(), dataDir)} (development)`);
   return {
     driver: 'pglite',
     async query<T>(text: string, params: unknown[] = []) {
       const res = await pg.query(text, params);
       return res.rows as T[];
+    },
+    async transaction<T>(statements: DbStatement[]) {
+      return pg.transaction(async (tx) => {
+        const out: T[][] = [];
+        for (const s of statements) {
+          const res = await tx.query(s.text, s.params ?? []);
+          out.push(res.rows as T[]);
+        }
+        return out;
+      });
     },
   };
 }
