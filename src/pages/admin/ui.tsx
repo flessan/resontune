@@ -86,7 +86,7 @@ export function MediaUrlField({
   const host = hostOf(value);
   const audioWarning =
     kind === 'audio' && value && !error && !looksLikeAudioUrl(value)
-      ? 'No recognised audio extension — make sure this is a direct file URL, not a player page.'
+      ? 'No recognised audio extension - make sure this is a direct file URL, not a player page.'
       : null;
 
   useEffect(() => { setPreview(false); }, [value]);
@@ -108,7 +108,7 @@ export function MediaUrlField({
         ) : value ? (
           <span className="hint">
             <IconCheck width={12} height={12} /> Externally hosted on <strong>{host}</strong>
-            {audioWarning ? ` — ${audioWarning}` : ''}
+            {audioWarning ? ` - ${audioWarning}` : ''}
           </span>
         ) : (
           <span className="hint">{hint ?? 'Paste a direct https:// URL you have verified.'}</span>
@@ -150,7 +150,7 @@ export function ArtworkPreview({ url, size = 96 }: { url: string; size?: number 
   );
 }
 
-/** Plays the pasted URL directly in the admin's browser — no server proxy. */
+/** Plays the pasted URL directly in the admin's browser - no server proxy. */
 export function AudioPreview({ url }: { url: string }) {
   const ref = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -187,7 +187,7 @@ export function AudioPreview({ url }: { url: string }) {
   );
 }
 
-/** Two-step destructive action — no modal, no accidental deletions. */
+/** Two-step destructive action - no modal, no accidental deletions. */
 export function ConfirmButton({
   label, confirmLabel, onConfirm, disabled,
 }: {
@@ -264,8 +264,8 @@ export function AdminEmpty({ title, body, action }: { title: string; body: strin
 /**
  * A catalog row with its management menu attached.
  *
- * The admin menu is denser than the listener one — edit, preview, publish,
- * delete — and it only ever renders for people the API would let through.
+ * The admin menu is denser than the listener one - edit, preview, publish,
+ * delete - and it only ever renders for people the API would let through.
  */
 export function AdminRow({ target, children }: { target: ContextTarget; children: ReactNode }) {
   const ctxProps = useContextTarget(target);

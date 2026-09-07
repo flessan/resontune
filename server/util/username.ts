@@ -13,7 +13,7 @@ export const USERNAME_MAX = 24;
 
 /**
  * Names the router (or a future one) owns, plus a few system words. A
- * username may never equal one of these — `/u/<name>` stays unambiguous and
+ * username may never equal one of these - `/u/<name>` stays unambiguous and
  * nobody can impersonate a platform surface.
  */
 export const RESERVED_USERNAMES: ReadonlySet<string> = new Set([

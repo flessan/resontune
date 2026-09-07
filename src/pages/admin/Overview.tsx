@@ -1,4 +1,4 @@
-/** Catalog overview — what exists, what changed, what needs attention. */
+/** Catalog overview - what exists, what changed, what needs attention. */
 import { Link } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
 import { formatDate } from '@/lib/format';
@@ -56,7 +56,7 @@ export default function Overview() {
           <h3>The catalog is empty</h3>
           <p>
             Start with an artist, add a release, then add tracks with their
-            externally hosted audio URLs. Nothing is seeded — everything here is
+            externally hosted audio URLs. Nothing is seeded - everything here is
             music you publish on purpose.
           </p>
           {canEdit && <Link className="btn small primary" to="/admin/artists/new">Create the first artist</Link>}

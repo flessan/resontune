@@ -5,7 +5,7 @@
  *
  *  1. Better Auth's self-service `POST {NEON_AUTH_URL}/delete-user`, which is
  *     authenticated by the user's own Neon Auth session. Only the browser
- *     holds that session, so only the browser can call it — and it works
+ *     holds that session, so only the browser can call it - and it works
  *     only when the deployment enabled `user.deleteUser`.
  *
  *  2. The documented Neon control-plane endpoint
@@ -17,7 +17,7 @@
  * The credential this needs is powerful. It is therefore:
  *   - read from the server environment only, never sent to a client, never
  *     logged, never echoed in an API response;
- *   - entirely optional — with nothing configured the app keeps its previous
+ *   - entirely optional - with nothing configured the app keeps its previous
  *     honest behaviour and says the identity was not deleted;
  *   - best paired with a *project-scoped* Neon API key, which cannot reach
  *     any other project, cannot create projects and cannot mint more keys.
@@ -83,7 +83,7 @@ async function describeError(res: Response): Promise<string> {
         return `HTTP ${res.status}: ${body.message.slice(0, 200)}`;
       }
     } catch {
-      /* not JSON — fall through */
+      /* not JSON - fall through */
     }
     return `HTTP ${res.status}`;
   } catch {
@@ -92,7 +92,7 @@ async function describeError(res: Response): Promise<string> {
 }
 
 /**
- * Ask Neon to delete one auth user. `subject` is the Neon Auth user id — the
+ * Ask Neon to delete one auth user. `subject` is the Neon Auth user id - the
  * verified `sub` claim ResonTune already stores as `users.auth_subject`.
  */
 export async function deleteNeonAuthIdentity(subject: string): Promise<IdentityAdminResult> {
@@ -126,7 +126,7 @@ export async function deleteNeonAuthIdentity(subject: string): Promise<IdentityA
         status: 'already-absent',
         deleted: false,
         detail:
-          'Neon Auth reported no such user. It may already have been deleted — or this '
+          'Neon Auth reported no such user. It may already have been deleted - or this '
           + 'deployment is pointed at the wrong Neon project or branch.',
       };
     }

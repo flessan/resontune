@@ -236,13 +236,13 @@ export function Layout() {
             />
           </form>
           <div style={{ flex: 1 }} />
-          {/* Phones get a search *action* — the full field lives on the
+          {/* Phones get a search *action* - the full field lives on the
               Search destination, where there is room to type. */}
           <NavLink to="/search" className="icon-btn topbar-search" aria-label="Search">
             <IconSearch width={19} height={19} />
           </NavLink>
           {user ? (
-            <NavLink to={`/u/${user.handle}`} className="topbar-avatar" title={`${user.displayName} — your profile`}>
+            <NavLink to={`/u/${user.handle}`} className="topbar-avatar" title={`${user.displayName} - your profile`}>
               <Avatar src={user.avatarThumbUrl ?? user.avatarUrl} name={user.displayName} size={30} />
             </NavLink>
           ) : (

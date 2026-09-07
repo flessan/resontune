@@ -1,6 +1,6 @@
 -- 003: site settings
 --
--- A tiny key/value store for public, admin-controlled configuration —
+-- A tiny key/value store for public, admin-controlled configuration -
 -- support links, QRIS asset URL, curated supporter names. Deliberately not
 -- a CMS: one table, JSONB values, full audit via updated_at/updated_by.
 -- Secrets never live here; everything in this table is publicly readable.

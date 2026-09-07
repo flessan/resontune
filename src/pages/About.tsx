@@ -1,5 +1,5 @@
 /**
- * About — what ResonTune is, how music works here, and how to take part.
+ * About - what ResonTune is, how music works here, and how to take part.
  * Native M3 destination: page title, tonal sections, list items.
  */
 import { Link } from 'react-router-dom';
@@ -31,7 +31,7 @@ export default function About() {
           <h3>Why it exists</h3>
           <p>
             Streaming became a set of walled gardens: subscriptions, lock-in,
-            opaque recommendation feeds. ResonTune is the opposite bet — a
+            opaque recommendation feeds. ResonTune is the opposite bet - a
             catalog you can browse openly, play instantly, and inspect down to
             the license line of every track. The code is open source, the
             catalog rules are documented, and the platform runs on the same
@@ -43,7 +43,7 @@ export default function About() {
           <h3>How music works here</h3>
           <p>
             Every playable track has an inspectable origin and an explicit
-            rights record. When you press play, the server — not the browser —
+            rights record. When you press play, the server - not the browser -
             decides how a track may be played, which is how takedowns and
             streaming permissions actually hold. Nothing on ResonTune fakes a
             source it doesn't have.
@@ -60,7 +60,7 @@ export default function About() {
             Our own catalog: artists who release directly through ResonTune.
             The platform hosts the audio and holds the rights it claims, every
             release carries a catalog number, and everything is free to
-            stream. Originals are the platform's musical identity — not a
+            stream. Originals are the platform's musical identity - not a
             marketing label.
           </p>
           <Link to="/originals" className="btn small">Browse Originals</Link>
@@ -74,7 +74,7 @@ export default function About() {
             conversation, a rights check, then publication. The artist declares
             the license and permissions; ResonTune records them verbatim and
             never invents rights. Community releases get the same artwork,
-            artist pages, radio and playlist treatment as Originals — the
+            artist pages, radio and playlist treatment as Originals - the
             distinction is provenance, not quality.
           </p>
           <Link to="/community" className="btn small">Browse Community</Link>
@@ -96,7 +96,7 @@ export default function About() {
           <div style={{ marginBottom: 10 }}><SourceChip sourceType="external" /></div>
           <h3>External sources</h3>
           <p>
-            Provider adapters may reference music that lives elsewhere — but
+            Provider adapters may reference music that lives elsewhere - but
             only through official, permitted mechanisms. When direct playback
             isn't allowed, ResonTune says so and links out honestly. External
             providers are an optional edge, never the foundation.
@@ -110,7 +110,7 @@ export default function About() {
           <h3>Privacy</h3>
           <p>
             Listening requires no account. Anonymous plays are counted without
-            identity. Sign in only adds sync — favorites, playlists, history —
+            identity. Sign in only adds sync - favorites, playlists, history -
             and your local files never leave your device. There is no tracking
             pixel economy here.
           </p>
@@ -126,7 +126,7 @@ export default function About() {
         <section className="about-card slim">
           <h3>Open source</h3>
           <p>
-            The whole platform — player, visualizer, catalog, moderation — is
+            The whole platform - player, visualizer, catalog, moderation - is
             MIT-licensed and developed in the open
             on <a href={repo} target="_blank" rel="noreferrer">GitHub</a>.
           </p>
@@ -147,8 +147,8 @@ export default function About() {
         <section className="about-card">
           <h3>Support</h3>
           <p>
-            ResonTune has no subscriptions and no ads, so infrastructure —
-            hosting, storage, bandwidth — is carried by the community. If the
+            ResonTune has no subscriptions and no ads, so infrastructure -
+            hosting, storage, bandwidth - is carried by the community. If the
             platform is useful to you, you can help keep it running.
           </p>
           <Link to="/support" className="btn small">Support ResonTune</Link>

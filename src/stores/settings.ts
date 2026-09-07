@@ -35,7 +35,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
   // Dark-first: ResonTune's primary experience is the dark theme.
   // Light and System remain first-class options in Settings.
   theme: (saved.theme as Theme) ?? 'dark',
-  // Minimal Spectrum is the first-run default — calm, not flashy.
+  // Minimal Spectrum is the first-run default - calm, not flashy.
   visualizerMode: saved.visualizerMode ?? 'minimal',
   visualizer: { ...DEFAULT_SETTINGS, ...(saved.visualizer ?? {}) },
 

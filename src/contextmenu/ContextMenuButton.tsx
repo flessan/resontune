@@ -1,7 +1,7 @@
 /**
  * The ⋮ overflow trigger.
  *
- * Same target, same actions, same surface as right-click — this button just
+ * Same target, same actions, same surface as right-click - this button just
  * anchors the menu to itself. On touch it becomes the bottom sheet, which is
  * why mobile users never need to discover a long press.
  */

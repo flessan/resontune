@@ -39,7 +39,7 @@ export async function extractAccent(src: string): Promise<string | null> {
 
 /**
  * Material-You dynamic color: the playing artwork influences tonal PLAYER
- * surfaces (via --player-tint) — it never recolors the application. The
+ * surfaces (via --player-tint) - it never recolors the application. The
  * app's own primary/navigation/typography identity stays stable.
  */
 export function applyAccent(hex: string | null): void {

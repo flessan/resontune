@@ -14,7 +14,7 @@ The server (`server/routes/play.ts`) walks the track's `sources[]` in
 priority order, enforces content state (takedowns → 410) and
 `streaming_permission` (→ 403), maps hosted object keys onto
 `AUDIO_CDN_BASE`, and returns the first playable resolution. Catalog
-endpoints never expose raw source URLs — the resolver is the only door.
+endpoints never expose raw source URLs - the resolver is the only door.
 
 ## Built-in source handling
 
@@ -23,7 +23,7 @@ endpoints never expose raw source URLs — the resolver is the only door.
 | `original_hosted` / `community_hosted` (`direct_url`) | Object key → `AUDIO_CDN_BASE` (dev: `/media/audio`, prod: object storage/CDN, later signable) |
 | `remote` (`direct_url`) | Rights-holder-managed URL played as-is |
 | `external` (`external_link` / `embed`) | Resolves to official external playback with a labeled link |
-| Local device files | Client-only: object URLs from IndexedDB blobs, cached and revoked in a bounded LRU — never touch the server |
+| Local device files | Client-only: object URLs from IndexedDB blobs, cached and revoked in a bounded LRU - never touch the server |
 
 ## Rules for new providers
 
@@ -39,6 +39,6 @@ rejected outright:
 - unauthorized downloading
 
 If a service only permits embedded playback, the adapter should return an
-`embed`/`external` resolution — **do not** force it into the `stream` shape.
+`embed`/`external` resolution - **do not** force it into the `stream` shape.
 Fundamentally incompatible services should not be crammed into the common
 abstraction; extend the `Resolution` union instead.

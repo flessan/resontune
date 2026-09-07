@@ -11,13 +11,13 @@ fix may take longer than an acknowledgement.
 A useful report includes:
 
 - what you found, and the affected endpoint, route or component;
-- reproduction steps — a request, a payload, a sequence of clicks;
+- reproduction steps - a request, a payload, a sequence of clicks;
 - what an attacker gets out of it (read another account's data, escalate a
   role, run script in someone else's browser…);
 - the deployment and commit/version you tested against.
 
 Please **do not** include other people's personal data, credentials or
-database dumps in a report. Describe the access instead — we can reproduce it
+database dumps in a report. Describe the access instead - we can reproduce it
 ourselves.
 
 ### Responsible disclosure
@@ -33,19 +33,19 @@ ourselves.
 
 Out of scope: missing hardening headers with no exploit path, rate limits on
 public read endpoints, self-XSS, issues in third-party services
-(Neon, Neon Auth, ImgBB — report those to them), and anything requiring a
+(Neon, Neon Auth, ImgBB - report those to them), and anything requiring a
 compromised device or a physically present attacker.
 
 ## Scope highlights
 
 Things we consider vulnerabilities:
 
-- Authentication bypass or token forgery (`server/auth.ts` — JWT verification
+- Authentication bypass or token forgery (`server/auth.ts` - JWT verification
   against the Neon Auth JWKS)
 - Authorization bypass: reading or editing another account's playlists,
   favorites, history, profile or export; reaching admin/moderation endpoints
   without the role
-- IDOR of any kind — every owned row must be scoped by the session id
+- IDOR of any kind - every owned row must be scoped by the session id
 - SQL injection (all queries must be parameterized)
 - Stored XSS via user-submitted metadata (profile text, playlist titles,
   track titles, descriptions, lyrics, moderator notes)
@@ -91,7 +91,7 @@ Things we consider vulnerabilities:
   as anonymous. The row lives in the application database, so every instance
   refuses the revoked identity and a stale tab cannot recreate the account on
   any of them; if the lookup itself fails the request is denied rather than
-  granted. Post-deletion writes that race the transaction fail closed —
+  granted. Post-deletion writes that race the transaction fail closed -
   a foreign-key violation against `users` is answered `401 This account no
   longer exists`, never a partial write.
 - Deleting the **sign-in identity** is separate from deleting ResonTune data,
@@ -101,17 +101,17 @@ Things we consider vulnerabilities:
   documented branch-scoped user-deletion endpoint; otherwise the account
   holder's own browser session calls Better Auth's self-service deletion.
   When neither is available the UI says the identity still exists and where
-  to remove it. The API key is server-side only — never in the bundle, a
-  response body, or a log line — and there is no undocumented or guessed
+  to remove it. The API key is server-side only - never in the bundle, a
+  response body, or a log line - and there is no undocumented or guessed
   provider endpoint anywhere in the codebase.
 
 ## Related documents
 
-- [docs/privacy-and-data.md](docs/privacy-and-data.md) — data inventory,
+- [docs/privacy-and-data.md](docs/privacy-and-data.md) - data inventory,
   third parties, retention, consent and dark-pattern audit
-- [docs/data-retention.md](docs/data-retention.md) — retention per data class,
+- [docs/data-retention.md](docs/data-retention.md) - retention per data class,
   application vs infrastructure vs provider
-- [docs/incident-response.md](docs/incident-response.md) — what happens after
+- [docs/incident-response.md](docs/incident-response.md) - what happens after
   a report is confirmed
 - [/privacy](src/pages/legal/Privacy.tsx), [/terms](src/pages/legal/Terms.tsx),
-  [/copyright](src/pages/legal/Copyright.tsx) — the user-facing pages
+  [/copyright](src/pages/legal/Copyright.tsx) - the user-facing pages

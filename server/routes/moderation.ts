@@ -11,7 +11,7 @@
  * the state.
  *
  * Every route requires a server-verified moderator/admin (requireModerator)
- * — roles come from the server (env allowlists or role rows), never from
+ * - roles come from the server (env allowlists or role rows), never from
  * anything the client sends.
  */
 import { Router } from 'express';

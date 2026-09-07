@@ -5,7 +5,7 @@
  * already decided where the approved audio and artwork are hosted, verified
  * them, and pastes the direct URLs here. ResonTune validates their shape,
  * lets the admin preview them in their *own* browser, and stores the
- * addresses — it never uploads, fetches or mirrors the media.
+ * addresses - it never uploads, fetches or mirrors the media.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -272,7 +272,7 @@ export default function TrackEditor() {
           <h3 className="edit-card-title">Media (externally hosted)</h3>
           <p className="edit-card-note">
             ResonTune does not host music files or artwork. Paste direct URLs from
-            the host you approved — the address is stored, the file stays where it is.
+            the host you approved - the address is stored, the file stays where it is.
           </p>
           <MediaUrlField
             label="Audio URL"
@@ -286,7 +286,7 @@ export default function TrackEditor() {
             kind="image"
             value={draft.artworkUrl}
             onChange={(v) => set('artworkUrl', v)}
-            hint={track?.inheritedArtworkUrl ? 'Empty: the release artwork is used.' : 'Optional — the release artwork is inherited when empty.'}
+            hint={track?.inheritedArtworkUrl ? 'Empty: the release artwork is used.' : 'Optional - the release artwork is inherited when empty.'}
           />
           <Field
             label="Official external page"

@@ -1,7 +1,7 @@
 /**
  * The signed-in account: profile, avatar, favorites, history, stats, export.
  *
- * Every route here is authorized from the verified session (`req.user`) —
+ * Every route here is authorized from the verified session (`req.user`) -
  * ownership is never read from the request body, so a client cannot edit
  * another account by sending a different id.
  */
@@ -58,7 +58,7 @@ export function meRouter(): Router {
 
   /**
    * The account may have been deleted a moment after this request was
-   * authenticated — by another tab, or by another server instance. The
+   * authenticated - by another tab, or by another server instance. The
    * verified token alone cannot know that, so anything that writes (or
    * exports) re-checks that the account still exists and answers 401 rather
    * than writing orphans or exporting a shell. One indexed lookup, on write
@@ -372,7 +372,7 @@ export function meRouter(): Router {
   /* -------------------------------- export --------------------------------
    *
    * Everything ResonTune holds about the signed-in account, in one JSON
-   * file, always scoped to `req.user.id` — the request cannot name another
+   * file, always scoped to `req.user.id` - the request cannot name another
    * account. Deliberately excluded (and stated in the file itself):
    * credentials, the Neon Auth subject identifier, other people's data and
    * server-side operational logs.
@@ -470,16 +470,16 @@ export function meRouter(): Router {
         linkedArtistPages: (artists as any[]).map((a) => ({ slug: a.slug, name: a.name })),
         // Everything named here is genuinely absent from the payload above.
         notIncluded: [
-          'Authentication credentials and the Neon Auth identity — email address, password and the '
-            + 'provider subject id are held by Neon Auth, and the subject id is never exported.',
+          'Authentication credentials and the Neon Auth identity - email address, password and the '
+          + 'provider subject id are held by Neon Auth, and the subject id is never exported.',
           'Other people\u2019s data. Playlists you liked are listed as a reference (title, link, when '
-            + 'you liked it); the tracks inside someone else\u2019s playlist are theirs, not yours.',
-          'Catalog records (artists, releases, tracks) — public data maintained by ResonTune editors. '
-            + 'Your playlists and favorites reference them by slug and title.',
+          + 'you liked it); the tracks inside someone else\u2019s playlist are theirs, not yours.',
+          'Catalog records (artists, releases, tracks) - public data maintained by ResonTune editors. '
+          + 'Your playlists and favorites reference them by slug and title.',
           'Avatar image bytes: the profile photo lives at the image host, and only its URL is stored '
-            + 'and exported.',
+          + 'and exported.',
           'Moderation and editorial audit records, and the anonymous play counter, which has no user '
-            + 'column to select on.',
+          + 'column to select on.',
           'Music you added from your own device: it never leaves your browser, so ResonTune has no copy.',
           `Listening history beyond the most recent ${EXPORT_HISTORY_LIMIT.toLocaleString('en-US')} plays.`,
         ],
@@ -506,7 +506,7 @@ export function meRouter(): Router {
    * when this deployment can.
    *
    * Deliberate by construction: the request must repeat the account's own
-   * username. Scope is the account and the things it owns — playlists,
+   * username. Scope is the account and the things it owns - playlists,
    * favorites, likes, listening history, profile links. Shared catalog
    * records are never removed: an artist page linked to this account keeps
    * existing with its `user_id` cleared (ON DELETE SET NULL), and the same
@@ -522,7 +522,7 @@ export function meRouter(): Router {
    * The identity half is attempted here only when the operator configured a
    * Neon administrative credential (see server/util/neonAuthAdmin.ts).
    * Otherwise it stays what it always was: the browser's own self-service
-   * request, made from the user's own Neon Auth session — and the response
+   * request, made from the user's own Neon Auth session - and the response
    * says plainly which of the two happened.
    */
   r.delete(
@@ -547,7 +547,7 @@ export function meRouter(): Router {
       const subject = subjectRows[0]?.auth_subject ?? null;
 
       const results = await db.transaction<{ id: string }>([
-        // Tombstone first — inside the transaction, derived from the row
+        // Tombstone first - inside the transaction, derived from the row
         // itself, so it can never name anyone else's identity.
         ...tombstoneStatements(uid),
         // Public counters are derived numbers, not history: keep them honest
@@ -591,7 +591,7 @@ export function meRouter(): Router {
           ...(identityDeleted ? ['your Neon Auth sign-in identity, including the email address it held'] : []),
         ],
         retainedData: [
-          'catalog records you are credited on — the artist page, releases and tracks stay published with the link to your account cleared',
+          'catalog records you are credited on - the artist page, releases and tracks stay published with the link to your account cleared',
           'moderation and editorial records, with the account reference cleared',
           'anonymous play counts, which never referenced your account',
           'database backups, until the provider\u2019s retention window passes',

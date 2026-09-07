@@ -33,7 +33,7 @@ export function useScrollLock(active: boolean): void {
   }, [active]);
 }
 
-/** Test helper — the number of outstanding locks. */
+/** Test helper - the number of outstanding locks. */
 export function scrollLockCount(): number {
   return locks;
 }

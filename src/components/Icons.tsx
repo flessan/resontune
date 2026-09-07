@@ -1,4 +1,4 @@
-/** Hand-rolled icon set — 1.6px stroke, consistent optical size. */
+/** Hand-rolled icon set - 1.6px stroke, consistent optical size. */
 import type { SVGProps } from 'react';
 
 const base = (props: SVGProps<SVGSVGElement>) => ({

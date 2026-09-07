@@ -1,5 +1,5 @@
 /**
- * Public profiles — `/api/users/:username`.
+ * Public profiles - `/api/users/:username`.
  *
  * A ResonTune profile is a music-platform page, not an account dump: display
  * name, username, bio, location, links, join date, role, public playlists,

@@ -1,4 +1,4 @@
-/** Typography — the track title set huge, weight and width driven by sound. */
+/** Typography - the track title set huge, weight and width driven by sound. */
 import { registerMode } from '../engine';
 
 let cachedTitle = '';
@@ -23,7 +23,7 @@ registerMode({
     const baseSize = Math.min(w / Math.max(6, title.length * 0.62), h * 0.22) * settings.scale;
     const size = baseSize * (1 + level * 0.25 * settings.intensity);
 
-    // stacked repeated title — like a letterpress proof sheet
+    // stacked repeated title - like a letterpress proof sheet
     const rows = 5;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';

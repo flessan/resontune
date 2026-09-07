@@ -21,7 +21,7 @@ interface Data {
   popularTracks: Track[];
 }
 
-/** A release card on an artist page — the album rows here carry no nested
+/** A release card on an artist page - the album rows here carry no nested
  *  artist, so the target borrows the page's artist. */
 function ReleaseCard({ album, artist }: { album: Album; artist: Artist }) {
   const target = useMemo<ContextTarget>(

@@ -1,7 +1,7 @@
 # Privacy, data & compliance audit
 
 An engineering audit of what ResonTune actually processes, written against
-the code in this repository — the migrations in `server/db/migrations`, the
+the code in this repository - the migrations in `server/db/migrations`, the
 routes in `server/routes`, the auth layer in `server/auth.ts` and the browser
 storage in `src/`. The user-facing summary of the same facts lives at
 [`/privacy`](../src/pages/legal/Privacy.tsx).
@@ -41,16 +41,16 @@ the verified token only to suggest a username for a brand-new account
 | `playlist_tracks` | `playlist_id` | yes, via playlist | cascade with the playlist |
 | `playlist_likes` | `user_id` | yes | `ON DELETE CASCADE` |
 | `favorites` | `user_id, track_id, created_at` | yes | `ON DELETE CASCADE` |
-| `play_history` | `user_id, track_id, played_at` | yes — listening history | `ON DELETE CASCADE` |
-| `entity_links` (`entity_kind='user'`) | `entity_id` | yes | **no FK** — deleted explicitly by the delete route |
-| `play_events` | `track_id, played_at` | **no** — no user, session or IP column | untouched |
+| `play_history` | `user_id, track_id, played_at` | yes - listening history | `ON DELETE CASCADE` |
+| `entity_links` (`entity_kind='user'`) | `entity_id` | yes | **no FK** - deleted explicitly by the delete route |
+| `play_events` | `track_id, played_at` | **no** - no user, session or IP column | untouched |
 | `collections.curator_id` | attribution | staff only | `SET NULL` |
 | `community_picks.picked_by` | attribution | staff only | `SET NULL` |
 | `takedowns.actor_id` | moderation audit | staff only | `SET NULL` |
 | `site_settings.updated_by` | admin audit | staff only | `SET NULL` |
-| `artists.user_id` | links a catalog artist page to an account | shared catalog record | `SET NULL` — **the artist page survives** |
+| `artists.user_id` | links a catalog artist page to an account | shared catalog record | `SET NULL` - **the artist page survives** |
 
-| `deleted_identities` | `auth_provider, auth_subject, deleted_at, expires_at` | pseudonymous — the provider's opaque user id, nothing else | written *by* deletion; expires after `IDENTITY_TOMBSTONE_HOURS` (24 h) and is swept by the next deletion |
+| `deleted_identities` | `auth_provider, auth_subject, deleted_at, expires_at` | pseudonymous - the provider's opaque user id, nothing else | written *by* deletion; expires after `IDENTITY_TOMBSTONE_HOURS` (24 h) and is swept by the next deletion |
 
 The `sessions` table was dropped in migration `004`; sessions live in Neon
 Auth, not here. `deleted_identities` (migration `006`) is the only table that
@@ -80,7 +80,7 @@ holds no name, email, handle or content.
 **Cookies:** ResonTune sets none. There is no `document.cookie` write and no
 `Set-Cookie` header anywhere in `server/`. Any cookie present belongs to Neon
 Auth or the hosting/CDN layer. Because nothing is set for analytics or
-advertising, no consent banner is implemented — and a fake one would be worse
+advertising, no consent banner is implemented - and a fake one would be worse
 than none. Operators who add a CDN or analytics later must revisit this.
 
 **Tracking:** no analytics SDK, no pixel, no beacon, no session recorder, no
@@ -115,9 +115,9 @@ Neon, and no period is invented for either.
 | --- | --- | --- |
 | Account, profile, playlists, favorites, likes | Application | Until the user edits or deletes them, or deletes the account |
 | `play_history` (listening history) | Application | Indefinite; erased by `DELETE /api/me/history` or account deletion. No automatic expiry |
-| `play_events` (anonymous play counts) | Application | Indefinite. No user id, no session id, no IP — nothing to expire |
+| `play_events` (anonymous play counts) | Application | Indefinite. No user id, no session id, no IP - nothing to expire |
 | `takedowns`, `moderation_events`, editorial records | Application | Kept as an audit trail; the account reference is cleared on deletion (`SET NULL`) |
-| `deleted_identities` (deletion tombstones) | Application | `IDENTITY_TOMBSTONE_HOURS`, default 24 h; rows are swept by the next deletion. Holds the opaque provider subject and two timestamps — no name, no email |
+| `deleted_identities` (deletion tombstones) | Application | `IDENTITY_TOMBSTONE_HOURS`, default 24 h; rows are swept by the next deletion. Holds the opaque provider subject and two timestamps - no name, no email |
 | Rate-limit counters | Application | In memory, 60-second window, never written to disk |
 | Application logs (stdout) | Hosting provider | Whatever the platform keeps. **Operator decision** |
 | Request/CDN logs | Hosting provider | Outside the application. **Operator decision** |
@@ -136,7 +136,7 @@ policy items, is in [data-retention.md](data-retention.md).
 | Rectification | `PATCH /api/me/profile`, `POST/DELETE /api/me/avatar` | Profile editor |
 | Erasure (history) | `DELETE /api/me/history` | Settings → Clear history |
 | Erasure (application data) | `DELETE /api/me` (requires the username as confirmation) | Settings → Delete account |
-| Erasure (sign-in identity), server-side | `DELETE {NEON_API}/projects/{id}/branches/{id}/auth/users/{sub}` — only when the operator configured a Neon API key | same flow, inside `DELETE /api/me` |
+| Erasure (sign-in identity), server-side | `DELETE {NEON_API}/projects/{id}/branches/{id}/auth/users/{sub}` - only when the operator configured a Neon API key | same flow, inside `DELETE /api/me` |
 | Erasure (sign-in identity), browser-side | `POST {NEON_AUTH_URL}/delete-user`, from the user's own Neon Auth session | same flow, when the server could not do it |
 
 All the ResonTune endpoints take the account from the verified token; none
@@ -149,13 +149,13 @@ says so in a `notIncluded` field that is checked against the payload in
 
 "Delete account" covers two systems, and the product says so at every step:
 
-1. **ResonTune data** — `DELETE /api/me` cascades everything the account owns
+1. **ResonTune data** - `DELETE /api/me` cascades everything the account owns
    and unlinks the shared records (§1). This always happens, in a single
    transaction that also writes the deletion tombstone, so there is no
    instant where the account is gone but its stale tokens are still honoured.
    Running it twice is harmless: the second run deletes nothing and says
    `alreadyDeleted: true` instead of failing.
-2. **The Neon Auth identity** — email address, password, sessions. Two
+2. **The Neon Auth identity** - email address, password, sessions. Two
    documented mechanisms exist and the deployment decides which is available:
 
    - **Server-side (preferred, opt-in).** Neon's control plane exposes
@@ -163,12 +163,12 @@ says so in a `notIncluded` field that is checked against the payload in
      authenticated with a Neon API key. When `NEON_API_KEY`,
      `NEON_PROJECT_ID` and `NEON_BRANCH_ID` are set, `DELETE /api/me` makes
      that call itself (`server/util/neonAuthAdmin.ts`) and reports exactly
-     what came back: `deleted`, `already-absent` (HTTP 404 — possibly already
+     what came back: `deleted`, `already-absent` (HTTP 404 - possibly already
      gone, possibly the wrong project/branch), `unauthorized` (the key was
      rejected) or `failed`. The key is read from the server environment only;
      it never reaches the browser, never appears in a response and is never
      logged. A **project-scoped** Neon API key is strongly recommended: it
-     cannot reach another project, create projects or mint further keys — but
+     cannot reach another project, create projects or mint further keys - but
      it can still change everything inside the one project, so this is a
      deliberate operator trade-off, not a default.
    - **Browser-side (fallback, always tried when the server could not).**
@@ -179,13 +179,13 @@ says so in a `notIncluded` field that is checked against the payload in
      disabled for the deployment (`user.deleteUser.enabled` off → HTTP 404).
 
    Whichever path ran, the closing dialog states plainly whether the sign-in
-   identity is gone, still there, or waiting on an email — and never claims a
+   identity is gone, still there, or waiting on an email - and never claims a
    full account deletion when only the application data was removed.
 
 Because a JWT is stateless, a token minted before the deletion would happily
 recreate an empty account on the next request. The deletion therefore writes
 a **tombstone** into `deleted_identities` (migration 006) inside the same
-transaction: the opaque provider subject, the deletion time and an expiry —
+transaction: the opaque provider subject, the deletion time and an expiry -
 nothing about the person. Any token *issued before* that moment is treated as
 anonymous by **every instance**, because the record lives in the shared
 database rather than in one process's memory. A genuinely new sign-in
@@ -195,7 +195,7 @@ what the privacy page describes.
 How it stays cheap and race-safe:
 
 - An authenticated request whose account row exists never touches the
-  tombstone table — the check happens only on the path that would otherwise
+  tombstone table - the check happens only on the path that would otherwise
   *create* an account, which is a first sign-in or a stale token.
 - That creating `INSERT` carries the same condition as a `WHERE NOT EXISTS`
   guard, so a deletion committing between the check and the write still wins.
@@ -216,28 +216,28 @@ during the race still counts for the track anonymously instead of failing.
 Local browser state after deletion: the session token and the API response
 cache (`resontune-v1-api`) are cleared. IndexedDB `resontune-local` (the
 user's own music, artwork and queue) and `resontune-settings` are **not**
-touched — they are the person's own data on their own device, and deleting a
+touched - they are the person's own data on their own device, and deleting a
 server row is no reason to erase their files.
 
 ## 6. GDPR-shaped risk review
 
-Structural observations only — a supervisory-authority-proof assessment is
+Structural observations only - a supervisory-authority-proof assessment is
 not something a repository can produce.
 
 | Topic | State | Needs a human |
 | --- | --- | --- |
-| Lawful basis | Not asserted anywhere. Accounts are voluntary and the data is what the feature needs. | **Yes** — the operator must decide and state the basis (likely contract for account features, legitimate interest for abuse prevention). |
+| Lawful basis | Not asserted anywhere. Accounts are voluntary and the data is what the feature needs. | **Yes** - the operator must decide and state the basis (likely contract for account features, legitimate interest for abuse prevention). |
 | Data minimisation | Strong: no email, no IP, no device data, anonymous play counts. | No |
 | Purpose limitation | Each table maps to one product feature (§1). | No |
 | Transparency | `/privacy` + this document. | Review wording per jurisdiction |
 | Access / rectification / erasure | Implemented self-service (§5). | No |
-| Retention limits | Documented, but unbounded for history and audit records. | **Yes** — set periods per jurisdiction |
-| Processors | Neon, ImgBB, host (§3). | **Yes** — DPAs / processor agreements are contracts, not code |
+| Retention limits | Documented, but unbounded for history and audit records. | **Yes** - set periods per jurisdiction |
+| Processors | Neon, ImgBB, host (§3). | **Yes** - DPAs / processor agreements are contracts, not code |
 | International transfers | Depends entirely on the Neon region and the host. | **Yes** |
 | Privacy by design | No account needed to listen; anonymous playback; local music never uploaded; secrets server-side. | No |
 | Security | See `SECURITY.md` and §8. | Periodic review |
 | Breach notification | Runbook in `docs/incident-response.md`; statutory deadlines are jurisdictional. | **Yes** |
-| Children's data | No age gate. | **Yes** — depends on the deployment's audience/jurisdiction |
+| Children's data | No age gate. | **Yes** - depends on the deployment's audience/jurisdiction |
 | DPO / representative | Not applicable to a repository; an operator may need one. | **Yes** |
 
 ## 7. Payments, consent and dark-pattern audit
@@ -287,7 +287,7 @@ Consent surfaces audited:
   create an account, and a failure of that lookup denies rather than allows.
 - `NEON_API_KEY` (optional, for server-side identity deletion) is read in
   `server/env.ts`, used only by `server/util/neonAuthAdmin.ts`, never sent to
-  the browser, never echoed in a response and never logged — the deletion
+  the browser, never echoed in a response and never logged - the deletion
   test asserts the key appears in the `Authorization` header and nowhere
   else. It is not a `VITE_` variable, so the bundler cannot inline it.
 

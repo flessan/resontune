@@ -1,5 +1,5 @@
 /**
- * Home — the front room of a music app: play something within one screen.
+ * Home - the front room of a music app: play something within one screen.
  * A compact artwork-led featured banner, then horizontal shelves and dense
  * track lists. No promotional storytelling; the music is the interface.
  */
@@ -67,7 +67,7 @@ export default function Home() {
     void usePlayer.getState().toggle();
   };
 
-  // The greeting never waits on the catalog — it belongs to the visitor.
+  // The greeting never waits on the catalog - it belongs to the visitor.
   if (loading) {
     return (
       <div className="page">

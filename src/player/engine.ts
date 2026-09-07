@@ -1,7 +1,7 @@
 /**
  * The ResonTune playback engine.
  *
- * One HTMLAudioElement for the app's whole lifetime (element reuse — no
+ * One HTMLAudioElement for the app's whole lifetime (element reuse - no
  * per-track churn), lazily wrapped in a Web Audio graph the first time the
  * visualizer needs analysis data. High-frequency state (currentTime, level)
  * is exposed through subscriptions and refs so React trees don't re-render
@@ -133,7 +133,7 @@ class PlayerEngine {
 
   async play(): Promise<void> {
     // play() is always triggered by a user gesture (or media keys after
-    // one), so this is the natural place to guarantee the analysis graph —
+    // one), so this is the natural place to guarantee the analysis graph -
     // the visualizer must have data the moment audio starts.
     this.ensureAnalysis();
     if (this.ctx?.state === 'suspended') await this.ctx.resume();

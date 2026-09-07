@@ -85,7 +85,7 @@ export default function AlbumPage() {
 
 /**
  * Catalog-style release footer: rights, license and credits, stated plainly.
- * Values come from the catalog records — nothing is inferred or invented.
+ * Values come from the catalog records - nothing is inferred or invented.
  */
 function ReleaseNotes({ album, tracks }: { album: Album; tracks: Track[] }) {
   const totalSecs = tracks.reduce((s, t) => s + (t.duration ?? 0), 0);
@@ -113,7 +113,7 @@ function ReleaseNotes({ album, tracks }: { album: Album; tracks: Track[] }) {
               {l.url ? <a href={l.url} target="_blank" rel="noreferrer">{l.name}</a> : l.name}
             </span>
           ))}
-          {licenses.some((l) => l.requiresAttribution) && ' — attribution required when sharing'}
+          {licenses.some((l) => l.requiresAttribution) && ' - attribution required when sharing'}
         </p>
       )}
     </div>

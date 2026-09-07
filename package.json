@@ -2,7 +2,7 @@
   "name": "resontune",
   "version": "0.1.0",
   "private": true,
-  "description": "ResonTune — a free, open-source, community-driven music platform. Open music. For everyone.",
+  "description": "ResonTune - a free, open-source, community-driven music platform. Open music. For everyone.",
   "license": "MIT",
   "type": "module",
   "scripts": {

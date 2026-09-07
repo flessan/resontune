@@ -4,7 +4,7 @@
  * These helpers are the one place that turns "an entity" into queue items:
  * they fetch through the normal API and hand off to the existing player
  * store. No queue state is duplicated here, and no playback URL is ever
- * derived on the client — `playQueue`/`enqueue` still resolve every item
+ * derived on the client - `playQueue`/`enqueue` still resolve every item
  * through `GET /api/play/:id`.
  */
 import type { Track, QueueItem } from '@/lib/types';

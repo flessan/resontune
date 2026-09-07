@@ -2,7 +2,7 @@
  * The Home greeting.
  *
  * Reads the visitor's local clock and the verified account from the auth
- * store, so it re-renders the moment authentication state changes — no
+ * store, so it re-renders the moment authentication state changes - no
  * refresh needed. The motion is one short, gentle rise, matching the rest of
  * the ResonTune motion system.
  */

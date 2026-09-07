@@ -5,7 +5,7 @@
  * destinations, a header that offers search without a squeezed field, a
  * player row that only exists while something is playing, and a drawer that
  * does not let the page wander off behind it. jsdom cannot measure any of
- * the geometry, so each assertion is about structure and state — the parts
+ * the geometry, so each assertion is about structure and state - the parts
  * that break silently when a component is refactored.
  */
 import { act } from 'react';
@@ -24,7 +24,7 @@ vi.mock('@/lib/api', () => ({
     patch: vi.fn(async () => ({})),
     del: vi.fn(async () => ({})),
   },
-  ApiError: class extends Error {},
+  ApiError: class extends Error { },
 }));
 
 /* The audio engine belongs to the browser, not to the shell. */
@@ -34,16 +34,16 @@ vi.mock('@/player/engine', () => {
     engine: {
       audio,
       analysisReady: false,
-      ensureAnalysis: () => {},
-      onTime: () => () => {},
+      ensureAnalysis: () => { },
+      onTime: () => () => { },
       readFrame: () => null,
-      load: async () => {},
-      play: async () => {},
-      pause: () => {},
-      seek: () => {},
-      setMuted: () => {},
-      setRate: () => {},
-      setVolume: () => {},
+      load: async () => { },
+      play: async () => { },
+      pause: () => { },
+      seek: () => { },
+      setMuted: () => { },
+      setRate: () => { },
+      setVolume: () => { },
     },
   };
 });

@@ -51,7 +51,7 @@
   --on-surface-faint: color-mix(in srgb, var(--on-surface-variant) 50%, transparent);
   --outline-strong: color-mix(in srgb, var(--outline) 50%, transparent);
 
-  /* Dynamic color from the playing artwork — player surfaces ONLY. */
+  /* Dynamic color from the playing artwork - player surfaces ONLY. */
   --player-tint: var(--primary);
 
   /* ---- aliases used by inline styles in components --------------- */
@@ -136,7 +136,7 @@
   --tertiary-container: #4e471b;
   --on-tertiary-container: #efe3a9;
 
-  /* Deep near-neutral darks with a warm undertone — layered, never pure
+  /* Deep near-neutral darks with a warm undertone - layered, never pure
      black, comfortable for long listening sessions. */
   --surface: #131110;
   --surface-container-lowest: #0d0b0a;
@@ -168,7 +168,7 @@
    The whole layout scales through these four numbers. Compact phones get
    a 16px gutter, larger phones 20px, tablets 24px, desktop 28px; the
    mini player and navigation bar publish their real heights so content
-   and overlays can reserve exactly the space they need — no more, and
+   and overlays can reserve exactly the space they need - no more, and
    nothing when the player is idle. */
 @media (max-width: 1100px) { :root { --gutter: 24px; } }
 @media (max-width: 860px) {
@@ -328,7 +328,7 @@ input, textarea, select { font-family: inherit; color: inherit; }
 .sidebar-foot a { color: inherit; }
 .sidebar-foot a:hover { color: var(--on-surface); }
 
-/* Collapsed rail: icons with tooltips, labels hidden. Desktop only —
+/* Collapsed rail: icons with tooltips, labels hidden. Desktop only -
    mobile uses the drawer instead. */
 @media (min-width: 861px) {
   .app.nav-collapsed { grid-template-columns: 68px 1fr; }
@@ -414,7 +414,7 @@ input, textarea, select { font-family: inherit; color: inherit; }
 }
 @media (max-width: 860px) { .page { padding: 8px var(--gutter) 28px; } }
 
-/* Top bar: quiet, useful — hamburger (mobile), search, account. */
+/* Top bar: quiet, useful - hamburger (mobile), search, account. */
 .topbar {
   position: sticky;
   top: 0;
@@ -437,7 +437,7 @@ input, textarea, select { font-family: inherit; color: inherit; }
 .topbar .hamburger, .topbar .topbar-brand, .topbar .topbar-search { display: none; }
 @media (max-width: 860px) {
   /* A header of its own, not a squeezed desktop bar: one comfortable
-     row — navigation, wordmark, search, account — with real breathing
+     row - navigation, wordmark, search, account - with real breathing
      room and 44px targets. The full search field is one tap away on the
      Search destination instead of being crushed in here. */
   .topbar {
@@ -525,10 +525,10 @@ input, textarea, select { font-family: inherit; color: inherit; }
 
 /* ------------------------------------------------------- type scale
    One family (Poppins), four weights (400/500/600/700), one rhythm.
-   Headline — page titles         · 600 / 24px
-   Title    — section headers     · 600 / 16px
-   Body     — content             · 400 / 14px
-   Label    — meta, chips, times  · 500 / 11–12px                        */
+   Headline - page titles         · 600 / 24px
+   Title    - section headers     · 600 / 16px
+   Body     - content             · 400 / 14px
+   Label    - meta, chips, times  · 500 / 11–12px                        */
 
 h1.page-title {
   font-weight: 600;
@@ -561,7 +561,7 @@ h1.page-title {
   margin: 0;
 }
 .section-note { font-size: 12px; color: var(--on-surface-faint); font-weight: 400; }
-/* "See all" — quiet text action, consistent on every section */
+/* "See all" - quiet text action, consistent on every section */
 .section-link { font-size: 12.5px; color: var(--on-surface-muted); font-weight: 500; }
 .section-link:hover { color: var(--primary); }
 /* "See all" is a real target on touch, not 12px of text. */
@@ -583,7 +583,7 @@ h1.page-title {
   .card-row.wide { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
 }
 
-/* Horizontal shelf — the primary browsing pattern. Scrolls sideways,
+/* Horizontal shelf - the primary browsing pattern. Scrolls sideways,
    snaps per tile, scrollbar hidden. The shelf bleeds to the screen edge
    but its first tile always lines up with the page gutter. */
 .shelf {
@@ -597,7 +597,7 @@ h1.page-title {
   scrollbar-width: none;
 }
 .shelf::-webkit-scrollbar { display: none; }
-/* Subtle sequential reveal, capped — long shelves appear as one group. */
+/* Subtle sequential reveal, capped - long shelves appear as one group. */
 .shelf > * { animation: fade-in var(--dur-quick) var(--ease-standard) backwards; }
 .shelf > :nth-child(1) { animation-delay: 0ms; }
 .shelf > :nth-child(2) { animation-delay: 25ms; }
@@ -618,7 +618,7 @@ h1.page-title {
   .shelf > .collection-tile { flex-basis: 210px; }
 }
 
-/* Tiles are free artwork + two text lines — never boxes. */
+/* Tiles are free artwork + two text lines - never boxes. */
 .tile { display: block; }
 .tile-art {
   position: relative;
@@ -663,7 +663,7 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
 .tile:hover .tile-play, .tile:focus-within .tile-play { opacity: 1; transform: none; }
 @media (hover: none) { .tile-play { opacity: 1; transform: none; width: 34px; height: 34px; } }
 
-/* Tile overflow trigger — the touch route into the same contextual menu. */
+/* Tile overflow trigger - the touch route into the same contextual menu. */
 .tile-more {
   position: absolute;
   top: 6px; right: 6px;
@@ -752,7 +752,7 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
 .track-row.playing .row-play { display: grid; color: var(--player-tint); }
 .track-row.playing:not(:hover) .row-play { display: none; }
 
-/* Tiny equalizer — the "now playing" tell. CSS-only, honors reduced
+/* Tiny equalizer - the "now playing" tell. CSS-only, honors reduced
    motion by freezing mid-height. */
 .eq {
   display: inline-flex;
@@ -820,7 +820,7 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
 }
 
 /* ---- touch track rows -------------------------------------------------
-   Same markup, same data, same player calls as the desktop row — only the
+   Same markup, same data, same player calls as the desktop row - only the
    density changes. The index column and the duration give their width to
    the title (the scarcest resource on a phone), artwork grows to a
    legible 48px, the row is a 64px target, and the ⋮ is permanently
@@ -857,7 +857,7 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
   .track-row .actions .fav-btn:not(.active) { display: none; }
 }
 
-/* Provenance chips — one quiet visual voice; informative, never loud. */
+/* Provenance chips - one quiet visual voice; informative, never loud. */
 .source-chip {
   display: inline-flex;
   align-items: center;
@@ -880,7 +880,7 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
   box-shadow: inset 0 0 0 1px var(--outline-variant);
 }
 
-/* "RESONTUNE ORIGINAL" — a quiet wordmark, identity through typography. */
+/* "RESONTUNE ORIGINAL" - a quiet wordmark, identity through typography. */
 .original-badge {
   display: inline-flex;
   align-items: center;
@@ -896,7 +896,7 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
 
 .original-badge.compact { letter-spacing: 0.12em; }
 
-/* Home greeting — quiet, human, gone in one line. */
+/* Home greeting - quiet, human, gone in one line. */
 .home-greeting {
   font-size: 22px;
   font-weight: 700;
@@ -904,7 +904,7 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
   margin: 4px 0 16px;
 }
 
-/* Featured release — one compact tonal row. Never a hero. */
+/* Featured release - one compact tonal row. Never a hero. */
 .featured {
   display: grid;
   grid-template-columns: 96px 1fr;
@@ -1017,7 +1017,7 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
 
 .station-card .station-desc { font-size: 12.5px; color: var(--on-surface-muted); line-height: 1.45; }
 
-/* About / Contribute / Support — plain application sections. Text
+/* About / Contribute / Support - plain application sections. Text
    hierarchy and spacing do the work; no box per paragraph. */
 .about-grid {
   display: grid;
@@ -1161,7 +1161,7 @@ img.img-loaded { opacity: 1; transition: opacity var(--dur-quick) var(--ease-sta
 
 /* ---------------------------------------------------------------- buttons */
 
-/* M3 buttons — default is the TONAL button (secondary container);
+/* M3 buttons - default is the TONAL button (secondary container);
    `.primary` is the FILLED button, used sparingly for the single most
    important action on a surface. */
 .btn {
@@ -1291,7 +1291,7 @@ textarea.input { resize: vertical; }
    surface itself. */
 
 /* M3 media surface: a tonal container whose tint follows the playing
-   artwork (--player-tint). Only this surface adapts — the app doesn't. */
+   artwork (--player-tint). Only this surface adapts - the app doesn't. */
 .player-bar {
   grid-area: player;
   height: var(--player-h);
@@ -1305,7 +1305,7 @@ textarea.input { resize: vertical; }
   z-index: 40;
   transition: background 0.6s var(--ease-standard);
 }
-/* Mobile: the mini player is part of the app surface — it shares the
+/* Mobile: the mini player is part of the app surface - it shares the
    Navigation Bar's tonal container and sits directly above it. No
    floating card, no shadow, no margins. */
 @media (max-width: 860px) {
@@ -1439,7 +1439,7 @@ textarea.input { resize: vertical; }
 
 /* No music → no player. The bar is one persistent element that
    *transitions* in when the first track arrives and back out when the
-   queue empties — both directions actually play because the element is
+   queue empties - both directions actually play because the element is
    never unmounted. Track changes never re-animate the bar itself. */
 .player-bar {
   transition:
@@ -1457,7 +1457,7 @@ textarea.input { resize: vertical; }
 }
 
 /* Track change: quiet crossfade + 2px settle. The bar itself stays
-   perfectly still — only the metadata block transitions. */
+   perfectly still - only the metadata block transitions. */
 .pb-now { animation: pb-fade var(--dur-quick) var(--ease-standard); }
 @keyframes pb-fade {
   from { opacity: 0.3; transform: translateY(2px); }
@@ -1467,7 +1467,7 @@ textarea.input { resize: vertical; }
   .pb-now { animation: none; }
 }
 
-/* Play/pause icon swap: the incoming icon scales in — a morph-feel
+/* Play/pause icon swap: the incoming icon scales in - a morph-feel
    crossfade without an icon library. */
 .pb-play svg, .ps-play svg, .tile-play svg, .row-play svg {
   animation: icon-in var(--dur-micro) var(--ease-standard);
@@ -1485,13 +1485,13 @@ textarea.input { resize: vertical; }
   100% { transform: scale(1); }
 }
 
-/* The Minimal Spectrum is ambient behavior of the player surface — no box,
+/* The Minimal Spectrum is ambient behavior of the player surface - no box,
    no border, no reserved panel. It fills the leftover space beside the
    track metadata and fades out at its edges so it reads as part of the
    surface, not a component. */
 .pb-spectrum {
   /* basis 0: it consumes leftover space only and never squeezes the
-     title/artist — with a long title it gracefully yields. */
+     title/artist - with a long title it gracefully yields. */
   flex: 1 1 0;
   min-width: 28px;
   height: 30px;
@@ -1507,7 +1507,7 @@ textarea.input { resize: vertical; }
   .pb-spectrum { display: none; }
 }
 
-/* Ambient visualizer layer in the expanded player — a surface behavior,
+/* Ambient visualizer layer in the expanded player - a surface behavior,
    not a component. Spans the sheet's lower region, fades upward, never
    intercepts input. */
 .ps-ambient {
@@ -1523,7 +1523,7 @@ textarea.input { resize: vertical; }
 }
 
 /* Contextual visualizer menu (M3 menu surface, opens off the player
-   controls — never a persistent settings panel). */
+   controls - never a persistent settings panel). */
 .ps-vis-pop {
   position: absolute;
   bottom: calc(100% + 10px);
@@ -1849,7 +1849,7 @@ textarea.input { resize: vertical; }
   min-height: 0;
   padding-top: 12px;
 }
-/* same tab language as .seg-tabs (Library) — one tab design app-wide */
+/* same tab language as .seg-tabs (Library) - one tab design app-wide */
 .ps-tabs {
   display: flex;
   gap: 4px;
@@ -2083,7 +2083,7 @@ textarea.input { resize: vertical; }
 .ctx-menu:focus { outline: none; }
 .ctx-menu.closing { animation: ctx-out 110ms var(--ease-exit) forwards; }
 
-/* Short, small, and mostly opacity — a menu should look placed, not thrown. */
+/* Short, small, and mostly opacity - a menu should look placed, not thrown. */
 @keyframes ctx-in {
   from { opacity: 0; transform: scale(0.97) translateY(-2px); }
   to { opacity: 1; transform: none; }
@@ -2386,7 +2386,7 @@ textarea.input { resize: vertical; }
   .toast { animation: none; opacity: 1; }
 }
 
-/* dropzone — dashed outline kept as the drop-target affordance */
+/* dropzone - dashed outline kept as the drop-target affordance */
 .dropzone {
   border: 1.5px dashed var(--outline);
   border-radius: var(--shape-lg);
@@ -2449,7 +2449,7 @@ table.simple td { padding: 8px 10px; border-bottom: 1px solid var(--outline-vari
    Profiles, the account editor and the catalog manager.
    Same language as the rest of the app: tonal surfaces, one
    typeface, short purposeful motion. The manager is denser than
-   the listener UI — never a different product.
+   the listener UI - never a different product.
    ============================================================ */
 
 /* ------------------------------------------------------------ greeting */
@@ -2861,7 +2861,7 @@ table.simple td { padding: 8px 10px; border-bottom: 1px solid var(--outline-vari
 }
 
 /* ============================================================
-   Mobile pass — touch density, safe areas and sheet behaviour.
+   Mobile pass - touch density, safe areas and sheet behaviour.
    Everything here is presentation only: same components, same
    state, same player. It lives at the end of the sheet so it
    reliably wins over the desktop defaults it refines.
@@ -2879,7 +2879,7 @@ h1.page-title, .detail-title, .profile-name, .ps-track-title, .section-title {
   .btn { padding: 11px 20px; font-size: 13.5px; }
   .btn.small { padding: 9px 16px; font-size: 13px; }
   .tile-more, .card-more { opacity: 1; }
-  /* a long press on an entity opens our sheet — the OS text-selection
+  /* a long press on an entity opens our sheet - the OS text-selection
      callout must not race it. Ordinary text stays selectable. */
   [data-ctx-target] { -webkit-touch-callout: none; }
   [data-ctx-target] .t-title, [data-ctx-target] .t-sub,
@@ -3068,7 +3068,7 @@ h1.page-title, .detail-title, .profile-name, .ps-track-title, .section-title {
 }
 
 /* ============================================================
-   Mobile polish — second pass.
+   Mobile polish - second pass.
    Findings from rendering the app in a real mobile viewport
    (320-1024) rather than reasoning about the cascade: the fixes
    below are the layout faults that only show up on a device.
@@ -3264,8 +3264,8 @@ h1.page-title, .detail-title, .profile-name, .ps-track-title, .section-title {
 
 /* ---- narrow screens: a flex column must be allowed to shrink -----------
    .main is a flex column (so the last page block can push the footer down),
-   and a column flex line stretches to its widest item: one wide child — a
-   table, a long URL — would otherwise widen every page past the viewport.
+   and a column flex line stretches to its widest item: one wide child - a
+   table, a long URL - would otherwise widen every page past the viewport.
    Pinning the cross size keeps the page exactly as wide as the viewport and
    lets wide content scroll inside its own box. */
 .main > * { min-width: 0; max-width: 100%; }
@@ -3298,7 +3298,7 @@ h1.page-title, .detail-title, .profile-name, .ps-track-title, .section-title {
   .legal-table td:first-child { font-weight: 600; color: var(--on-surface); }
 }
 
-/* The scroll container is only ever focused programmatically — by the skip
+/* The scroll container is only ever focused programmatically - by the skip
    link, and by the context menu when the row it was opened from cannot take
    focus back. A ring around the entire viewport reads as a rendering bug
    rather than as guidance, so it is suppressed; the elements inside it keep

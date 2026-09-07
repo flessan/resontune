@@ -4,7 +4,7 @@
  * ResonTune never hosts catalog audio or artwork: an administrator verifies
  * the media by hand and pastes an already-hosted direct URL, which is what
  * the database stores. Validation is therefore deliberately *deterministic
- * and offline* — the server never fetches a submitted URL to "inspect" it,
+ * and offline* - the server never fetches a submitted URL to "inspect" it,
  * so no SSRF surface is created by validation itself.
  *
  * Rejected by construction:
@@ -24,7 +24,7 @@ export const MAX_URL_LENGTH = 500;
 
 /**
  * People type "example.com/artist" far more often than they type the scheme.
- * Prefix https:// when a value has no scheme at all — anything that *does*
+ * Prefix https:// when a value has no scheme at all - anything that *does*
  * carry a scheme (including `javascript:` or `http:`) is passed through
  * untouched so the checks below can reject it on its own terms.
  */
@@ -55,7 +55,7 @@ export function validateMediaUrl(raw: string, { allowRelative = false } = {}): s
 
   /* Loopback media is a local-development convenience and nothing else, so
      it is opt-in through an explicit flag rather than inferred from
-     NODE_ENV — a deployment that forgets to set NODE_ENV=production must
+     NODE_ENV - a deployment that forgets to set NODE_ENV=production must
      not silently start accepting internal URLs. */
   const devHttpOk =
     process.env.ALLOW_LOCAL_MEDIA_URLS === '1' &&
@@ -87,8 +87,8 @@ const AUDIO_EXTENSIONS = ['.mp3', '.m4a', '.aac', '.ogg', '.oga', '.opus', '.wav
 /**
  * Audio URL for a catalog track. Same safety rules as any media URL, plus a
  * requirement that the URL actually points at a file path (a bare origin is
- * never a stream). The extension is *not* required — signed CDN URLs and
- * key-based paths are legitimate — so this stays a format check, never a
+ * never a stream). The extension is *not* required - signed CDN URLs and
+ * key-based paths are legitimate - so this stays a format check, never a
  * fetch.
  */
 export function validateAudioUrl(raw: string): string | null {

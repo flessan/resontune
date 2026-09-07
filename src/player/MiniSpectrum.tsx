@@ -1,12 +1,12 @@
 /**
- * Minimal Spectrum — the default, always-on visual response in the player
+ * Minimal Spectrum - the default, always-on visual response in the player
  * bar. A tiny canvas that reads real analysis frames straight from the
  * audio engine inside its own rAF loop; React state is never touched per
  * frame. When playback pauses the bars settle gently instead of vanishing;
  * once settled, the loop stops to save cycles.
  *
  * Respects prefers-reduced-motion by smoothing harder and halving the
- * frame rate — the spectrum stays readable, it just moves less.
+ * frame rate - the spectrum stays readable, it just moves less.
  */
 import { useEffect, useRef } from 'react';
 import { engine } from './engine';
@@ -64,7 +64,7 @@ export function MiniSpectrum({ bars = BARS, className }: { bars?: number; classN
       const accentColor = accent();
       const inkColor = ink();
       const mid = h / 2;
-      // Center-anchored bars — reads as ambient surface motion, not a widget.
+      // Center-anchored bars - reads as ambient surface motion, not a widget.
       for (let i = 0; i < bars; i++) {
         const v = levels[i];
         const bh = Math.max(h * 0.045, v * h * 0.94);

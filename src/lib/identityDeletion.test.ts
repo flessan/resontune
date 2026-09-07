@@ -1,7 +1,7 @@
 /**
  * How a Neon Auth failure is described to the person deleting their account.
  *
- * The provider's client is inconsistent — it sometimes resolves with an
+ * The provider's client is inconsistent - it sometimes resolves with an
  * `error` object and sometimes throws an `AuthApiError`, and the HTTP status
  * turns up under three different keys. Whatever shape arrives, the rule is
  * the same: never imply the sign-in identity is gone when it is not.

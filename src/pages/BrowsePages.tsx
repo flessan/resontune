@@ -24,7 +24,7 @@ export function AlbumsPage() {
   return (
     <div className="page">
       <h1 className="page-title">Releases</h1>
-      <p className="page-sub">Albums, EPs and singles — newest first.</p>
+      <p className="page-sub">Albums, EPs and singles - newest first.</p>
       {loading ? <div className="loading-page"><span className="spin" /></div> : (
         <div className="card-row">
           {data?.albums.map((al) => <AlbumTile key={al.id} album={al} />)}

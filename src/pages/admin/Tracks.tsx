@@ -1,4 +1,4 @@
-/** Tracks list — search, filter, missing-audio view, quick publish. */
+/** Tracks list - search, filter, missing-audio view, quick publish. */
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
@@ -76,7 +76,7 @@ export default function Tracks() {
           body={
             q || status || missingAudio
               ? 'Try a different search or clear the filters.'
-              : 'Add a track with its externally hosted audio URL — ResonTune stores the address you verified, not the file.'
+              : 'Add a track with its externally hosted audio URL - ResonTune stores the address you verified, not the file.'
           }
           action={canEdit && !q && !status && !missingAudio ? <Link className="btn small primary" to="/admin/tracks/new">Create a track</Link> : undefined}
         />

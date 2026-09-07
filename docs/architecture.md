@@ -12,7 +12,7 @@ production:
 ```
 
 In production (`npm run build && npm start`) Express also serves the built
-client from `dist/` — one deployable unit.
+client from `dist/` - one deployable unit.
 
 ## Domain boundaries (client)
 
@@ -31,7 +31,7 @@ src/
 
 ## Responsive shell
 
-One product, one information architecture, one player — only density and
+One product, one information architecture, one player - only density and
 presentation adapt. `.app` is a CSS grid: `sidebar | main` with a full-width
 player row on desktop, and `main / player / tabs` rows below 860px. Because
 the mini player and the navigation bar are *rows*, not floating overlays,
@@ -45,7 +45,7 @@ Four custom properties in `src/styles/global.css` carry the geometry:
 | `--gutter` | 28px (24px ≤1100) | 20px | 16px |
 | `--player-h` | 76px | 64px | 64px |
 | `--tabbar-h` | 0 | `56px + safe-area` | same |
-| `--sidebar-w` | 232px | — (drawer) | — |
+| `--sidebar-w` | 232px | - (drawer) | - |
 
 Every page surface reads `--gutter` (`.page`, `.topbar`, `.shelf`,
 `.seg-tabs`), so full-bleed scrollers can bleed to the screen edge while
@@ -56,7 +56,7 @@ clear without hardcoding a number.
 
 Mobile specifics worth knowing:
 
-- the header is its own design — hamburger, wordmark, a search *action* that
+- the header is its own design - hamburger, wordmark, a search *action* that
   opens the Search destination, and the account control at 44px; the desktop
   search field is hidden rather than squeezed;
 - track rows drop the index and duration columns, grow to a 64px row with
@@ -79,7 +79,7 @@ lock.
   what keeps playback alive across route transitions.
 - **Web Audio graph is lazy.** `createMediaElementSource` + `AnalyserNode`
   are attached on the first user gesture (`ensureAnalysis`). If Web Audio is
-  unavailable, playback still works — only visualization degrades.
+  unavailable, playback still works - only visualization degrades.
 - **Two frequencies of state.**
   - Coarse state (current item, playing, duration, queue) lives in a zustand
     store and re-renders React normally.
@@ -96,8 +96,8 @@ with queue/lyrics/about), **Immersive** (fullscreen visualizer).
 
 ## Contextual actions
 
-Every contextual affordance in the app — desktop right-click, the ⋮ overflow
-button, the mobile action sheet — resolves through one pipeline: a component
+Every contextual affordance in the app - desktop right-click, the ⋮ overflow
+button, the mobile action sheet - resolves through one pipeline: a component
 registers a typed *target*, `buildActions(target, ctx)` derives the valid
 actions from live state, and a single portalled surface renders them. Actions
 call the existing player, auth and API layers; they never fork queue or
@@ -108,7 +108,7 @@ authorization, not a substitute for it. See
 ## The visualizer
 
 See [visualizers.md](visualizers.md). Key decision: modes consume a
-*normalized* `AnalysisFrame` (bins, waveform, level, bass/mid/treble) — they
+*normalized* `AnalysisFrame` (bins, waveform, level, bass/mid/treble) - they
 have no knowledge of the player. The runner owns canvas sizing, the clock
 (speed-scaled, reduced-motion aware), and settings.
 

@@ -1,8 +1,8 @@
 /**
  * Time-of-day greeting.
  *
- * Derived from the visitor's own clock — never from a server timestamp and
- * never hard-coded — so "Good evening" means evening where they are.
+ * Derived from the visitor's own clock - never from a server timestamp and
+ * never hard-coded - so "Good evening" means evening where they are.
  */
 
 export type Daypart = 'morning' | 'afternoon' | 'evening' | 'night';

@@ -1,5 +1,5 @@
 /**
- * Contribute — approachable paths for musicians, listeners, and developers.
+ * Contribute - approachable paths for musicians, listeners, and developers.
  * Summaries + links; the repository docs remain the source of truth.
  */
 import { Link } from 'react-router-dom';
@@ -15,7 +15,7 @@ export default function Contribute() {
   return (
     <div className="page">
       <h1 className="page-title">Contribute</h1>
-      <p className="page-sub">Musicians, listeners, designers, developers — there's a path for each.</p>
+      <p className="page-sub">Musicians, listeners, designers, developers - there's a path for each.</p>
 
       <div className="about-grid">
         <section className="about-card">
@@ -27,7 +27,7 @@ export default function Contribute() {
             with an artist page, artwork and radio support.
           </p>
           <p style={{ fontSize: 12.5, color: 'var(--ink-faint)' }}>
-            Publication follows a human conversation and a rights check —
+            Publication follows a human conversation and a rights check -
             you must hold the rights to the music you release.
           </p>
           <Link to="/submit" className="btn small primary"><IconSubmit width={14} height={14} /> Release music</Link>
@@ -37,7 +37,7 @@ export default function Contribute() {
           <h3>Improve the catalog</h3>
           <p>
             Spotted wrong metadata, a broken link, a mislabeled genre, or a
-            rights concern? Open an issue — catalog corrections and
+            rights concern? Open an issue - catalog corrections and
             copyright/rights reports are handled through the project tracker
             so every change is visible and auditable.
           </p>
@@ -55,7 +55,7 @@ export default function Contribute() {
           <h3>Words & design</h3>
           <p>
             Documentation edits, clearer UI copy, translations, accessibility
-            reviews, and design/UX proposals are all welcome — none of them
+            reviews, and design/UX proposals are all welcome - none of them
             require writing application code. Open an issue describing what
             you'd improve, or send a pull request directly for docs.
           </p>
@@ -90,13 +90,13 @@ export default function Contribute() {
             <li>Fork the repository</li>
             <li>Create a branch for your change</li>
             <li>Make the change (with docs where relevant)</li>
-            <li>Run the checks — <code>npm run typecheck</code> and <code>npm run build</code></li>
+            <li>Run the checks - <code>npm run typecheck</code> and <code>npm run build</code></li>
             <li>Open a pull request describing the why, not just the what</li>
           </ol>
           <p style={{ fontSize: 12.5, color: 'var(--ink-faint)' }}>
             Development setup is two commands: <code>npm install</code>, then
             <code> npm run dev:server</code> + <code>npm run dev</code>. The
-            embedded database migrates itself — no external services needed.
+            embedded database migrates itself - no external services needed.
           </p>
         </section>
 
@@ -104,10 +104,10 @@ export default function Contribute() {
           <h3>Start here</h3>
           <ul className="about-links">
             <li><a href={repo} target="_blank" rel="noreferrer">GitHub repository <IconExternal width={11} height={11} /></a></li>
-            <li><a href={`${repo}/blob/main/README.md`} target="_blank" rel="noreferrer">README — what &amp; why <IconExternal width={11} height={11} /></a></li>
-            <li><a href={`${repo}/blob/main/CONTRIBUTING.md`} target="_blank" rel="noreferrer">CONTRIBUTING.md — conventions <IconExternal width={11} height={11} /></a></li>
-            <li><a href={`${repo}/tree/main/docs`} target="_blank" rel="noreferrer">docs/ — architecture, database, providers, visualizers, moderation, deployment <IconExternal width={11} height={11} /></a></li>
-            <li><a href={`${repo}/blob/main/SECURITY.md`} target="_blank" rel="noreferrer">SECURITY.md — responsible disclosure <IconExternal width={11} height={11} /></a></li>
+            <li><a href={`${repo}/blob/main/README.md`} target="_blank" rel="noreferrer">README - what &amp; why <IconExternal width={11} height={11} /></a></li>
+            <li><a href={`${repo}/blob/main/CONTRIBUTING.md`} target="_blank" rel="noreferrer">CONTRIBUTING.md - conventions <IconExternal width={11} height={11} /></a></li>
+            <li><a href={`${repo}/tree/main/docs`} target="_blank" rel="noreferrer">docs/ - architecture, database, providers, visualizers, moderation, deployment <IconExternal width={11} height={11} /></a></li>
+            <li><a href={`${repo}/blob/main/SECURITY.md`} target="_blank" rel="noreferrer">SECURITY.md - responsible disclosure <IconExternal width={11} height={11} /></a></li>
           </ul>
           <p style={{ fontSize: 12.5, color: 'var(--ink-faint)' }}>
             Good first contributions: a new visualizer mode

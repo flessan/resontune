@@ -3,20 +3,20 @@ import type { Request, Response, NextFunction } from 'express';
 /** Wrap an async route handler so rejections hit the error middleware. */
 export const asyncRoute =
   (fn: (req: Request, res: Response) => Promise<unknown>) =>
-  (req: Request, res: Response, next: NextFunction) => {
-    fn(req, res).catch(next);
-  };
+    (req: Request, res: Response, next: NextFunction) => {
+      fn(req, res).catch(next);
+    };
 
 /** Same, for middleware: continues the chain when the check passes. */
 export const asyncMiddleware =
   (fn: (req: Request, res: Response) => Promise<unknown>) =>
-  (req: Request, res: Response, next: NextFunction) => {
-    fn(req, res).then(() => next(), next);
-  };
+    (req: Request, res: Response, next: NextFunction) => {
+      fn(req, res).then(() => next(), next);
+    };
 
 /**
  * What the API says when a request authenticates against an account that has
- * since been deleted. One sentence, one meaning, one status code (401) — so
+ * since been deleted. One sentence, one meaning, one status code (401) - so
  * the client can react the same way wherever it happens.
  */
 export const ACCOUNT_GONE_MESSAGE = 'This account no longer exists. Sign in again to continue.';
@@ -34,7 +34,7 @@ export function isDeletedAccountViolation(err: unknown): boolean {
   return /user/i.test(where);
 }
 
-/** Parse pagination with hard bounds — payloads stay bounded no matter what. */
+/** Parse pagination with hard bounds - payloads stay bounded no matter what. */
 export function pagination(req: Request, defaults = { limit: 24, max: 60 }) {
   const limit = Math.min(
     defaults.max,

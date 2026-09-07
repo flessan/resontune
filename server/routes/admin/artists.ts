@@ -1,7 +1,7 @@
 /**
  * Admin: artists.
  *
- * Artist records are independent of user accounts — an artist can exist in
+ * Artist records are independent of user accounts - an artist can exist in
  * the catalog without ever having signed in. `userId` optionally associates
  * a record with a ResonTune account, which is the seam a future "claim your
  * artist page" flow plugs into.
@@ -159,7 +159,7 @@ export function adminArtistsRouter(): Router {
         `INSERT INTO artists (id, slug, name, bio, image_url, location, source_type, status, user_id, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())`,
         [id, slug, data.name, data.bio || null, data.imageUrl || null, data.location || null,
-         data.sourceType ?? 'community', data.status ?? 'published', userId],
+          data.sourceType ?? 'community', data.status ?? 'published', userId],
       );
       await syncLinks('artist', id, data.links);
       const rows = await db.query(`SELECT * FROM artists WHERE id = $1`, [id]);
@@ -210,7 +210,7 @@ export function adminArtistsRouter(): Router {
   );
 
   /**
-   * Delete an artist. Refused while releases or tracks still reference it —
+   * Delete an artist. Refused while releases or tracks still reference it -
    * a destructive cascade is never the quiet default. Archive instead, or
    * remove the catalog entries first.
    */

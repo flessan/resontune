@@ -1,4 +1,4 @@
-/** Artists list — search, filter, quick publish, navigate to the editor. */
+/** Artists list - search, filter, quick publish, navigate to the editor. */
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';
@@ -61,7 +61,7 @@ export default function Artists() {
           body={
             q || status
               ? 'Try a different search or clear the filter.'
-              : 'Artists can exist without a ResonTune account — create the record, then add releases and tracks.'
+              : 'Artists can exist without a ResonTune account - create the record, then add releases and tracks.'
           }
           action={canEdit && !q && !status ? <Link className="btn small primary" to="/admin/artists/new">Create an artist</Link> : undefined}
         />

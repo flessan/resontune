@@ -1,4 +1,4 @@
-/** Procedural — a field of drifting particles nudged by the spectrum.
+/** Procedural - a field of drifting particles nudged by the spectrum.
  *  Deliberately restrained: dust motes in lamplight, not a fireworks show. */
 import { registerMode } from '../engine';
 

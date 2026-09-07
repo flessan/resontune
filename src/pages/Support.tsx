@@ -1,9 +1,9 @@
 /**
- * Support ResonTune — transparent, external, optional.
+ * Support ResonTune - transparent, external, optional.
  *
  * ResonTune never collects payment information: every method here links to
  * an external service or shows an admin-configured QRIS image. Links come
- * from /api/site/config (admin-editable, env-fallback) — nothing is
+ * from /api/site/config (admin-editable, env-fallback) - nothing is
  * hardcoded and nothing is invented.
  */
 import { useFetch } from '@/lib/useFetch';
@@ -31,7 +31,7 @@ export default function Support() {
         ResonTune has no subscriptions and no ads. What it does have: hosting,
         audio storage, bandwidth, a CDN, a domain, moderation time, and
         ongoing open-source development. Community support carries those
-        costs — every contribution goes to running and improving the
+        costs - every contribution goes to running and improving the
         platform. Supporting is entirely optional; everything on ResonTune
         stays free to listen to either way.
       </p>
@@ -66,7 +66,7 @@ export default function Support() {
           <section className="about-card slim">
             <h3>Sociabuzz</h3>
             <p>
-              One-time support with an optional public message — the way to go
+              One-time support with an optional public message - the way to go
               if you'd like your name associated with ResonTune. Public
               listing is entirely optional and never assumed.
             </p>
@@ -96,7 +96,7 @@ export default function Support() {
       <div className="note-card" style={{ marginTop: 26, maxWidth: 640 }}>
         <strong>ResonTune never asks for payment details.</strong> All support
         happens on external services (or through your own banking app for
-        QRIS). Never enter card or bank credentials into ResonTune itself —
+        QRIS). Never enter card or bank credentials into ResonTune itself -
         if something asks you to, it isn't us.
       </div>
 
@@ -104,7 +104,7 @@ export default function Support() {
         <>
           <div className="section-head">
             <h2 className="section-title">Supported by</h2>
-            <span className="section-note">names listed with explicit permission — being here is opt-in</span>
+            <span className="section-note">names listed with explicit permission - being here is opt-in</span>
           </div>
           <div className="supporter-wall">
             {cfg.supporters.map((name) => (

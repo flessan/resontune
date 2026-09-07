@@ -92,7 +92,7 @@ export default function Search() {
       {!q && !loading && (
         <div className="empty">
           <h3>Search ResonTune</h3>
-          <p>Find tracks, artists, releases and playlists — or browse by <Link to="/genres" style={{ textDecoration: 'underline' }}>genre</Link>.</p>
+          <p>Find tracks, artists, releases and playlists - or browse by <Link to="/genres" style={{ textDecoration: 'underline' }}>genre</Link>.</p>
         </div>
       )}
 

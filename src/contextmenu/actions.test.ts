@@ -1,7 +1,7 @@
 /**
  * The action model: what each kind of target may do, and what it may not.
  *
- * These tests assert the contract every surface depends on — right-click,
+ * These tests assert the contract every surface depends on - right-click,
  * the ⋮ button and the mobile sheet all render exactly this list.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -17,7 +17,7 @@ vi.mock('@/lib/api', () => ({
     patch: vi.fn(async () => ({})),
     del: vi.fn(async () => ({})),
   },
-  ApiError: class extends Error {},
+  ApiError: class extends Error { },
 }));
 
 const baseCtx = (over: Partial<ActionContext> = {}): ActionContext => ({

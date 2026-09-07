@@ -30,22 +30,22 @@ HTMLAudioElement ─► MediaElementSource ─► AnalyserNode ─► AnalysisFr
 
 Modes never touch the player. The runner owns the canvas, DPR sizing, the
 speed-scaled clock, `prefers-reduced-motion` handling (the clock slows to
-15%, temporal smoothing rises and intensity is capped — dampened, never
+15%, temporal smoothing rises and intensity is capped - dampened, never
 removed) and user settings.
 
 ## Where the visualizer lives
 
 The visualizer is **ambient behavior of the player**, never a panel, card
-or destination. It is on by default — press play and the interface reacts:
+or destination. It is on by default - press play and the interface reacts:
 
-- **Compact player bar** — the *Minimal Spectrum* shares the row with the
+- **Compact player bar** - the *Minimal Spectrum* shares the row with the
   track metadata (`src/player/MiniSpectrum.tsx`: own rAF loop, edge-faded
   via CSS mask, settles on pause). No box, no reserved area.
-- **Expanded player** — a full-width ambient canvas layered on the sheet
+- **Expanded player** - a full-width ambient canvas layered on the sheet
   surface itself, fading upward behind the controls; the artwork carries a
   barely-perceptible bass-responsive scale. Mode + Sensitivity / Intensity /
   Speed live in a contextual popover off the playback controls.
-- **Immersive player** — the full-screen experience with all settings.
+- **Immersive player** - the full-screen experience with all settings.
 
 `minimal` is the first-run default mode; the user's choice persists in
 localStorage and applies across expanded and immersive views.
@@ -53,7 +53,7 @@ localStorage and applies across expanded and immersive views.
 ## User settings
 
 `sensitivity · intensity · speed · opacity · smoothing · scale · background`
-— editable in Settings, in the expanded player's visualizer popover, and
+- editable in Settings, in the expanded player's visualizer popover, and
 live inside the immersive player; persisted in localStorage.
 
 ## Writing a mode
@@ -71,7 +71,7 @@ registerMode({
   description: 'One honest sentence.',
   render({ ctx, w, h, t, frame, settings, accent, paper }) {
     const bins = smoothBins(frame, settings, buf, 48);
-    // draw with ctx — respect settings.intensity/scale, use accent + paper
+    // draw with ctx - respect settings.intensity/scale, use accent + paper
   },
 });
 ```
@@ -81,7 +81,7 @@ in Settings and the immersive player's mode picker.
 
 Guidelines:
 
-- Consume `settings` — at least intensity, scale and sensitivity.
+- Consume `settings` - at least intensity, scale and sensitivity.
 - Use the `accent` color (extracted live from the playing artwork) and
   `paper` neutral; avoid hardcoding your own palette.
 - Reuse buffers; never allocate per frame.

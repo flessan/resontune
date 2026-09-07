@@ -1,4 +1,4 @@
-/** Geometric — concentric polygons that count the beat. */
+/** Geometric - concentric polygons that count the beat. */
 import { registerMode, smoothBins } from '../engine';
 
 const N = 6;

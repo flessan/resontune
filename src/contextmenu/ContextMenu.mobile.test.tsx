@@ -27,7 +27,7 @@ vi.mock('@/lib/api', () => ({
     patch: vi.fn(async () => ({})),
     del: vi.fn(async () => ({})),
   },
-  ApiError: class extends Error {},
+  ApiError: class extends Error { },
 }));
 
 /** Pretend the device is a phone: coarse pointer, narrow viewport. */
@@ -36,8 +36,8 @@ function useTouchDevice() {
     matches: query.includes('coarse'),
     media: query,
     onchange: null,
-    addListener: () => {}, removeListener: () => {},
-    addEventListener: () => {}, removeEventListener: () => {},
+    addListener: () => { }, removeListener: () => { },
+    addEventListener: () => { }, removeEventListener: () => { },
     dispatchEvent: () => false,
   } as MediaQueryList));
 }
@@ -157,7 +157,7 @@ describe('a long press competing with a scroll', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('ignores a mouse press — long press is a touch gesture', async () => {
+  it('ignores a mouse press - long press is a touch gesture', async () => {
     renderWithMenu(<Entity target={{ type: 'track', track: makeTrack() }} />);
 
     fireEvent.pointerDown(screen.getByTestId('entity'), {

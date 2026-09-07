@@ -2,7 +2,7 @@
  * Server-side playback resolution.
  *
  * The client never plays straight from database fields. It asks
- * GET /api/play/:trackId and receives a resolved playback descriptor —
+ * GET /api/play/:trackId and receives a resolved playback descriptor -
  * which lets the server enforce content state (taken_down/archived),
  * streaming permission, source availability and, later, signed CDN URLs,
  * without any client changes.
@@ -33,7 +33,7 @@ interface SourceRow {
  * Turn a track_sources row into a playable URL.
  * Hosted sources may be stored as an object key; today that maps onto the
  * local /media path, in production onto object storage / CDN (optionally a
- * signed URL) — this is the single place that mapping lives.
+ * signed URL) - this is the single place that mapping lives.
  */
 function urlForSource(s: SourceRow): string {
   if ((s.source_type === 'original_hosted' || s.source_type === 'community_hosted') && s.object_key) {
@@ -68,8 +68,8 @@ export function playRouter(): Router {
       if (!track) throw new HttpError(404, 'Track not found.');
 
       // Only genuinely available catalog entries resolve. Unlisted tracks stay
-      // playable from a direct link; withdrawn ones — including tracks whose
-      // artist or release was withdrawn — never do.
+      // playable from a direct link; withdrawn ones - including tracks whose
+      // artist or release was withdrawn - never do.
       const withdrawn = (status: string | null | undefined) =>
         status === 'taken_down' || status === 'archived';
       if (track.status !== 'published' && track.status !== 'unlisted') {
@@ -105,8 +105,8 @@ export function playRouter(): Router {
             url: s.url,
             label:
               s.provider === 'youtube' ? 'Watch on YouTube'
-              : s.provider === 'soundcloud' ? 'Listen on SoundCloud'
-              : 'Open source',
+                : s.provider === 'soundcloud' ? 'Listen on SoundCloud'
+                  : 'Open source',
             sourceType: s.source_type,
             trackSourceType: track.source_type,
           });

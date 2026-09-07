@@ -4,7 +4,7 @@
  * Everything contextual in ResonTune comes through this function: the
  * desktop right-click menu, the ⋮ overflow button and the mobile action
  * sheet all render `buildActions(target, ctx)`. Actions call the same
- * player store, auth store and API the pages call — no playback, queue,
+ * player store, auth store and API the pages call - no playback, queue,
  * playlist or navigation logic is reimplemented here.
  *
  * Two rules shape the lists below:
@@ -293,7 +293,7 @@ function playlistActions(target: Extract<ContextTarget, { type: 'playlist' }>, c
     });
   }
 
-  // Ownership-only actions. The server enforces this too — these simply do
+  // Ownership-only actions. The server enforces this too - these simply do
   // not appear for people who cannot use them.
   if (owned) {
     actions.push({

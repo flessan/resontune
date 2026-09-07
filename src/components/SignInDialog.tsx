@@ -6,7 +6,7 @@ import { IconClose } from './Icons';
 import { useScrollLock } from '@/lib/scrollLock';
 
 /**
- * Sign in / create account — backed by Neon Auth (the single authentication
+ * Sign in / create account - backed by Neon Auth (the single authentication
  * authority). Additional identity providers (e.g. GitHub) are configured
  * inside Neon Auth, not implemented here.
  */

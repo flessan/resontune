@@ -3,7 +3,7 @@
  *
  * A track row is metadata plus two administrator-verified, externally hosted
  * URLs: the audio file and (optionally) artwork. ResonTune does not upload,
- * mirror, fetch or proxy either one — the admin decides where approved media
+ * mirror, fetch or proxy either one - the admin decides where approved media
  * lives, validates it in their own browser, and pastes the direct address.
  */
 import { Router } from 'express';
@@ -200,9 +200,9 @@ export function adminTracksRouter(): Router {
       const [sources, links] = await Promise.all([
         ids.length
           ? db.query<{ track_id: string; kind: string; url: string }>(
-              `SELECT track_id, kind, url FROM track_sources WHERE track_id = ANY($1) ORDER BY priority`,
-              [ids],
-            )
+            `SELECT track_id, kind, url FROM track_sources WHERE track_id = ANY($1) ORDER BY priority`,
+            [ids],
+          )
           : Promise.resolve([]),
         listLinksFor('track', ids),
       ]);
@@ -258,10 +258,10 @@ export function adminTracksRouter(): Router {
                              rights_notes, streaming_permission, distribution_permission, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, now())`,
         [id, slug, data.title, artistId, releaseId, data.trackNo ?? null, data.duration ?? null,
-         data.artworkUrl || null, data.description || null, licenseId, data.rightsHolder || null,
-         data.credits || null, data.explicit ?? false, data.status ?? 'published',
-         data.sourceType ?? 'community', data.attributionText || null, data.territory || 'worldwide',
-         data.rightsNotes || null, data.streamingPermission ?? true, data.distributionPermission ?? false],
+          data.artworkUrl || null, data.description || null, licenseId, data.rightsHolder || null,
+          data.credits || null, data.explicit ?? false, data.status ?? 'published',
+          data.sourceType ?? 'community', data.attributionText || null, data.territory || 'worldwide',
+          data.rightsNotes || null, data.streamingPermission ?? true, data.distributionPermission ?? false],
       );
       await setTrackSources(id, data.audioUrl || null, data.externalUrl || null);
       await syncTrackGenres(id, data.genres);

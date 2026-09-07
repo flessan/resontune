@@ -164,7 +164,7 @@ export function ContextMenuRoot() {
     }
     setClosing(true);
     // If another menu opened while this one was leaving, the timer must not
-    // close the newcomer — hence the openId check.
+    // close the newcomer - hence the openId check.
     const leaving = openId;
     closeTimer.current = setTimeout(() => {
       if (useContextMenu.getState().openId !== leaving) return;
@@ -251,7 +251,7 @@ export function ContextMenuRoot() {
   useEffect(() => {
     if (!target) return;
     // The floating menu renders `visibility: hidden` for one frame while it is
-    // measured, and a hidden element cannot take focus — so wait for the
+    // measured, and a hidden element cannot take focus - so wait for the
     // placement pass. The sheet has no measuring step and is focusable at once.
     if (!coarse && !placement) return;
     const el = menuRef.current;
@@ -276,7 +276,7 @@ export function ContextMenuRoot() {
   const run = (action: MenuAction) => {
     dismiss();
     // Let the menu start leaving before the action navigates or opens a
-    // dialog — actions never fight the closing animation for focus.
+    // dialog - actions never fight the closing animation for focus.
     void Promise.resolve().then(() => action.run());
   };
 
@@ -351,7 +351,7 @@ export function ContextMenuRoot() {
     </div>
   ));
 
-  /* A downward drag on the sheet's handle dismisses it — the gesture people
+  /* A downward drag on the sheet's handle dismisses it - the gesture people
      already expect from a bottom sheet. It lives on the header only, so it
      can never fight scrolling inside a long action list. */
   const onHandleDown = (e: ReactPointerEvent) => {

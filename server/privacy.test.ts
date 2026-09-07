@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * Privacy, ownership and authorization — against the real server.
+ * Privacy, ownership and authorization - against the real server.
  *
  * This suite boots the actual Express app (`createApp`) on an ephemeral
  * port, against a throwaway PGlite database with the real migrations, and
@@ -82,7 +82,7 @@ let deletedAliceId = '';
 async function call(
   pathname: string,
   { method = 'GET', auth, body, headers = {} }:
-  { method?: string; auth?: string; body?: unknown; headers?: Record<string, string> } = {},
+    { method?: string; auth?: string; body?: unknown; headers?: Record<string, string> } = {},
 ) {
   const init: RequestInit = { method, headers: { ...headers } };
   if (auth) (init.headers as Record<string, string>).Authorization = `Bearer ${auth}`;
@@ -305,7 +305,7 @@ describe('avatar upload', () => {
         method: 'POST', auth: aliceToken, body: png,
         headers: { 'Content-Type': 'image/png' },
       });
-      // Uploading fails in a test (no network to ImgBB) — what matters is
+      // Uploading fails in a test (no network to ImgBB) - what matters is
       // that neither the body nor the error carries the key.
       expect(res.text).not.toContain('super-secret-key');
     } finally {
@@ -452,7 +452,7 @@ describe('account deletion', () => {
   });
 
   it('refuses tokens issued before the deletion instead of recreating the account', async () => {
-    // The old token is still cryptographically valid — and must not work.
+    // The old token is still cryptographically valid - and must not work.
     const me = await call('/api/auth/me', { auth: aliceToken });
     expect(me.status).toBe(200);
     expect(me.body.user).toBeNull();
@@ -496,7 +496,7 @@ describe('deletion durability across instances', () => {
     const del = await call('/api/me', { method: 'DELETE', auth: ghost, body: { confirm: 'ghost' } });
     expect(del.status).toBe(200);
 
-    // A second instance: its own app, and — since the cache is per-process —
+    // A second instance: its own app, and - since the cache is per-process -
     // no memory whatsoever of the deletion. Only the shared table can carry
     // the refusal across.
     const other = await bootApp();
@@ -657,9 +657,9 @@ describe('deletion idempotency and concurrency', () => {
 
 /**
  * The documented Neon control-plane call, exercised against a stand-in for
- * the control plane. What is asserted is our side of the contract — method,
+ * the control plane. What is asserted is our side of the contract - method,
  * URL shape, credential handling, and how each documented status is
- * reported — not any Neon internals.
+ * reported - not any Neon internals.
  */
 describe('server-side identity deletion', () => {
   let neon: Server;

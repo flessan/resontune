@@ -62,7 +62,7 @@ export function PlayerBar() {
     <div
       /* The bar is hidden while nothing is queued and *transitions* in when
          the first track arrives (and back out when the queue empties).
-         One persistent element — never remounted, so enter and exit both
+         One persistent element - never remounted, so enter and exit both
          actually play and track changes never re-animate the bar. */
       className={`player-bar ${item ? 'has-item' : ''}`}
       role="region"
@@ -110,7 +110,7 @@ export function PlayerBar() {
                 )}
               </div>
             </div>
-            {/* The spectrum shares the row with the metadata — ambient, not boxed. */}
+            {/* The spectrum shares the row with the metadata - ambient, not boxed. */}
             <MiniSpectrum className="pb-spectrum" />
           </>
         ) : (

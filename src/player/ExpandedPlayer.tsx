@@ -22,7 +22,7 @@ import {
 type Tab = 'queue' | 'lyrics' | 'about';
 
 /**
- * Ambient visualizer layer for the expanded player. Not a panel — a
+ * Ambient visualizer layer for the expanded player. Not a panel - a
  * full-width canvas that lives on the sheet surface itself, behind the
  * controls, fading upward so the music's motion feels like part of the
  * room rather than a component. Same engine and mode registry as the
@@ -42,7 +42,7 @@ function AmbientVisualizer({ item }: { item: { artworkUrl: string | null; title:
     engine.ensureAnalysis();
     const runner = new VisualizerRunner(canvasRef.current, mode, vSettings, () => engine.readFrame());
     // Draw with the theme's outline tone so the layer sits naturally on the
-    // sheet (plain hex — canvas-safe, unlike the color-mix() aliases).
+    // sheet (plain hex - canvas-safe, unlike the color-mix() aliases).
     const ink = getComputedStyle(document.documentElement).getPropertyValue('--outline').trim();
     if (ink) runner.setPaper(ink);
     runnerRef.current = runner;
@@ -70,7 +70,7 @@ function AmbientVisualizer({ item }: { item: { artworkUrl: string | null; title:
 }
 
 /**
- * Contextual visualizer control — a small popover off the player controls.
+ * Contextual visualizer control - a small popover off the player controls.
  * Mode + the three quick dials. The visualizer itself never gets a box;
  * only its settings do, and only while open.
  */
@@ -178,12 +178,12 @@ export function ExpandedPlayer() {
     if (item?.origin === 'remote' && item.trackSlug) {
       api.get<{ track: Track }>(`/tracks/${item.trackSlug}`)
         .then((r) => setDetail(r.track))
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [item?.queueId, item?.origin, item?.trackSlug]);
 
   /* Barely-perceptible audio-responsive breath on the artwork. Direct DOM
-     transform in its own rAF loop — no React state per frame. Skipped
+     transform in its own rAF loop - no React state per frame. Skipped
      entirely under prefers-reduced-motion. */
   const artRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -245,7 +245,7 @@ export function ExpandedPlayer() {
               ) : (
                 item.artistName
               )}
-              {item.albumTitle ? <> — {item.albumTitle}</> : null}
+              {item.albumTitle ? <> - {item.albumTitle}</> : null}
             </p>
           </div>
         </div>

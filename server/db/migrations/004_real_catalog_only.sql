@@ -8,13 +8,13 @@
 --   2. Drops the database-backed submission pipeline. Music intake now
 --      happens through external community channels; only the published
 --      catalog lives in the database. Takedowns/content-state auditing
---      stays — that is real catalog administration.
+--      stays - that is real catalog administration.
 --   3. Drops server-side sessions and dev accounts. Authentication is now
 --      Neon Auth (verified JWTs); ResonTune stores only its own user rows
 --      keyed by the verified auth subject.
 --   4. Seeds structural reference data (licenses) that the catalog schema
 --      genuinely requires. No artists, albums, tracks, releases, audio
---      sources, collections or plays are seeded — the catalog is empty
+--      sources, collections or plays are seeded - the catalog is empty
 --      until real music is published.
 
 -- 1. demo catalog rows (cascade removes all dependent rows)

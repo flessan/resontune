@@ -1,5 +1,5 @@
 /**
- * Profile editor — /profile/edit.
+ * Profile editor - /profile/edit.
  *
  * Everything here is written through `PATCH /api/me/profile`, which resolves
  * the account from the verified session: the client cannot say whose profile
@@ -187,7 +187,7 @@ export default function ProfileEdit() {
             </div>
             <p className="hint" style={{ marginTop: 8 }}>
               JPEG, PNG, WebP or GIF, up to {Math.round(AVATAR_MAX_BYTES / 1024 / 1024)} MB. Photos are
-              hosted on ImgBB through ResonTune's server — only the resulting
+              hosted on ImgBB through ResonTune's server - only the resulting
               image address is stored.
             </p>
           </div>

@@ -1,6 +1,6 @@
 /**
  * A single collection: title/curator/description plus its ordered mix of
- * tracks, releases and artists — with the curator's notes inline.
+ * tracks, releases and artists - with the curator's notes inline.
  */
 import { useParams, Link } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';

@@ -1,5 +1,5 @@
 /**
- * Local music library — IndexedDB.
+ * Local music library - IndexedDB.
  *
  * Audio files the user adds stay on their device. We store:
  *  - `tracks`   : metadata records (title/artist/album/duration/favorite…)

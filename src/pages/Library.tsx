@@ -103,7 +103,7 @@ export default function Library() {
         <IconUpload width={28} height={28} style={{ opacity: 0.5 }} />
         <h3>{importing ? 'Importing…' : 'Drop audio files here'}</h3>
         <p style={{ margin: 0, fontSize: 13 }}>
-          or click to choose files — MP3, M4A, OGG, FLAC, WAV, Opus
+          or click to choose files - MP3, M4A, OGG, FLAC, WAV, Opus
         </p>
         <input
           ref={fileRef}

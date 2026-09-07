@@ -3,7 +3,7 @@
  *
  * Desktop has room for the whole text, so it prints in full. On small
  * screens it clamps to a few lines with an explicit control to read the
- * rest — the tracks and releases below stay reachable without a long
+ * rest - the tracks and releases below stay reachable without a long
  * scroll past prose. Same text, same DOM, only the presentation adapts.
  */
 import { useState } from 'react';

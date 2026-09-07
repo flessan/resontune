@@ -1,4 +1,4 @@
--- 006 — durable account-deletion tombstones.
+-- 006 - durable account-deletion tombstones.
 --
 -- Accounts are created on the first verified request, which is convenient
 -- until someone deletes theirs: a JWT is stateless and stays valid until it
@@ -10,7 +10,7 @@
 -- that is already there. It holds no personal data: the opaque provider
 -- subject (the same value already stored in users.auth_subject), the moment
 -- the account was deleted, and the moment the record itself may be dropped.
--- Rows are self-expiring — a token issued before the deletion cannot outlive
+-- Rows are self-expiring - a token issued before the deletion cannot outlive
 -- its own expiry, so the tombstone only has to cover that window.
 --
 -- Additive and safe on existing deployments: nothing else is touched.

@@ -1,8 +1,8 @@
 /**
  * The legal surface: /privacy, /terms and /copyright.
  *
- * These pages exist for people who are not signed in — often people
- * deciding whether to sign in at all — so the tests render them with no
+ * These pages exist for people who are not signed in - often people
+ * deciding whether to sign in at all - so the tests render them with no
  * auth state, no API and no player, and check that the substance is
  * actually there rather than a placeholder.
  */
@@ -19,7 +19,7 @@ import { Footer } from '@/components/Footer';
 const apiGet = vi.fn(async () => ({}));
 vi.mock('@/lib/api', () => ({
   api: { get: () => apiGet(), post: vi.fn(), patch: vi.fn(), del: vi.fn() },
-  ApiError: class extends Error {},
+  ApiError: class extends Error { },
 }));
 
 const renderPage = (node: React.ReactNode) =>

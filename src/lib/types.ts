@@ -6,7 +6,7 @@ export type Provider = 'hosted' | 'local' | 'youtube' | 'soundcloud' | 'other';
 export type SourceType = 'original' | 'community' | 'external';
 
 /**
- * Descriptive source metadata (no raw URLs — playback URLs are resolved
+ * Descriptive source metadata (no raw URLs - playback URLs are resolved
  * server-side via GET /api/play/:trackId).
  */
 export interface TrackSource {
@@ -172,7 +172,7 @@ export interface Profile {
 
 /**
  * A playable item in the queue. Either a remote catalog track or a local
- * file from the user's device — the origin is always explicit.
+ * file from the user's device - the origin is always explicit.
  */
 export interface QueueItem {
   queueId: string;               // unique per queue entry

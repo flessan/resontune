@@ -4,7 +4,7 @@
  * A *target* describes what the user acted on; an *action* is one thing they
  * can do to it. Actions are derived from the target (see `actions.ts`), so
  * the desktop right-click menu, the ⋮ overflow menu and the mobile action
- * sheet all render the same list — there is one source of truth.
+ * sheet all render the same list - there is one source of truth.
  */
 import type { ComponentType, SVGProps } from 'react';
 import type { Album, Artist, Playlist, QueueItem, Track } from '@/lib/types';
@@ -64,17 +64,17 @@ export interface AdminEntityRef {
 export type ContextTarget =
   /** A catalog track. `context` is the list it was played from, if any. */
   | {
-      type: 'track';
-      track: Track;
-      context?: Track[];
-      /** Set when the row lives in a playlist the signed-in user can edit. */
-      playlist?: { id: string; title: string; owned: boolean };
-      onChanged?: () => void;
-    }
+    type: 'track';
+    track: Track;
+    context?: Track[];
+    /** Set when the row lives in a playlist the signed-in user can edit. */
+    playlist?: { id: string; title: string; owned: boolean };
+    onChanged?: () => void;
+  }
   | { type: 'artist'; artist: ArtistRef }
   | { type: 'release'; release: ReleaseRef }
   | { type: 'playlist'; playlist: PlaylistRef; onChanged?: () => void }
-  /** A row of the live queue — actions operate on the real player queue. */
+  /** A row of the live queue - actions operate on the real player queue. */
   | { type: 'queue-item'; item: QueueItem; index: number }
   | { type: 'admin-artist'; entity: AdminEntityRef; onChanged?: () => void }
   | { type: 'admin-release'; entity: AdminEntityRef; onChanged?: () => void }

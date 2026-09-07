@@ -1,5 +1,5 @@
 /**
- * Community — releases published by independent artists. Intake happens in
+ * Community - releases published by independent artists. Intake happens in
  * the external community channels; only real published records show here.
  */
 import { Link } from 'react-router-dom';

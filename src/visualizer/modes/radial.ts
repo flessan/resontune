@@ -1,4 +1,4 @@
-/** Radial — spectrum bars arranged on a circle, like a letterpress sunburst. */
+/** Radial - spectrum bars arranged on a circle, like a letterpress sunburst. */
 import { registerMode, smoothBins } from '../engine';
 
 const BARS = 96;

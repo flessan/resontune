@@ -28,7 +28,7 @@ function SupportConfigEditor() {
         whatsappUrl: c.whatsappUrl ?? '',
         supporters: c.supporters.join('\n'),
       }))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const save = async () => {
@@ -58,7 +58,7 @@ function SupportConfigEditor() {
       <p style={{ color: 'var(--ink-muted)', fontSize: 13.5, marginTop: 0, maxWidth: 560 }}>
         Public links shown on the Support and Release-music pages. Leave a field
         empty to hide that method. Supporter names are listed only with each
-        person's permission — one name per line.
+        person's permission - one name per line.
       </p>
       <div style={{ display: 'grid', gap: 12, maxWidth: 560 }}>
         {([
@@ -103,7 +103,7 @@ function SupportConfigEditor() {
 
 
 /**
- * Your data — the whole privacy control surface, deliberately four plain
+ * Your data - the whole privacy control surface, deliberately four plain
  * actions rather than a dashboard of toggles. Every one of them is a real
  * server-side operation scoped to the signed-in account.
  */
@@ -130,7 +130,7 @@ function identityOutcome(identity: IdentityDeletion): string {
     case 'verification-sent':
       return base
         + 'Neon Auth sent a confirmation email for deleting your sign-in identity: until you open that '
-        + 'link, the identity — including your email address — still exists at Neon Auth.';
+        + 'link, the identity - including your email address - still exists at Neon Auth.';
     case 'unsupported':
       return base
         + 'Your Neon Auth sign-in identity has NOT been deleted: this deployment does not offer '
@@ -207,8 +207,8 @@ function AccountDataSection() {
       body:
         'ResonTune deletes your profile, playlists, favorites, likes, listening history and profile '
         + 'links. It cannot be undone. Catalog pages you are credited on stay published with the link '
-        + 'to your account removed. ResonTune then asks Neon Auth — which holds your sign-in and your '
-        + 'email address — to delete that identity too; if this deployment does not allow self-service '
+        + 'to your account removed. ResonTune then asks Neon Auth - which holds your sign-in and your '
+        + 'email address - to delete that identity too; if this deployment does not allow self-service '
         + 'identity deletion, you will be told and can remove it in Neon Auth yourself.',
       confirmLabel: 'Continue',
       danger: true,
@@ -236,7 +236,7 @@ function AccountDataSection() {
         identity = await deleteIdentity();
         // The browser could not do it either. When the server actually
         // reached the provider and was refused, its account of why is the
-        // useful one — the browser's own error is usually a bare "Not found".
+        // useful one - the browser's own error is usually a bare "Not found".
         const serverTried = server?.status === 'unauthorized' || server?.status === 'failed';
         if (identity.status !== 'deleted' && identity.status !== 'verification-sent' && serverTried) {
           identity = { status: 'failed', message: server?.reason ?? 'the provider refused' };
@@ -300,7 +300,7 @@ function AccountDataSection() {
           <div>
             <strong>Delete your account</strong>
             <p>
-              Erases everything ResonTune stores about you — profile, playlists, favorites,
+              Erases everything ResonTune stores about you - profile, playlists, favorites,
               likes and history. ResonTune then asks Neon Auth to delete your sign-in
               identity, and tells you whether that succeeded. This cannot be undone.
             </p>

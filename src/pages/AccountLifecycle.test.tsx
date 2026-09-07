@@ -1,8 +1,8 @@
 /**
  * The account lifecycle, from the user's side.
  *
- * The interesting part of "Delete account" is not the SQL — that is covered
- * in `server/privacy.test.ts` — it is whether the person pressing the button
+ * The interesting part of "Delete account" is not the SQL - that is covered
+ * in `server/privacy.test.ts` - it is whether the person pressing the button
  * is told the truth about what happens to their ResonTune data and to their
  * Neon Auth sign-in identity, which are two different things owned by two
  * different systems.
@@ -26,12 +26,12 @@ vi.mock('@/lib/api', () => ({
     patch: vi.fn(async () => ({})),
     del: (...args: unknown[]) => apiDel(...(args as [])),
   },
-  ApiError: class extends Error {},
+  ApiError: class extends Error { },
 }));
 
 let identityResult: IdentityDeletion = { status: 'unsupported', message: 'not enabled' };
 const deleteIdentity = vi.fn(async () => identityResult);
-const clearAccountScopedCaches = vi.fn(async () => {});
+const clearAccountScopedCaches = vi.fn(async () => { });
 vi.mock('@/lib/authClient', () => ({
   NEON_AUTH_URL: 'https://auth.example.invalid',
   authClient: null,
@@ -45,9 +45,9 @@ vi.mock('@/player/engine', () => {
   const audio = document.createElement('audio');
   return {
     engine: {
-      audio, analysisReady: false, ensureAnalysis: () => {}, onTime: () => () => {},
-      readFrame: () => null, load: async () => {}, play: async () => {}, pause: () => {},
-      seek: () => {}, setVolume: () => {}, setRate: () => {}, stop: () => {},
+      audio, analysisReady: false, ensureAnalysis: () => { }, onTime: () => () => { },
+      readFrame: () => null, load: async () => { }, play: async () => { }, pause: () => { },
+      seek: () => { }, setVolume: () => { }, setRate: () => { }, stop: () => { },
     },
   };
 });
@@ -75,7 +75,7 @@ beforeEach(() => {
 });
 
 describe('the "Your data" section', () => {
-  it('offers export, correction, history clearing and deletion — and only to a signed-in user', () => {
+  it('offers export, correction, history clearing and deletion - and only to a signed-in user', () => {
     renderSettings();
     expect(screen.getByRole('button', { name: 'Export' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Edit profile' }).getAttribute('href')).toBe('/profile/edit');
@@ -173,7 +173,7 @@ describe('deleting an account', () => {
   });
 
   /* The server deletes the identity itself when the operator gave it a Neon
-     administrative credential. The browser must then not ask a second time —
+     administrative credential. The browser must then not ask a second time -
      that request would fail against an identity that is already gone. */
   it('trusts the server when it already deleted the sign-in identity', async () => {
     deleteResponse = {

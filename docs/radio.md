@@ -1,6 +1,6 @@
 # Radio
 
-Radio is continuous listening without decisions — and without a recommender
+Radio is continuous listening without decisions - and without a recommender
 system. A **station** is nothing more than a deterministic, server-built
 queue fed into the ordinary player queue, so skip / shuffle / reorder /
 repeat all work exactly like everywhere else.
@@ -29,7 +29,7 @@ ORDER BY ('x' || substr(md5(t.id::text || $seed), 1, 8))::bit(32)::int::float
 ```
 
 - `md5(id || seed)` gives every track a stable pseudo-random rank for that
-  seed — the same `(station, seed)` pair always returns the same queue
+  seed - the same `(station, seed)` pair always returns the same queue
   (verified in tests), while a new seed reshuffles.
 - Subtracting `ln(play_count)` gently floats popular tracks upward without
   letting them dominate.
@@ -38,7 +38,7 @@ ORDER BY ('x' || substr(md5(t.id::text || $seed), 1, 8))::bit(32)::int::float
 
 The response is `{ station, label, seed, tracks[] }`; the client turns the
 tracks into a normal queue. There is no live broadcasting, no server-side
-listening session — deliberately.
+listening session - deliberately.
 
 ## Empty and small catalogs
 

@@ -1,4 +1,4 @@
-/** Releases list — search, filter, quick publish, navigate to the editor. */
+/** Releases list - search, filter, quick publish, navigate to the editor. */
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useFetch } from '@/lib/useFetch';

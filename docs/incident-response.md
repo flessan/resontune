@@ -2,7 +2,7 @@
 
 What to do when something goes wrong with data or security in a ResonTune
 deployment. Short on purpose: an incident is not the moment to read a policy
-binder. There is no dashboard, no ticketing system and no on-call rota — this
+binder. There is no dashboard, no ticketing system and no on-call rota - this
 is a small project, and the process is a checklist a maintainer can follow.
 
 > Statutory notification deadlines differ by jurisdiction (many regimes use
@@ -24,7 +24,7 @@ scraper hitting public endpoints.
 ## 1. Detect and record
 
 - Write down the time you became aware and how (report, log, alert).
-- Start an append-only note — one file, timestamps, plain text. Everything
+- Start an append-only note - one file, timestamps, plain text. Everything
   below refers back to it.
 - Assign one person to coordinate. Everyone else reports to them.
 
@@ -33,7 +33,7 @@ scraper hitting public endpoints.
 Fastest safe action first:
 
 - Revoke or rotate what is exposed: Neon database credentials, Neon Auth
-  keys, `NEON_API_KEY` (the control-plane key used for identity deletion —
+  keys, `NEON_API_KEY` (the control-plane key used for identity deletion -
   revoke it in the Neon console; a project-scoped key limits the blast radius
   to one project), `IMGBB_API_KEY`, deploy tokens, any leaked developer
   credential.
@@ -68,7 +68,7 @@ Answer, in writing:
 - How many accounts are affected, and can they be listed?
 - Was any of it special-category or credential data? Note that ResonTune
   stores **no** passwords, emails or payment data (see
-  [privacy-and-data.md](privacy-and-data.md) §1) — credential exposure almost
+  [privacy-and-data.md](privacy-and-data.md) §1) - credential exposure almost
   certainly points at Neon Auth, not at this database.
 
 ## 5. Assess severity
@@ -102,20 +102,20 @@ Answer, in writing:
   acknowledge and credit them if they want it.
 - **Authorities**: where the operator's law requires notification, the
   operator makes that filing within the applicable deadline. Have the §4
-  written scope ready — it is what the form asks for.
+  written scope ready - it is what the form asks for.
 - Never publish exploit details before the fix is deployed.
 
 ## 8. Afterwards
 
 - Write a short post-incident note: timeline, cause, fix, what would have
   caught it earlier.
-- Fold the lesson into the code — a test, a validation rule, a documented
-  check — not into a rule nobody will remember.
+- Fold the lesson into the code - a test, a validation rule, a documented
+  check - not into a rule nobody will remember.
 - Review whether the same class of bug exists elsewhere (authorization,
   ownership, URL validation, secret handling).
 
 ## Contacts
 
-Report suspected vulnerabilities privately — see
+Report suspected vulnerabilities privately - see
 [`SECURITY.md`](../SECURITY.md). Do not post reproduction details in a public
 issue.

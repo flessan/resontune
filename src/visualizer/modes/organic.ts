@@ -1,4 +1,4 @@
-/** Organic — a breathing blob whose silhouette is shaped by the spectrum. */
+/** Organic - a breathing blob whose silhouette is shaped by the spectrum. */
 import { registerMode, smoothBins } from '../engine';
 
 const POINTS = 64;

@@ -52,7 +52,7 @@ export async function importFiles(files: File[]): Promise<ImportResult> {
           artwork = new Blob([copy.buffer as ArrayBuffer], { type: pic.format || 'image/jpeg' });
         }
       } catch {
-        /* unparseable tags — fall back to filename */
+        /* unparseable tags - fall back to filename */
       }
 
       const track: LocalTrack = {

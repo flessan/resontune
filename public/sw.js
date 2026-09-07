@@ -4,7 +4,7 @@
  * Strategy:
  *  - App shell + static assets: stale-while-revalidate.
  *  - Navigations: network-first, falling back to the cached shell so the
- *    app opens offline (local music keeps working — it lives in IndexedDB).
+ *    app opens offline (local music keeps working - it lives in IndexedDB).
  *  - API GETs: network-first with a short-lived cache fallback so the last
  *    seen catalog still renders offline.
  *  - Audio (/media/*) is intentionally NOT cached here: remote catalog audio

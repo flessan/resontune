@@ -2,7 +2,7 @@
 --
 -- 1. Real user profiles live on the existing `users` row (no parallel
 --    `profiles` table): bio, location, website and avatar metadata. Avatar
---    images are hosted by ImgBB — only the resulting URLs/identifier are
+--    images are hosted by ImgBB - only the resulting URLs/identifier are
 --    stored here, never image bytes.
 -- 2. External links become one normalized table (`entity_links`) shared by
 --    users, artists, releases and tracks, replacing `artist_links`. Existing

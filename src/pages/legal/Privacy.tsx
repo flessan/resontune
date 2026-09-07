@@ -1,5 +1,5 @@
 /**
- * /privacy — what ResonTune actually stores, why, and what you can do
+ * /privacy - what ResonTune actually stores, why, and what you can do
  * about it.
  *
  * Every claim here is checked against the implementation: the users table
@@ -19,7 +19,7 @@ export default function Privacy() {
         <>
           Listening to ResonTune never requires an account, and nothing you
           listen to anonymously is tied to you. An account exists only to sync
-          the things you make — playlists, favorites, your profile. This page
+          the things you make - playlists, favorites, your profile. This page
           lists the data that actually exists in the database, field by field.
         </>
       }
@@ -39,7 +39,7 @@ export default function Privacy() {
           <li>
             You can export everything your account holds, correct your profile,
             clear your listening history, and delete your ResonTune account
-            yourself from <Link to="/settings">Settings</Link> — which then also
+            yourself from <Link to="/settings">Settings</Link> - which then also
             asks Neon Auth to delete your sign-in identity, and tells you
             whether that worked.
           </li>
@@ -51,14 +51,14 @@ export default function Privacy() {
           Browsing and playback work without an account. Plays are counted
           against the <em>track</em>, not against a person: the play-count table
           stores a track id and a timestamp and has no user column, no session
-          id and no IP address. Your player state — the queue, position, volume,
-          theme, visualizer settings — is stored in your own browser and is
+          id and no IP address. Your player state - the queue, position, volume,
+          theme, visualizer settings - is stored in your own browser and is
           never sent to the server.
         </p>
         <p className="prose">
           Two different things are recorded when a track is played, and it is
-          worth being precise about which is which. Every play — signed in or
-          not — adds one row to that anonymous counter table. A play by a
+          worth being precise about which is which. Every play - signed in or
+          not - adds one row to that anonymous counter table. A play by a
           signed-in listener <em>additionally</em> writes a row to your own
           listening history, which is the only record tied to you. Clearing your
           history deletes those personal rows; the anonymous counter rows stay,
@@ -107,7 +107,7 @@ export default function Privacy() {
               </tr>
               <tr>
                 <td data-label="Data">Avatar URL (and thumbnail URL, provider id)</td>
-                <td data-label="Where it comes from">The image you upload, hosted by ImgBB — or the picture your sign-in provider supplied</td>
+                <td data-label="Where it comes from">The image you upload, hosted by ImgBB - or the picture your sign-in provider supplied</td>
                 <td data-label="Why">Showing your photo. No image bytes are stored in the database</td>
               </tr>
               <tr>
@@ -160,23 +160,23 @@ export default function Privacy() {
         </p>
         <ul className="legal-list">
           <li>
-            <strong>IndexedDB (<code>resontune-local</code>)</strong> — music
+            <strong>IndexedDB (<code>resontune-local</code>)</strong> - music
             files you add from your device, their embedded artwork and tags,
             local playlists, and a snapshot of the queue and playback position
             so a reload resumes where you were.
           </li>
           <li>
-            <strong>localStorage</strong> — <code>resontune-settings</code>{' '}
+            <strong>localStorage</strong> - <code>resontune-settings</code>{' '}
             (theme, visualizer preferences) and{' '}
             <code>rt-nav-collapsed</code> (whether the sidebar is collapsed).
           </li>
           <li>
-            <strong>Cache Storage</strong> — the service worker keeps the app
+            <strong>Cache Storage</strong> - the service worker keeps the app
             shell and recent catalog responses so the app opens offline. Audio
             is deliberately not cached there.
           </li>
           <li>
-            <strong>Sign-in state</strong> — if you sign in, the Neon Auth
+            <strong>Sign-in state</strong> - if you sign in, the Neon Auth
             client keeps your session in browser storage on this origin.
           </li>
         </ul>
@@ -189,28 +189,28 @@ export default function Privacy() {
       <LegalSection id="third-parties" title="Third parties">
         <ul className="legal-list">
           <li>
-            <strong>Neon</strong> — the Postgres database. Everything in the
+            <strong>Neon</strong> - the Postgres database. Everything in the
             account table above is stored there.
           </li>
           <li>
-            <strong>Neon Auth</strong> — sign-in. It holds your email address,
+            <strong>Neon Auth</strong> - sign-in. It holds your email address,
             credentials and any connected identity provider, and issues the
             token this API verifies. ResonTune never receives your password.
           </li>
           <li>
-            <strong>ImgBB</strong> — profile photo hosting, and only that. Your
+            <strong>ImgBB</strong> - profile photo hosting, and only that. Your
             browser sends the image to the ResonTune server, the server uploads
             it to ImgBB with a server-side key, and only the resulting URL is
             stored. Catalog audio and artwork never go through ImgBB.
           </li>
           <li>
-            <strong>The hosts of the music itself</strong> — most of the catalog
+            <strong>The hosts of the music itself</strong> - most of the catalog
             is metadata plus links to media hosted elsewhere by the artists,
             labels or archives that publish it. When you press play, your
             browser fetches the audio (and often the artwork) directly from that
             host, which therefore sees your IP address and user agent, exactly
-            as if you had opened that link yourself. Some releases —
-            ResonTune Originals and hosted community releases — are served by
+            as if you had opened that link yourself. Some releases -
+            ResonTune Originals and hosted community releases - are served by
             the deployment itself instead, in which case it is the operator's
             own server and CDN logs that see the request.
           </li>
@@ -223,7 +223,7 @@ export default function Privacy() {
           There is no analytics provider, no advertising network, no A/B
           testing service, no session recorder and no third-party font or script
           CDN: the fonts ship with the application. What each third party does
-          with data it receives is governed by its own terms — this project
+          with data it receives is governed by its own terms - this project
           makes no promises on their behalf.
         </p>
       </LegalSection>
@@ -250,7 +250,7 @@ export default function Privacy() {
           <li>
             The record of a deleted sign-in, written so that old tokens stay
             refused: about a day, then it expires and is cleaned up. It holds
-            the opaque sign-in id and two timestamps — no name, no email, no
+            the opaque sign-in id and two timestamps - no name, no email, no
             content.
           </li>
           <li>
@@ -268,20 +268,20 @@ export default function Privacy() {
       <LegalSection id="rights" title="Your data, your controls">
         <ul className="legal-list">
           <li>
-            <strong>See it</strong> — <Link to="/settings">Settings → Your data</Link>{' '}
+            <strong>See it</strong> - <Link to="/settings">Settings → Your data</Link>{' '}
             downloads a JSON file with your profile, playlists and their
             tracks, favorites, liked playlists and listening history.
           </li>
           <li>
-            <strong>Correct it</strong> — <Link to="/profile/edit">edit your profile</Link>.
+            <strong>Correct it</strong> - <Link to="/profile/edit">edit your profile</Link>.
             Fields the system owns (your id, role and join date) are not
             editable, by you or by the browser.
           </li>
           <li>
-            <strong>Clear your history</strong> — one button in Settings.
+            <strong>Clear your history</strong> - one button in Settings.
           </li>
           <li>
-            <strong>Delete your account</strong> — in Settings. Two different
+            <strong>Delete your account</strong> - in Settings. Two different
             things carry that name, and the app treats them separately:
           </li>
         </ul>
@@ -294,8 +294,8 @@ export default function Privacy() {
             removed.
           </li>
           <li>
-            <strong>Your Neon Auth sign-in identity</strong> — the email address
-            and password, which ResonTune never stores — belongs to Neon Auth,
+            <strong>Your Neon Auth sign-in identity</strong> - the email address
+            and password, which ResonTune never stores - belongs to Neon Auth,
             so deleting it is a separate request to a separate system. How that
             request is made depends on the deployment. If this one was set up
             with a Neon administrative key, the server makes it for you as part
@@ -304,7 +304,7 @@ export default function Privacy() {
             Either way the closing dialog tells you exactly which of these
             happened: the identity was deleted, a confirmation email was sent
             and the identity still exists until you open it, or the identity was
-            kept because neither route is available here — in which case you can
+            kept because neither route is available here - in which case you can
             delete it in Neon Auth directly. You are never told the identity is
             gone when only your ResonTune data was deleted.
           </li>
@@ -316,15 +316,15 @@ export default function Privacy() {
           </li>
           <li>
             Sign-in tokens issued before the deletion are refused by every
-            server the site runs on — the deletion records the revoked sign-in
+            server the site runs on - the deletion records the revoked sign-in
             id (and nothing else about you) in the database for a day, so no
             leftover tab or copy of a token can quietly recreate the account. If you sign in again with
-            the same identity — because it still exists — you get a brand-new,
+            the same identity - because it still exists - you get a brand-new,
             empty ResonTune account: none of the deleted data comes back.
           </li>
         </ul>
         <p className="prose">
-          Depending on where you live you may have further rights — access,
+          Depending on where you live you may have further rights - access,
           rectification, erasure, restriction, objection, portability, or
           complaint to a supervisory authority. Those rights, the lawful basis
           for processing and any international transfer requirements depend on
@@ -339,7 +339,7 @@ export default function Privacy() {
           Authorization is enforced on the server for every write: the account
           is taken from a cryptographically verified token, never from the
           request body, so no request can edit another account. Secrets stay in
-          the server environment — the image-host key is never sent to the
+          the server environment - the image-host key is never sent to the
           browser. Details and the reporting process are in the{' '}
           <a href={`${REPO_URL}/blob/main/SECURITY.md`} target="_blank" rel="noreferrer">
             security policy
@@ -363,7 +363,7 @@ export default function Privacy() {
       <LegalSection id="changes" title="Changes and contact">
         <p className="prose">
           This page changes with the code. Because the whole application is
-          public, every change to it is visible in the repository's history —
+          public, every change to it is visible in the repository's history -
           the “last updated” date above is when the text was last checked
           against the implementation. Material changes will be noted here.
         </p>

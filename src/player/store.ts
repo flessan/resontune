@@ -1,5 +1,5 @@
 /**
- * Player state (zustand). Coarse state only — time updates flow through
+ * Player state (zustand). Coarse state only - time updates flow through
  * engine.onTime subscriptions so the React tree isn't re-rendered every
  * frame. Queue + position persist to IndexedDB so a reload resumes where
  * you left off.
@@ -61,7 +61,7 @@ function reportPlay(item: QueueItem) {
   if (playReportTimer) clearTimeout(playReportTimer);
   if (item.origin !== 'remote') return;
   playReportTimer = setTimeout(() => {
-    api.post(`/tracks/${item.id}/play`).catch(() => {});
+    api.post(`/tracks/${item.id}/play`).catch(() => { });
   }, 5000);
 }
 
@@ -96,7 +96,7 @@ async function persistState(state: Pick<PlayerState, 'queue' | 'index' | 'volume
     shuffle: state.shuffle,
     repeat: state.repeat,
     position: engine.audio.currentTime || 0,
-  }).catch(() => {});
+  }).catch(() => { });
 }
 
 let persistTimer: ReturnType<typeof setInterval> | null = null;
@@ -117,7 +117,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       return;
     }
     if ('external' in resolved) {
-      // Direct playback isn't permitted for this source — playback happens
+      // Direct playback isn't permitted for this source - playback happens
       // on the official external page; communicate rather than fake it.
       set({
         loading: false,

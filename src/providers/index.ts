@@ -1,8 +1,8 @@
 /**
  * Playback source resolution.
  *
- * Remote catalog tracks are resolved through the server —
- * GET /api/play/:trackId — which enforces content state (takedowns),
+ * Remote catalog tracks are resolved through the server -
+ * GET /api/play/:trackId - which enforces content state (takedowns),
  * streaming permission and source availability, and maps hosted object keys
  * onto storage/CDN URLs. The client never derives playback URLs from raw
  * database fields, so storage can move (S3/R2/signed URLs) without touching
@@ -12,7 +12,7 @@
  * object URLs and never leave the device.
  *
  * External services (YouTube, SoundCloud, …) are only ever handled through
- * permitted mechanisms — the server returns { mode: 'external' } with an
+ * permitted mechanisms - the server returns { mode: 'external' } with an
  * official link, never a scraped or proxied stream.
  */
 import type { Track, QueueItem, LocalTrack, PlayResolution } from '@/lib/types';

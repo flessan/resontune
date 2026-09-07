@@ -1,5 +1,5 @@
 /**
- * Target registration — the entry point of the contextual pipeline.
+ * Target registration - the entry point of the contextual pipeline.
  *
  * `useContextTarget(target)` returns props to spread on whatever DOM node
  * represents a music entity (a row, a card, a tile). It decides *whether*
@@ -51,7 +51,7 @@ export function hasSelectionAt(node: EventTarget | null): boolean {
 export interface ContextTargetOptions {
   /** Long-press on touch opens the sheet. On by default. */
   longPress?: boolean;
-  /** Called instead of the default open — used by rows with custom gestures. */
+  /** Called instead of the default open - used by rows with custom gestures. */
   disabled?: boolean;
 }
 
@@ -87,7 +87,7 @@ export function useContextTarget(
 
   /* A long press must lose to a scroll. Pointer movement past the slop
      cancels it, but a touch that turns into a fling is taken over by the
-     browser, which may stop sending pointermove — so any scroll anywhere
+     browser, which may stop sending pointermove - so any scroll anywhere
      cancels the pending press too. */
   const scrollCancel = useRef<(() => void) | null>(null);
 
@@ -141,7 +141,7 @@ export function useContextTarget(
       e.stopPropagation();
       const el = e.currentTarget as HTMLElement;
       const rect = el.getBoundingClientRect();
-      // The row itself is usually not focusable — the key press arrives from a
+      // The row itself is usually not focusable - the key press arrives from a
       // link or button inside it. Remember *that* element so Escape puts the
       // keyboard back exactly where it was.
       const focused = document.activeElement;

@@ -1,5 +1,5 @@
 /**
- * /terms — the rules for using ResonTune, in the same plain register as the
+ * /terms - the rules for using ResonTune, in the same plain register as the
  * rest of the product. Scope is deliberately narrow: this is a free,
  * open-source music platform with no payments and no premium tier.
  */
@@ -25,7 +25,7 @@ export default function Terms() {
           member profiles. Listening does not require an account; an account
           adds sync for the things you create. The software is MIT-licensed and{' '}
           <a href={REPO_URL} target="_blank" rel="noreferrer">public</a>; the
-          music is not — see{' '}
+          music is not - see{' '}
           <Link to="/copyright">music rights &amp; copyright</Link>.
         </p>
       </LegalSection>
@@ -47,7 +47,7 @@ export default function Terms() {
             “are you sure you want to lose your benefits” maze. That deletes
             everything ResonTune stores; your Neon Auth sign-in identity is a
             separate thing, and ResonTune asks Neon Auth to delete it too and
-            tells you whether it could — see the{' '}
+            tells you whether it could - see the{' '}
             <Link to="/privacy">privacy page</Link>.
           </li>
         </ul>
@@ -88,7 +88,7 @@ export default function Terms() {
           Your profile text, playlist titles and descriptions are yours. By
           making a playlist public you are choosing to publish it, along with
           your username and display name; anyone can see it and copy it. Keep
-          anything you would not want public out of those fields — the profile
+          anything you would not want public out of those fields - the profile
           editor is not private storage.
         </p>
         <p className="prose">
@@ -107,7 +107,7 @@ export default function Terms() {
           license terms and territory come from the rights holder, not from
           ResonTune, and a track can disappear the moment they change their
           mind. What you may do with a recording is set by its license, which is
-          shown on every track page —{' '}
+          shown on every track page -{' '}
           <Link to="/copyright">details here</Link>.
         </p>
       </LegalSection>
@@ -145,7 +145,7 @@ export default function Terms() {
         <p className="prose">
           ResonTune does not sell anything, does not have a premium tier, does
           not run trials and does not process payments. There is no checkout, no
-          billing and no stored payment method — the application contains no
+          billing and no stored payment method - the application contains no
           payment code at all. Donation links on the Support page, when the
           operator sets them, are ordinary external links to third-party
           platforms; giving is always optional and no feature depends on it.

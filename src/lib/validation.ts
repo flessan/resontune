@@ -2,7 +2,7 @@
  * Client-side mirrors of the server's validation rules.
  *
  * These exist purely to give instant feedback while typing. The server
- * re-validates everything and is the only authority — nothing here is a
+ * re-validates everything and is the only authority - nothing here is a
  * security control.
  */
 

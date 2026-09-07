@@ -1,5 +1,5 @@
 /**
- * Minimal .env loader (development convenience — no dependency).
+ * Minimal .env loader (development convenience - no dependency).
  * Imported first in server/index.ts so every other module sees the values
  * at import time. Values already present in the environment always win.
  */
@@ -18,5 +18,5 @@ try {
     }
   }
 } catch {
-  /* ignore — env vars may come from the real environment */
+  /* ignore - env vars may come from the real environment */
 }

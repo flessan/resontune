@@ -1,6 +1,6 @@
 # Contributing to ResonTune
 
-Thanks for wanting to help! ResonTune is a community project — code,
+Thanks for wanting to help! ResonTune is a community project - code,
 documentation, design, curation and moderation all count as contributions.
 
 ## Ground rules
@@ -23,7 +23,7 @@ npm run dev:server     # API on :8787 (embedded Postgres via PGlite)
 npm run dev            # Vite on :5173 (proxies /api and /media)
 ```
 
-The database migrates itself and starts **empty** — that's by design; every
+The database migrates itself and starts **empty** - that's by design; every
 surface has an honest empty state. Use local music (Library page) for
 playback during development, or publish test rows through SQL if you're
 working on catalog features.
@@ -46,15 +46,15 @@ docs/            architecture & operations documentation
 
 ## Adding things
 
-- **A visualizer mode** — see [docs/visualizers.md](docs/visualizers.md).
+- **A visualizer mode** - see [docs/visualizers.md](docs/visualizers.md).
   One file in `src/visualizer/modes/`, registered via `registerMode`.
-- **A provider** — see [docs/providers.md](docs/providers.md). Implement
+- **A provider** - see [docs/providers.md](docs/providers.md). Implement
   `MusicProvider`, register it, and document the terms it complies with.
-- **A contextual action** — see
+- **A contextual action** - see
   [docs/contextual-actions.md](docs/contextual-actions.md). Extend
   `buildActions` in `src/contextmenu/actions.ts`; never wire a one-off menu
   into a component.
-- **API endpoints** — validate all input with zod, keep responses paginated
+- **API endpoints** - validate all input with zod, keep responses paginated
   and bounded, and never trust the client.
 
 ## Pull requests
@@ -67,4 +67,4 @@ docs/            architecture & operations documentation
 
 ## Code of Conduct
 
-Be excellent to each other — see [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+Be excellent to each other - see [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).

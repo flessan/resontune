@@ -2,7 +2,7 @@
  * The contextual menu as the user meets it: right-click, keyboard, touch.
  *
  * jsdom has no native context menu, so "the browser menu still works" is
- * asserted the only way it can be — the app must not call preventDefault on
+ * asserted the only way it can be - the app must not call preventDefault on
  * the event, which is exactly what lets the browser show its own menu.
  */
 import { act } from 'react';
@@ -27,7 +27,7 @@ vi.mock('@/lib/api', () => ({
     patch: vi.fn(async () => ({})),
     del: vi.fn(async () => ({})),
   },
-  ApiError: class extends Error {},
+  ApiError: class extends Error { },
 }));
 
 /** Records the current route so navigation is observable. */
@@ -198,7 +198,7 @@ describe('keyboard support', () => {
   });
 
   /* Real browsers only: a row is a <div>, so the keyboard is never on the row
-     itself — it is on a link or button inside it. Escape must return there. */
+     itself - it is on a link or button inside it. Escape must return there. */
   it('returns focus to the element inside the row that the keyboard was on', async () => {
     renderWithMenu(<Page target={{ type: 'track', track: makeTrack() }} />);
     const entity = screen.getByTestId('entity');
@@ -351,8 +351,8 @@ describe('presentation', () => {
       matches: query.includes('coarse'),
       media: query,
       onchange: null,
-      addListener: () => {}, removeListener: () => {},
-      addEventListener: () => {}, removeEventListener: () => {},
+      addListener: () => { }, removeListener: () => { },
+      addEventListener: () => { }, removeEventListener: () => { },
       dispatchEvent: () => false,
     } as MediaQueryList));
 
@@ -370,8 +370,8 @@ describe('presentation', () => {
       matches: query.includes('reduce'),
       media: query,
       onchange: null,
-      addListener: () => {}, removeListener: () => {},
-      addEventListener: () => {}, removeEventListener: () => {},
+      addListener: () => { }, removeListener: () => { },
+      addEventListener: () => { }, removeEventListener: () => { },
       dispatchEvent: () => false,
     } as MediaQueryList));
 

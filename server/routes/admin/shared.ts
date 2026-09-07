@@ -3,7 +3,7 @@
  *
  * The catalog manager is a small internal CMS: administrators type metadata
  * and paste *already-hosted* direct media URLs. ResonTune never uploads,
- * downloads, proxies or inspects those URLs — it validates their shape and
+ * downloads, proxies or inspects those URLs - it validates their shape and
  * stores them.
  */
 import { getDb, slugify, uuid } from '../../db/index.ts';
@@ -142,7 +142,7 @@ export function guessAudioMime(url: string): string | null {
       if (path.endsWith(ext)) return mime;
     }
   } catch {
-    /* unparseable URLs never reach here — they fail validation first */
+    /* unparseable URLs never reach here - they fail validation first */
   }
   return null;
 }

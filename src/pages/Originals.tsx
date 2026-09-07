@@ -1,5 +1,5 @@
 /**
- * ResonTune Originals — music actually published through the ResonTune
+ * ResonTune Originals - music actually published through the ResonTune
  * catalog itself. Releases (chronological), artists, most-played tracks.
  * May legitimately be empty until the first real release.
  */
@@ -51,7 +51,7 @@ export default function Originals() {
       <div className="page">
         <div style={{ marginBottom: 6 }}><OriginalBadge /></div>
         <h1 className="page-title">Originals</h1>
-        <p className="page-sub">Released directly through ResonTune — hosted here, free to stream, clear licensing.</p>
+        <p className="page-sub">Released directly through ResonTune - hosted here, free to stream, clear licensing.</p>
         <div className="empty" style={{ marginTop: 24 }}>
           <h3>No ResonTune Originals yet</h3>
           <p>When music is published directly through ResonTune, it appears here.</p>
@@ -67,7 +67,7 @@ export default function Originals() {
           <div style={{ marginBottom: 6 }}><OriginalBadge /></div>
           <h1 className="page-title">Originals</h1>
           <p className="page-sub" style={{ marginBottom: 0 }}>
-            Released directly through ResonTune — hosted here, free to stream, clear licensing.
+            Released directly through ResonTune - hosted here, free to stream, clear licensing.
           </p>
         </div>
         <div className="catalog-actions">

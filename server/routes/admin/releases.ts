@@ -1,7 +1,7 @@
 /**
  * Admin: releases (albums, EPs, singles, compilations).
  *
- * Artwork is an externally hosted URL the administrator verified by hand —
+ * Artwork is an externally hosted URL the administrator verified by hand -
  * ResonTune stores the address, never the image.
  */
 import { Router } from 'express';
@@ -153,8 +153,8 @@ export function adminReleasesRouter(): Router {
                              released_on, source_type, status, catalog_no, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now())`,
         [id, slug, artistId, data.title, data.type ?? 'album', data.artworkUrl || null,
-         data.description || null, data.releasedOn || null, data.sourceType ?? 'community',
-         data.status ?? 'published', data.catalogNo || null],
+          data.description || null, data.releasedOn || null, data.sourceType ?? 'community',
+          data.status ?? 'published', data.catalogNo || null],
       );
       await syncLinks('album', id, data.links);
       const rows = await db.query(

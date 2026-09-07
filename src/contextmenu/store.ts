@@ -3,7 +3,7 @@
  *
  * One store instance means one menu can ever be open: a second right-click
  * replaces the first instead of stacking two surfaces. The store holds only
- * *where* and *on what* — the actions themselves are derived at render time
+ * *where* and *on what* - the actions themselves are derived at render time
  * so they always reflect current state.
  */
 import { create } from 'zustand';

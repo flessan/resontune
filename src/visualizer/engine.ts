@@ -2,18 +2,18 @@
  * Visualizer engine.
  *
  * Modes are self-contained modules that consume a normalized AnalysisFrame
- * plus user settings — they never touch the player directly. The engine
+ * plus user settings - they never touch the player directly. The engine
  * owns the render loop, canvas sizing, and settings, so new modes can be
  * added by pushing a VisualizerMode into the registry.
  */
 import type { AnalysisFrame } from '@/player/engine';
 
 export interface VisualizerSettings {
-  sensitivity: number;   // 0.4..2  — input gain applied to analysis data
-  intensity: number;     // 0.4..2  — how strongly visuals respond
-  speed: number;         // 0.3..2  — animation rate multiplier
+  sensitivity: number;   // 0.4..2  - input gain applied to analysis data
+  intensity: number;     // 0.4..2  - how strongly visuals respond
+  speed: number;         // 0.3..2  - animation rate multiplier
   opacity: number;       // 0.2..1
-  smoothing: number;     // 0..0.95 — extra temporal smoothing
+  smoothing: number;     // 0..0.95 - extra temporal smoothing
   scale: number;         // 0.5..1.6
   background: 'ink' | 'artwork' | 'transparent';
 }
@@ -178,7 +178,7 @@ export class VisualizerRunner {
 
     const frame = this.readFrame() ?? this.lastFrame;
     if (!frame) {
-      // No audio graph yet — render an idle frame with silence.
+      // No audio graph yet - render an idle frame with silence.
       const silent: AnalysisFrame = {
         freq: new Uint8Array(1024),
         wave: new Uint8Array(2048).fill(128),

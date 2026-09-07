@@ -6,14 +6,14 @@ under `var/pglite`. The adapter (`server/db/index.ts`) exposes one
 `query(text, params)` interface for both.
 
 Set `PGLITE_DIR` (relative to the working directory) to point a dev server
-at a different embedded database — useful for running a second instance
+at a different embedded database - useful for running a second instance
 with an empty catalog beside a populated one, e.g.
 `PORT=8788 PGLITE_DIR=var/pglite-empty npm start`. PGlite is
 single-connection, so each directory belongs to exactly one process. The
 catalog is never seeded: a fresh database starts genuinely empty and the UI
 is expected to say so.
 
-Schema: [`server/db/migrations/`](../server/db/migrations/) — plain SQL
+Schema: [`server/db/migrations/`](../server/db/migrations/) - plain SQL
 files applied in filename order by the migration runner in
 `server/db/index.ts` and tracked in `schema_migrations`. Dev (PGlite) and
 production (Neon) run the exact same DDL. `001_init.sql` is the v1 schema;
@@ -56,20 +56,20 @@ takedowns (content-state audit trail)
   data update, not a schema change. Playback URLs are produced only by the
   server-side resolver (`GET /api/play/:trackId`).
 - **Provenance** (`source_type = original | community | external`) lives on
-  artists, albums and tracks — it is data, not styling.
-- **Multiple sources per track**, ranked by `priority` — a track can have a
+  artists, albums and tracks - it is data, not styling.
+- **Multiple sources per track**, ranked by `priority` - a track can have a
   hosted stream *and* an external link fallback.
 - **`play_events` vs `play_history`.** Events are anonymous and power
   trending; history is per-user and only written for signed-in listeners.
 - **Content state.** `tracks.status` / `albums.status`
   (`published | unlisted | taken_down | archived`) tracks catalog
   visibility. `takedowns` keeps the full audit history; takedowns never
-  destroy data. There are no submission tables — music intake happens in
+  destroy data. There are no submission tables - music intake happens in
   external community channels.
 - **Profiles live on `users`.** `handle` *is* the username (unique,
   lowercase, reserved-route-safe). `bio`, `location`, `website_url`,
   `avatar_url`, `avatar_thumb_url`, `avatar_source`, `avatar_provider_id`
-  and `avatar_updated_at` are plain columns; no image bytes are stored —
+  and `avatar_updated_at` are plain columns; no image bytes are stored -
   only the ImgBB URL the server received.
 - **One link table.** `entity_links` replaced `artist_links` (migrated, then
   dropped) so profiles, artists, releases and tracks share one normalized
@@ -92,7 +92,7 @@ resolver prefixes it with `AUDIO_CDN_BASE` (default `/media/audio`).
 
 1. Upload files to S3/R2/Neon Object Storage.
 2. Set `AUDIO_CDN_BASE=https://media.example/audio`.
-3. Restart. No schema changes, no client changes — the resolver is the only
+3. Restart. No schema changes, no client changes - the resolver is the only
    place the mapping exists, and it can later mint signed URLs there too.
 
 ## Neon compatibility
@@ -103,13 +103,13 @@ The application cannot assume PGlite behavior. What we verify and how:
 | --- | --- |
 | DDL (`CREATE TABLE/INDEX IF NOT EXISTS`, `ALTER TABLE ADD COLUMN IF NOT EXISTS`, `DROP CONSTRAINT IF EXISTS`) | Standard Postgres 12+ DDL only; applied by the migration runner identically on both drivers |
 | Parameterized queries | Every statement uses `$1…$n` placeholders through the shared `query()` interface; no driver-specific literals |
-| Types | `UUID`, `TEXT`, `INTEGER`, `BOOLEAN`, `TIMESTAMPTZ`, `JSONB` only — all native on Neon |
+| Types | `UUID`, `TEXT`, `INTEGER`, `BOOLEAN`, `TIMESTAMPTZ`, `JSONB` only - all native on Neon |
 | JSON | `payload JSONB` written via `JSON.stringify` param, read defensively (`typeof === 'string' ? JSON.parse : value`) because Neon's driver returns parsed objects while some paths return strings |
 | Timestamps | Always `TIMESTAMPTZ` with `now()` defaults; serialized as ISO strings |
 | Pagination | `LIMIT/OFFSET` with server-clamped bounds on every list endpoint |
-| Expressions used | `count(*)`, `sum`, `COALESCE`, `ANY($1)` arrays, `ln()`, `md5()`, `::bit(32)::int` casts, `interval` arithmetic, `NULLS LAST` — all standard Postgres, exercised by the live API tests |
+| Expressions used | `count(*)`, `sum`, `COALESCE`, `ANY($1)` arrays, `ln()`, `md5()`, `::bit(32)::int` casts, `interval` arithmetic, `NULLS LAST` - all standard Postgres, exercised by the live API tests |
 | Transactions | The write paths are single-statement or idempotent multi-statement (ON CONFLICT DO NOTHING); no PGlite-only transaction semantics are relied on |
-| Connections | Neon driver is per-request HTTP (`neon(url).query`) — no pool assumptions; PGlite is single-connection, which is why dev tooling never opens a second process against `var/pglite` |
+| Connections | Neon driver is per-request HTTP (`neon(url).query`) - no pool assumptions; PGlite is single-connection, which is why dev tooling never opens a second process against `var/pglite` |
 | Seeding | Runs only when `tracks` is empty; safe against a live production DB |
 
 Production boot refuses to run without `DATABASE_URL`

@@ -1,4 +1,4 @@
-/** Minimal Spectrum — a small set of typographic-weight bars. Calm by design. */
+/** Minimal Spectrum - a small set of typographic-weight bars. Calm by design. */
 import { registerMode, smoothBins } from '../engine';
 
 const BARS = 28;

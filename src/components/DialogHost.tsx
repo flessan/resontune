@@ -3,7 +3,7 @@
  *
  * Actions run outside the component tree that triggered them, so they ask
  * `useDialogs` for a prompt, a confirmation or the playlist picker and this
- * host — mounted once in `Layout` — supplies the UI and resolves the answer.
+ * host - mounted once in `Layout` - supplies the UI and resolves the answer.
  * Replaces the browser's `prompt()`/`confirm()`, which cannot be styled,
  * cannot be themed and blocks the audio thread.
  */

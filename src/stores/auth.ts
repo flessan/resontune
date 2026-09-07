@@ -1,7 +1,7 @@
 /**
  * Auth state. Neon Auth owns authentication (who you are); the ResonTune
  * API owns authorization (what you may do). `refresh()` asks the API who
- * the current verified token belongs to — the API's answer (including the
+ * the current verified token belongs to - the API's answer (including the
  * server-side role) is the only identity the app trusts.
  */
 import { create } from 'zustand';

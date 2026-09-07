@@ -1,5 +1,5 @@
 /**
- * ImgBB — the one and only image host ResonTune uploads to, and only for
+ * ImgBB - the one and only image host ResonTune uploads to, and only for
  * user profile photos.
  *
  * Flow: browser → this server → ImgBB → resulting URL saved in Neon.
@@ -9,7 +9,7 @@
  * never returned in an API response. The browser only ever learns the
  * resulting public image URL.
  *
- * Catalog audio and album artwork are deliberately NOT uploaded here — an
+ * Catalog audio and album artwork are deliberately NOT uploaded here - an
  * administrator hosts those elsewhere and pastes verified direct URLs.
  */
 
@@ -24,7 +24,7 @@ export function imgbbConfigured(): boolean {
 
 /**
  * Identify an image by its magic bytes. Never trust the declared
- * Content-Type alone — this is what stops "image/png" wrappers around
+ * Content-Type alone - this is what stops "image/png" wrappers around
  * arbitrary payloads.
  */
 export function sniffImageMime(buf: Buffer): AvatarMime | null {
@@ -49,7 +49,7 @@ export function sniffImageMime(buf: Buffer): AvatarMime | null {
 }
 
 export interface ImgbbResult {
-  /** Public direct image URL — this is what we persist. */
+  /** Public direct image URL - this is what we persist. */
   url: string;
   /** Smaller variant when ImgBB produced one. */
   thumbUrl: string | null;
@@ -68,7 +68,7 @@ export class ImgbbError extends Error {
 /**
  * Upload image bytes to ImgBB and return the hosted URLs.
  *
- * The request goes to a fixed, hard-coded endpoint — no user input decides
+ * The request goes to a fixed, hard-coded endpoint - no user input decides
  * where the server connects, so this is not an SSRF vector.
  */
 export async function uploadAvatarToImgbb(bytes: Buffer, name: string): Promise<ImgbbResult> {
@@ -102,7 +102,7 @@ export async function uploadAvatarToImgbb(bytes: Buffer, name: string): Promise<
   }
 
   if (!res.ok || !payload?.success || !payload?.data?.url) {
-    // Never surface ImgBB's raw response — it can echo request details.
+    // Never surface ImgBB's raw response - it can echo request details.
     const detail = typeof payload?.error?.message === 'string' ? payload.error.message : '';
     console.warn('[imgbb] upload rejected', res.status, detail);
     throw new ImgbbError(502, 'The image host rejected that file. Try a different image.');

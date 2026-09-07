@@ -1,5 +1,5 @@
 /**
- * /profile — a stable link to your own page.
+ * /profile - a stable link to your own page.
  *
  * Redirects to the canonical public profile (/u/<username>) once the
  * verified session is known.

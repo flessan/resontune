@@ -1,5 +1,5 @@
 /**
- * Collections index — the editorial layer. Collections can mix tracks,
+ * Collections index - the editorial layer. Collections can mix tracks,
  * releases and artists around a theme; they're curated, not generated.
  */
 import { useFetch } from '@/lib/useFetch';

@@ -1,6 +1,6 @@
 /**
  * Public catalog + discovery routes. Everything here works without an
- * account — listening comes first.
+ * account - listening comes first.
  */
 import { Router } from 'express';
 import { getDb, uuid } from '../db/index.ts';
@@ -64,11 +64,11 @@ export function serializeTrack(row: TrackRow, extra?: Record<string, unknown>) {
       : null,
     license: row.license_id
       ? {
-          id: row.license_id,
-          name: row.license_name,
-          url: row.license_url,
-          requiresAttribution: row.license_attribution,
-        }
+        id: row.license_id,
+        name: row.license_name,
+        url: row.license_url,
+        requiresAttribution: row.license_attribution,
+      }
       : null,
     ...extra,
   };
@@ -78,7 +78,7 @@ export async function loadTrackExtras(trackIds: string[]) {
   const db = await getDb();
   if (!trackIds.length) return { sources: new Map(), genres: new Map(), tags: new Map() };
   const [sources, genres, tags] = await Promise.all([
-    // NOTE: the raw url column is deliberately not selected — the client
+    // NOTE: the raw url column is deliberately not selected - the client
     // resolves playback through GET /api/play/:trackId, never from here.
     db.query<{ track_id: string; provider: string; kind: string; mime_type: string | null; source_type: string; availability: string; priority: number }>(
       `SELECT track_id, provider, kind, mime_type, source_type, availability, priority
@@ -128,12 +128,11 @@ export async function queryTracks(
   opts: { includeUnlisted?: boolean } = {},
 ) {
   const db = await getDb();
-  // A track is only publicly visible while its artist — and its release, if
-  // it belongs to one — are themselves visible. Withdrawing an artist
+  // A track is only publicly visible while its artist - and its release, if
+  // it belongs to one - are themselves visible. Withdrawing an artist
   // therefore withdraws their catalog everywhere, in one write.
-  const statusClause = `${
-    opts.includeUnlisted ? `t.status IN ('published','unlisted')` : `t.status = 'published'`
-  } AND a.status IN ('published','unlisted')
+  const statusClause = `${opts.includeUnlisted ? `t.status IN ('published','unlisted')` : `t.status = 'published'`
+    } AND a.status IN ('published','unlisted')
     AND (t.album_id IS NULL OR al.status IN ('published','unlisted'))`;
   const rows = await db.query<TrackRow>(
     `SELECT ${TRACK_SELECT} ${TRACK_FROM} WHERE ${statusClause} ${where} ${orderLimit}`,
@@ -221,12 +220,12 @@ export function catalogRouter(): Router {
       res.json({
         featuredRelease: feat
           ? {
-              id: feat.id, slug: feat.slug, title: feat.title, type: feat.type,
-              artworkUrl: feat.artwork_url, releasedOn: feat.released_on,
-              description: feat.description, catalogNo: feat.catalog_no,
-              trackCount: Number(feat.track_count), sourceType: 'original',
-              artist: { name: feat.artist_name, slug: feat.artist_slug },
-            }
+            id: feat.id, slug: feat.slug, title: feat.title, type: feat.type,
+            artworkUrl: feat.artwork_url, releasedOn: feat.released_on,
+            description: feat.description, catalogNo: feat.catalog_no,
+            trackCount: Number(feat.track_count), sourceType: 'original',
+            artist: { name: feat.artist_name, slug: feat.artist_slug },
+          }
           : null,
         originals,
         collections: collections.map((c: any) => ({
@@ -701,19 +700,19 @@ export function catalogRouter(): Router {
         trackIds.length ? queryTracks(`AND t.id = ANY($1)`, [trackIds], '') : Promise.resolve([]),
         albumIds.length
           ? db.query(
-              `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on, al.source_type,
+            `SELECT al.id, al.slug, al.title, al.type, al.artwork_url, al.released_on, al.source_type,
                       a.name AS artist_name, a.slug AS artist_slug,
                       (SELECT count(*) FROM tracks t WHERE t.album_id = al.id AND t.status='published') AS track_count
                  FROM albums al JOIN artists a ON a.id = al.artist_id AND a.status IN ('published','unlisted')
                 WHERE al.id = ANY($1) AND al.status = 'published'`,
-              [albumIds],
-            )
+            [albumIds],
+          )
           : Promise.resolve([]),
         artistIds.length
           ? db.query(
-              `SELECT id, slug, name, bio, image_url, location, source_type FROM artists WHERE id = ANY($1)`,
-              [artistIds],
-            )
+            `SELECT id, slug, name, bio, image_url, location, source_type FROM artists WHERE id = ANY($1)`,
+            [artistIds],
+          )
           : Promise.resolve([]),
       ]);
       const trackMap = new Map(tracks.map((t: any) => [t.id, t]));

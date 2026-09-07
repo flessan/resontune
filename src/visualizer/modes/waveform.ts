@@ -1,4 +1,4 @@
-/** Waveform — a hand-drawn-feeling oscilloscope line, like ink on dark paper. */
+/** Waveform - a hand-drawn-feeling oscilloscope line, like ink on dark paper. */
 import { registerMode } from '../engine';
 
 registerMode({
@@ -37,7 +37,7 @@ registerMode({
     }
     ctx.stroke();
 
-    // baseline ticks — quiet metronome of the layout
+    // baseline ticks - quiet metronome of the layout
     ctx.strokeStyle = paper + '22';
     ctx.lineWidth = 1;
     for (let i = 1; i < 8; i++) {

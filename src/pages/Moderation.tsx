@@ -1,5 +1,5 @@
 /**
- * Catalog administration — content states for the real catalog.
+ * Catalog administration - content states for the real catalog.
  * Submission intake happens in external community channels, so this page
  * only manages what actually exists: published tracks and their states
  * (published / unlisted / taken down / archived), with a full audit log.
@@ -65,7 +65,7 @@ export default function Moderation() {
 
   const setState = async (track: AdminTrack, status: string) => {
     const reason = (reasons[track.id] ?? '').trim();
-    if (reason.length < 3) return toast('Add a short reason first — every state change is audited.');
+    if (reason.length < 3) return toast('Add a short reason first - every state change is audited.');
     try {
       await api.post(`/moderation/tracks/${track.id}/state`, { status, reason });
       toast(`${track.title}: ${STATE_LABEL[status]}.`);
@@ -81,7 +81,7 @@ export default function Moderation() {
       <h1 className="page-title">Catalog administration</h1>
       <p className="page-sub">
         Content states for the published catalog. Music intake happens in the
-        community channels — see <Link to="/submit">Release music</Link>.
+        community channels - see <Link to="/submit">Release music</Link>.
       </p>
 
       <div className="seg-row" style={{ marginBottom: 18 }}>
@@ -107,7 +107,7 @@ export default function Moderation() {
               <div className="mod-card-head">
                 <div>
                   <Link to={`/track/${t.slug}`} style={{ fontWeight: 600 }}>{t.title}</Link>
-                  <span style={{ color: 'var(--on-surface-muted)' }}> — {t.artist.name}</span>
+                  <span style={{ color: 'var(--on-surface-muted)' }}> - {t.artist.name}</span>
                 </div>
                 <span className={`status-chip status-${t.status}`}>{STATE_LABEL[t.status] ?? t.status}</span>
               </div>
@@ -146,7 +146,7 @@ export default function Moderation() {
               <div key={e.id} className="mod-card" style={{ padding: '10px 14px' }}>
                 <div style={{ fontSize: 13 }}>
                   {e.trackSlug ? <Link to={`/track/${e.trackSlug}`}>{e.trackTitle}</Link> : e.trackTitle ?? 'Removed entry'}
-                  <span style={{ color: 'var(--on-surface-muted)' }}> — {e.reason}</span>
+                  <span style={{ color: 'var(--on-surface-muted)' }}> - {e.reason}</span>
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--on-surface-faint)', marginTop: 2 }}>
                   {e.actorHandle ? `by ${e.actorHandle}` : ''} · {formatDate(e.createdAt)}

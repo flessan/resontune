@@ -2,7 +2,7 @@
  * Normalized external links.
  *
  * One table (`entity_links`) serves profiles, artists, releases and tracks:
- * provider + label + url + ordering. Callers validate URLs before writing —
+ * provider + label + url + ordering. Callers validate URLs before writing -
  * this module only stores and reads.
  */
 import { getDb, uuid } from './index.ts';

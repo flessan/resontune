@@ -3,7 +3,7 @@
  *
  * Authorization is enforced by the API on every request; this guard only
  * decides what is worth rendering. Moderators get read access, admins can
- * write — exactly what the server allows.
+ * write - exactly what the server allows.
  */
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '@/stores/auth';
@@ -48,7 +48,7 @@ export default function AdminLayout() {
           <h1 className="page-title">Catalog manager</h1>
           <p className="admin-sub">
             Artists, releases and tracks. Audio and artwork stay on the hosts you
-            choose — ResonTune stores the verified URLs.
+            choose - ResonTune stores the verified URLs.
           </p>
         </div>
         {!canEdit && (

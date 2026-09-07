@@ -1,5 +1,5 @@
 /**
- * Release Music — link-only intake.
+ * Release Music - link-only intake.
  *
  * ResonTune doesn't collect submissions in a database. Creators reach the
  * team through the community channels; review and rights conversations
@@ -20,7 +20,7 @@ export default function Submit() {
   const { data: cfg } = useFetch<SiteConfig>('/site/config');
 
   const channels = [
-    { label: 'Discord', url: cfg?.discordUrl, desc: 'Fastest replies — share your music in the releases channel.' },
+    { label: 'Discord', url: cfg?.discordUrl, desc: 'Fastest replies - share your music in the releases channel.' },
     { label: 'Telegram', url: cfg?.telegramUrl, desc: 'Message the ResonTune community group.' },
     { label: 'WhatsApp', url: cfg?.whatsappUrl, desc: 'Reach the team directly.' },
   ].filter((c): c is { label: string; url: string; desc: string } => Boolean(c.url));
@@ -31,7 +31,7 @@ export default function Submit() {
         <IconMic width={28} height={28} aria-hidden />
         <h1 className="page-title" style={{ margin: '10px 0 6px' }}>Release music on ResonTune</h1>
         <p className="page-sub" style={{ margin: '0 auto' }}>
-          Join the community and contact us — we'll listen, talk rights and
+          Join the community and contact us - we'll listen, talk rights and
           licensing with you, and publish approved music into the catalog.
         </p>
       </div>
@@ -67,7 +67,7 @@ export default function Submit() {
           <li>Who holds the rights, and whether ResonTune may stream and/or redistribute it.</li>
         </ul>
         <p style={{ fontSize: 12.5, color: 'var(--on-surface-faint)', marginTop: 10, marginBottom: 0 }}>
-          Reaching out isn't an upload button — publication happens after a
+          Reaching out isn't an upload button - publication happens after a
           human conversation and a rights check, and the published catalog
           records the license and permissions you declare.
         </p>

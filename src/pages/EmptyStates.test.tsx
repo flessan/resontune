@@ -1,8 +1,8 @@
 /**
  * A brand-new instance with an empty database.
  *
- * The catalog starts empty — no artists, no releases, no tracks, no
- * playlists — and every destination has to say so on purpose instead of
+ * The catalog starts empty - no artists, no releases, no tracks, no
+ * playlists - and every destination has to say so on purpose instead of
  * rendering a blank page or inventing placeholder music.
  */
 import { MemoryRouter } from 'react-router-dom';
@@ -38,10 +38,10 @@ vi.mock('@/lib/api', () => ({
     patch: vi.fn(async () => ({})),
     del: vi.fn(async () => ({})),
   },
-  ApiError: class extends Error {},
+  ApiError: class extends Error { },
 }));
 
-/* No local library either — this is a fresh browser as well as a fresh DB. */
+/* No local library either - this is a fresh browser as well as a fresh DB. */
 vi.mock('@/local/db', () => ({
   listLocalTracks: vi.fn(async () => []),
 }));
@@ -52,16 +52,16 @@ vi.mock('@/player/engine', () => {
     engine: {
       audio,
       analysisReady: false,
-      ensureAnalysis: () => {},
-      onTime: () => () => {},
+      ensureAnalysis: () => { },
+      onTime: () => () => { },
       readFrame: () => null,
-      load: async () => {},
-      play: async () => {},
-      pause: () => {},
-      seek: () => {},
-      setMuted: () => {},
-      setRate: () => {},
-      setVolume: () => {},
+      load: async () => { },
+      play: async () => { },
+      pause: () => { },
+      seek: () => { },
+      setMuted: () => { },
+      setRate: () => { },
+      setVolume: () => { },
     },
   };
 });

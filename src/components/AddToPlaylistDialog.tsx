@@ -7,7 +7,7 @@ import { IconClose, IconPlus } from './Icons';
 import { useScrollLock } from '@/lib/scrollLock';
 
 /**
- * Add one track — or a whole release — to a playlist. The API takes one
+ * Add one track - or a whole release - to a playlist. The API takes one
  * track per call, so a multi-track add is a short sequence of them and the
  * dialog reports how many actually landed.
  */

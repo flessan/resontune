@@ -69,7 +69,7 @@ export default function Playlists() {
               ))}
             </div>
           ) : (
-            <p style={{ color: 'var(--ink-muted)', fontSize: 13.5 }}>No playlists yet — create one, or duplicate a public playlist you like.</p>
+            <p style={{ color: 'var(--ink-muted)', fontSize: 13.5 }}>No playlists yet - create one, or duplicate a public playlist you like.</p>
           )}
         </>
       )}

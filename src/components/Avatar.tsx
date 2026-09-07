@@ -2,7 +2,7 @@
  * Avatar with a deterministic fallback.
  *
  * Profile photos are hosted by ImgBB (uploaded through the server). When an
- * account has none — or the image fails to load — we render the initial on a
+ * account has none - or the image fails to load - we render the initial on a
  * tonal surface instead of a broken image.
  */
 import { useState } from 'react';

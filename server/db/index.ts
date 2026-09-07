@@ -4,7 +4,7 @@
  * Production : Neon Postgres via @neondatabase/serverless (DATABASE_URL).
  * Development: embedded PGlite Postgres under var/pglite.
  *
- * The rest of the server speaks only `query(text, params)` — no
+ * The rest of the server speaks only `query(text, params)` - no
  * driver-specific behavior may leak past this module. Migrations are plain
  * SQL files in ./migrations, applied in filename order and tracked in
  * schema_migrations, so dev and Neon run the exact same DDL.
@@ -27,7 +27,7 @@ export interface Db {
    * Run several statements as one all-or-nothing transaction and return the
    * rows of each, in order. Deliberately non-interactive (a fixed list, no
    * reads in between): that is the only shape the Neon HTTP driver can
-   * express, and it is all the server needs — account deletion, where the
+   * express, and it is all the server needs - account deletion, where the
    * tombstone and the row removal must never be observable apart.
    */
   transaction<T = Record<string, unknown>>(statements: DbStatement[]): Promise<T[][]>;
@@ -64,8 +64,8 @@ async function createDb(): Promise<Db> {
   }
 
   const { PGlite } = await import('@electric-sql/pglite');
-  /* PGLITE_DIR lets a developer run a second, independent instance — an
-     empty catalog next to a populated one, for example — without touching
+  /* PGLITE_DIR lets a developer run a second, independent instance - an
+     empty catalog next to a populated one, for example - without touching
      the default database. Development only; production requires Neon. */
   const dataDir = process.env.PGLITE_DIR
     ? path.resolve(process.cwd(), process.env.PGLITE_DIR)
@@ -99,7 +99,7 @@ export function getDb(): Promise<Db> {
 
 /**
  * Apply ./migrations/*.sql in filename order. Each file runs once and is
- * recorded in schema_migrations. Statements are split on `;` at line ends —
+ * recorded in schema_migrations. Statements are split on `;` at line ends -
  * migration files must not contain function bodies with embedded semicolons.
  */
 export async function migrate(): Promise<void> {

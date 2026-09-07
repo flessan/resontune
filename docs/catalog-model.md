@@ -10,23 +10,23 @@ Artists, releases and tracks carry a `source_type`:
 
 | value | meaning |
 | --- | --- |
-| `original` | Released and distributed by **ResonTune Originals** — hosted by the platform, with the rights actually held by the platform. Shown with the `RESONTUNE ORIGINAL` wordmark. |
+| `original` | Released and distributed by **ResonTune Originals** - hosted by the platform, with the rights actually held by the platform. Shown with the `RESONTUNE ORIGINAL` wordmark. |
 | `community` | Released by an independent artist through the community channels and published by catalog administrators. Shown with the `Community` chip. |
 | `external` | Discovery-only entries whose playback happens through an official external provider. Shown with the `External` chip. |
 
-Local device files are a fourth world that never touches the server — they
+Local device files are a fourth world that never touches the server - they
 exist only in the listener's browser and are always labeled `Local`.
 
 Track *sources* (the rows describing actual audio) have their own axis,
 `track_sources.source_type`: `original_hosted`, `community_hosted`,
 `remote`, `external`. Hosted sources may use `object_key` instead of a raw
-URL, which the playback resolver maps onto `AUDIO_CDN_BASE` — that's the
+URL, which the playback resolver maps onto `AUDIO_CDN_BASE` - that's the
 seam where S3/R2/object storage plugs in without schema or client changes.
 
 Catalog media is **entered by hand**: an administrator verifies a file in
 their own browser and pastes the direct URL into the catalog manager, which
 validates its shape and stores the address. ResonTune never uploads, hosts,
-mirrors, downloads or proxies catalog audio and artwork — see
+mirrors, downloads or proxies catalog audio and artwork - see
 [profiles-and-catalog-admin.md](profiles-and-catalog-admin.md).
 
 ## Playback resolution
@@ -34,15 +34,15 @@ mirrors, downloads or proxies catalog audio and artwork — see
 The client never plays from database fields. It calls
 `GET /api/play/:trackId`, and the server decides:
 
-- `410` if the track — or its artist, or its release — is `taken_down` or
+- `410` if the track - or its artist, or its release - is `taken_down` or
   `archived`
 - `403` if `streaming_permission` is false
 - `{ mode: 'stream', url, mimeType }` for hosted/remote audio
 - `{ mode: 'external', url, label }` when playback must happen on the
   official provider page (never faked, never proxied)
 
-This is the single enforcement point for takedowns, permissions, and —
-later — signed CDN URLs.
+This is the single enforcement point for takedowns, permissions, and -
+later - signed CDN URLs.
 
 ## Rights model
 
@@ -66,7 +66,7 @@ Rules:
 Takedowns block playback (410) and discovery (404) while preserving all
 metadata, and each state change is recorded in the `takedowns` audit table
 with reason and actor. (Music intake happens in the external community
-channels — there is no submission state machine in the database; see
+channels - there is no submission state machine in the database; see
 [moderation.md](moderation.md).)
 
 This separation is what makes revisions, takedowns, re-publications and
@@ -74,7 +74,7 @@ rights changes possible without corrupting the review history.
 
 ## Collections
 
-Collections are the editorial layer — *not* playlists. A collection has a
+Collections are the editorial layer - *not* playlists. A collection has a
 title, description, artwork, curator and publication status, and holds an
 **ordered mix of tracks, releases and artists**, each with an optional
 curator note. They power the homepage editorial sections and

@@ -1,6 +1,6 @@
 /**
  * Thin fetch wrapper for the ResonTune API. Relative URLs only.
- * Attaches the Neon Auth bearer token when a session exists — the server
+ * Attaches the Neon Auth bearer token when a session exists - the server
  * verifies it cryptographically; anonymous requests simply omit it.
  */
 import { getToken } from './authClient';
@@ -26,10 +26,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     // Human copy in the UI; status codes and bodies go to the console only.
     let message =
       res.status === 404 ? 'This page or item is no longer available.'
-      : res.status === 410 ? 'This content has been removed.'
-      : res.status === 429 ? 'You’re doing that a little too fast. Give it a moment and try again.'
-      : res.status >= 500 ? 'Something went wrong on our side. Please try again in a moment.'
-      : 'That didn’t work. Please try again.';
+        : res.status === 410 ? 'This content has been removed.'
+          : res.status === 429 ? 'You’re doing that a little too fast. Give it a moment and try again.'
+            : res.status >= 500 ? 'Something went wrong on our side. Please try again in a moment.'
+              : 'That didn’t work. Please try again.';
     try {
       const body = await res.json();
       if (body?.error && res.status < 500) message = body.error;
@@ -52,7 +52,7 @@ export const api = {
     request<T>(path, { method: 'DELETE', body: body ? JSON.stringify(body) : undefined }),
   /**
    * Upload raw bytes (currently: a profile photo). The browser never talks
-   * to an image host directly — the server holds the credentials and
+   * to an image host directly - the server holds the credentials and
    * forwards the file.
    */
   upload: <T>(path: string, file: Blob) =>

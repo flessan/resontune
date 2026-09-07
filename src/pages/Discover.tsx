@@ -1,5 +1,5 @@
 /**
- * Discover — exploration without algorithms: genres, moods, collections,
+ * Discover - exploration without algorithms: genres, moods, collections,
  * newest releases, and the whole artist index, one hop away.
  */
 import { Link } from 'react-router-dom';
@@ -27,7 +27,7 @@ export default function Discover() {
     <div className="page">
       <div className="section-head" style={{ marginTop: 6 }}>
         <h1 className="section-title" style={{ fontSize: 30 }}>Discover</h1>
-        <span className="section-note">by genre, mood, scene and release date — no profiling involved</span>
+        <span className="section-note">by genre, mood, scene and release date - no profiling involved</span>
       </div>
 
       {empty && (

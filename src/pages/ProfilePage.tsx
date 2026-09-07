@@ -1,5 +1,5 @@
 /**
- * Public profile — /u/:username.
+ * Public profile - /u/:username.
  *
  * A listener's page on a music platform: who they are, what they've made
  * public, and where to find them elsewhere. Private signals (history,

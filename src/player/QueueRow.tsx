@@ -2,7 +2,7 @@
  * One row of the live queue.
  *
  * Clicking plays it, the ⋮ (or a right-click, or a long press) opens the
- * queue actions — move, remove, jump to artist. Everything goes through the
+ * queue actions - move, remove, jump to artist. Everything goes through the
  * real player store; the menu never keeps a queue of its own.
  */
 import { useMemo } from 'react';

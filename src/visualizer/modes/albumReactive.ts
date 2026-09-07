@@ -1,4 +1,4 @@
-/** Album Reactive — the artwork itself becomes the instrument. */
+/** Album Reactive - the artwork itself becomes the instrument. */
 import { registerMode } from '../engine';
 
 registerMode({

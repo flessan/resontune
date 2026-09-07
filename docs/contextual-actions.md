@@ -20,7 +20,7 @@ Every step lives in `src/contextmenu/`:
 | File | Responsibility |
 | --- | --- |
 | `types.ts` | The `ContextTarget` union, `MenuAction`, action groups, small refs (`artistRef`, `releaseRef`, `playlistRef`) |
-| `actions.ts` | `buildActions(target, ctx)` — the single source of truth for what a target can do |
+| `actions.ts` | `buildActions(target, ctx)` - the single source of truth for what a target can do |
 | `store.ts` | The one open menu: target, anchor, opener, source |
 | `useContextTarget.ts` | Target registration and gesture policy (right-click, long-press, `ContextMenu`/`Shift+F10`) |
 | `ContextMenuRoot.tsx` | Positioning, keyboard model, motion, portal, action sheet |
@@ -45,8 +45,8 @@ this playlist".
 
 ## Deriving actions
 
-`buildActions` receives live application state — route, user, favourites, the
-player queue — and returns only actions that are valid *right now*. There are
+`buildActions` receives live application state - route, user, favourites, the
+player queue - and returns only actions that are valid *right now*. There are
 no disabled rows: an unplayable track has no Play, a track with no release has
 no "Go to release", a playing queue entry has no "Play next".
 
@@ -93,7 +93,7 @@ sheet and swallows the click that would otherwise play the row.
   never on the row itself but on a link or button inside it: that element is
   remembered as the opener and gets focus back. If it cannot take focus (an
   unfocusable container, or a row that has since unmounted), focus lands on the
-  main scroll container rather than on `<body>`. Focus is not trapped — a
+  main scroll container rather than on `<body>`. Focus is not trapped - a
   context menu is not a modal.
 - The pointer-opened menu is measured behind `visibility: hidden` for one
   frame; it takes focus after that pass, because a hidden element cannot be
@@ -129,7 +129,7 @@ The sheet behaves like a native one:
 
 - the page behind it does not scroll (reference-counted lock in
   `src/lib/scrollLock.ts`), so it also never dismisses itself when a finger
-  brushes the list underneath — unlike the floating menu, whose anchor
+  brushes the list underneath - unlike the floating menu, whose anchor
   scrolls away and which therefore still closes on scroll;
 - a downward drag on its header dismisses it, as does a tap on the
   backdrop, Escape, or running an action;
@@ -170,14 +170,14 @@ The menu is derived state, and it closes rather than lie:
 | change while open | behaviour |
 | --- | --- |
 | route change | closes (the context it was opened from is gone) |
-| sign in / sign out | closes — ownership, admin rights and favourites all change |
+| sign in / sign out | closes - ownership, admin rights and favourites all change |
 | target loses every valid action (deleted, dequeued) | closes |
 | the row it was opened from unmounts | closes cleanly; focus falls back to the scroll container instead of a detached node |
 | viewport resize, window blur | closes |
 | scroll (pointer menu only) | closes |
 
 Listeners are attached only while a menu is open, all on `document` /
-`window`, and every one is removed in the same effect's cleanup — asserted
+`window`, and every one is removed in the same effect's cleanup - asserted
 in `ContextMenu.mobile.test.tsx`.
 
 ## Tests

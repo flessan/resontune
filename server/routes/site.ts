@@ -1,11 +1,11 @@
 /**
- * Public site configuration — support links, QRIS asset, curated supporter
+ * Public site configuration - support links, QRIS asset, curated supporter
  * names. Values are stored in the `site_settings` table (admin-editable
  * without a rebuild) with environment variables as the fallback layer, so
  * a deploy can preconfigure links before any admin exists.
  *
  * Everything served here is public by design. Secrets never belong in this
- * table or these env vars — only publishable URLs and display names.
+ * table or these env vars - only publishable URLs and display names.
  */
 import { Router } from 'express';
 import { z } from 'zod';
@@ -20,7 +20,7 @@ interface SupportConfig {
   qrisImageUrl: string | null;
   supporters: string[];        // names explicitly provided for public listing
   repoUrl: string;
-  /** External community channels — the music release/intake path. */
+  /** External community channels - the music release/intake path. */
   discordUrl: string | null;
   telegramUrl: string | null;
   whatsappUrl: string | null;

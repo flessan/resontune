@@ -2,7 +2,7 @@
 
 Two related surfaces ship together: what a **member** looks like on
 ResonTune, and how an **administrator** puts music into the catalog. They
-share one rule — ResonTune stores *addresses and metadata*, never media
+share one rule - ResonTune stores *addresses and metadata*, never media
 bytes.
 
 ## Member profiles
@@ -19,7 +19,7 @@ bytes.
 | Joined | `users.created_at` | Displayed as the join date. |
 | Role | resolved server-side | `listener` / `moderator` / `admin`; `ADMIN_USER_IDS` and `MODERATOR_USER_IDS` always win over the column. |
 
-Public page: `/u/<username>`. Editor: `/profile/edit` (own account only —
+Public page: `/u/<username>`. Editor: `/profile/edit` (own account only -
 ownership comes from the verified token, never from the request body).
 `/profile` redirects to your own public page.
 
@@ -45,7 +45,7 @@ browser ──raw image bytes──► ResonTune API ──multipart──► ap
 - `IMGBB_API_KEY` is read **server-side only**. It is never sent to the
   client, never prefixed with `VITE_`, and never written to the database.
   Without it the endpoint answers `503` and the UI says photo uploads are
-  unavailable — everything else keeps working.
+  unavailable - everything else keeps working.
 - Validation before anything leaves the server: `≤ 4 MB`, declared MIME in
   `image/jpeg|png|webp|gif`, and the *actual* file signature (magic bytes)
   must match the declared type.
@@ -54,7 +54,7 @@ browser ──raw image bytes──► ResonTune API ──multipart──► ap
 
 ## The catalog manager
 
-`/admin` — visible to moderators (read-only) and administrators (full
+`/admin` - visible to moderators (read-only) and administrators (full
 edit). Every mutation is re-checked server-side with `requireAdmin`; the
 client's read-only mode is a courtesy, not a control.
 
@@ -70,15 +70,15 @@ Tracks       list · search · status filter · "no audio URL" filter · editor
 The manager is built around the order a human actually works in:
 
 1. **Create / edit** the record and its metadata.
-2. **Paste the audio URL** — a direct `https://` link to the file on the
+2. **Paste the audio URL** - a direct `https://` link to the file on the
    host you approved.
 3. **Paste the artwork URL** (or inherit the release's).
-4. **Validate** — the form checks the shape of the URL as you type and the
+4. **Validate** - the form checks the shape of the URL as you type and the
    server re-validates on save.
-5. **Preview** — artwork renders inline and audio plays in a plain `<audio>`
+5. **Preview** - artwork renders inline and audio plays in a plain `<audio>`
    element, loaded *by your browser, directly from the host*. ResonTune's
    server never fetches, downloads, mirrors or proxies the media.
-6. **Publish** — status becomes `published` (or `unlisted` for a private
+6. **Publish** - status becomes `published` (or `unlisted` for a private
    link, `taken_down` / `archived` to withdraw).
 
 ### Media stays where the admin put it
@@ -92,12 +92,12 @@ pasted:
 | Official page URL | inferred from host | `external_link` | `external` | `external` |
 
 A direct URL gets `priority 0` (preferred), the external page `priority 10`
-(fallback). MIME type is guessed from the file extension — a hint for the
+(fallback). MIME type is guessed from the file extension - a hint for the
 player, not a claim about the file.
 
 ### URL validation (same rules everywhere)
 
-Applied to avatars' neighbours — website, profile links, artist images,
+Applied to avatars' neighbours - website, profile links, artist images,
 release artwork, track audio/artwork/links:
 
 - `https://` only (plain `http://` is allowed solely for `localhost` in
@@ -141,7 +141,7 @@ system exists today, by design.
 
 A track is public only when the track **and** its artist **and** (if it has
 one) its release are `published` or `unlisted`. Withdrawing an artist
-therefore withdraws their whole catalog in a single write — lists, search,
+therefore withdraws their whole catalog in a single write - lists, search,
 home, artist and release pages all stop returning it, and
 `GET /api/play/:id` answers `410`.
 

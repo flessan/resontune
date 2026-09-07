@@ -1,5 +1,5 @@
 /**
- * Authentication — Neon Auth.
+ * Authentication - Neon Auth.
  *
  * ResonTune never requires an account for listening. Accounts unlock cloud
  * features (synced playlists, favorites, history).
@@ -9,14 +9,14 @@
  *   The frontend signs in against the Neon Auth endpoint directly and sends
  *   the issued JWT as `Authorization: Bearer <token>` on every API call.
  *   This server verifies the token cryptographically against the Neon Auth
- *   JWKS (EdDSA/Ed25519) — signatures, expiry and issuer are all checked;
+ *   JWKS (EdDSA/Ed25519) - signatures, expiry and issuer are all checked;
  *   payloads are never trusted un-verified.
  *
  * Identity mapping:
  *   The verified `sub` claim (the Neon Auth user id) maps onto ResonTune's
  *   users table via (auth_provider='neon', auth_subject=sub). Rows are
- *   created on first verified request. Nothing client-supplied — no ids,
- *   no emails, no roles — ever selects the account.
+ *   created on first verified request. Nothing client-supplied - no ids,
+ *   no emails, no roles - ever selects the account.
  *
  * Authorization stays ResonTune's own:
  *   listener / moderator / admin roles live server-side. Production roles
@@ -33,7 +33,7 @@ import { effectiveRole } from './util/roles.ts';
 
 /** Base URL of the Neon Auth deployment (…/neondb/auth). */
 const NEON_AUTH_URL = (process.env.NEON_AUTH_URL ?? '').replace(/\/+$/, '');
-/** JWKS endpoint — overridable, defaults to the well-known path. */
+/** JWKS endpoint - overridable, defaults to the well-known path. */
 const NEON_AUTH_JWKS_URL =
   process.env.NEON_AUTH_JWKS_URL ?? (NEON_AUTH_URL ? `${NEON_AUTH_URL}/.well-known/jwks.json` : '');
 
@@ -42,7 +42,7 @@ const authConfigured = () => Boolean(NEON_AUTH_URL && NEON_AUTH_JWKS_URL);
 /**
  * JWKS key source. Normally fetched from the Neon Auth well-known endpoint
  * (with jose's built-in caching/cooldown). NEON_AUTH_JWKS_JSON optionally
- * pins the key set inline — same cryptographic verification, no network —
+ * pins the key set inline - same cryptographic verification, no network -
  * for restricted environments. Created lazily so a server without auth
  * configured still starts (anonymous listening works).
  */
@@ -70,7 +70,7 @@ export interface SessionUser {
   created_at: string;
 }
 
-/** Columns that make up a session user — shared by every lookup below. */
+/** Columns that make up a session user - shared by every lookup below. */
 export const SESSION_USER_COLUMNS = `id, handle, display_name, avatar_url, avatar_thumb_url,
        bio, location, website_url, role, created_at`;
 
@@ -87,7 +87,7 @@ declare global {
 
 interface VerifiedIdentity {
   subject: string;           // Neon Auth user id (stable)
-  issuedAt: number | null;   // `iat`, seconds — used by the deletion tombstone
+  issuedAt: number | null;   // `iat`, seconds - used by the deletion tombstone
   name: string | null;
   email: string | null;
   image: string | null;
@@ -127,14 +127,14 @@ async function verifyToken(token: string): Promise<VerifiedIdentity | null> {
  * expires, so a tab still holding one would immediately recreate an empty
  * account and make "deleted" look like a lie.
  *
- * A deletion therefore writes a tombstone — the opaque provider subject, the
- * moment of deletion, an expiry — into `deleted_identities`, in the same
+ * A deletion therefore writes a tombstone - the opaque provider subject, the
+ * moment of deletion, an expiry - into `deleted_identities`, in the same
  * transaction that removes the account row. The database is the authority,
  * so every instance of the app refuses the same stale tokens; the map below
  * is only a per-process cache in front of it.
  *
  * Cost: none for ordinary traffic. A request whose account row exists never
- * looks at tombstones at all — the check happens only on the path that would
+ * looks at tombstones at all - the check happens only on the path that would
  * otherwise *create* an account, and the creating INSERT itself is guarded
  * by the same table so two racing requests cannot slip a resurrection in
  * between the check and the write.
@@ -171,7 +171,7 @@ export function markIdentityDeleted(subject: string, atSeconds = Math.floor(Date
  * The statements that record a deletion, to be run inside the deletion
  * transaction. The subject is read from the row being deleted, so a caller
  * cannot tombstone somebody else's identity, and expired rows are swept in
- * the same breath — the table stays proportional to recent deletions.
+ * the same breath - the table stays proportional to recent deletions.
  */
 export function tombstoneStatements(userId: string) {
   return [
@@ -189,7 +189,7 @@ export function tombstoneStatements(userId: string) {
 }
 
 /**
- * When was this identity deleted? Cache first, then the shared table — which
+ * When was this identity deleted? Cache first, then the shared table - which
  * is what makes the refusal work on an instance that never served the
  * deletion. Absence is never cached: a tombstone written by another instance
  * has to be visible immediately.
@@ -223,7 +223,7 @@ async function identityDeletedAt(subject: string): Promise<number | null> {
 async function predatesDeletion(identity: VerifiedIdentity): Promise<boolean> {
   const deletedAt = await identityDeletedAt(identity.subject);
   if (deletedAt === null) return false;
-  // No `iat` to compare against — refuse rather than resurrect.
+  // No `iat` to compare against - refuse rather than resurrect.
   return identity.issuedAt === null || identity.issuedAt <= deletedAt;
 }
 
@@ -284,7 +284,7 @@ async function userForIdentity(identity: VerifiedIdentity): Promise<SessionUser 
      ON CONFLICT (auth_provider, auth_subject) WHERE auth_subject IS NOT NULL DO NOTHING
      RETURNING ${SESSION_USER_COLUMNS}`,
     [id, handle, identity.name ?? handle, identity.image, identity.image ? 'auth' : null,
-     identity.subject, iat],
+      identity.subject, iat],
   );
   if (created[0]) return created[0];
   // Either a concurrent first request created it, or the guard above refused.

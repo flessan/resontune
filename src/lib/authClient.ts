@@ -1,5 +1,5 @@
 /**
- * Neon Auth client — the single authentication authority.
+ * Neon Auth client - the single authentication authority.
  *
  * The frontend talks to the Neon Auth deployment directly (sign in / sign
  * up / session / sign out). For ResonTune API calls we attach the JWT that
@@ -7,7 +7,7 @@
  * cryptographically against the JWKS. No custom OAuth stacks, no dev login.
  *
  * Configured via VITE_NEON_AUTH_URL. When absent, the app runs fully
- * anonymous — browsing, playback and local music never require an account.
+ * anonymous - browsing, playback and local music never require an account.
  */
 import { createAuthClient } from '@neondatabase/neon-js/auth';
 
@@ -34,7 +34,7 @@ function decodeExp(jwt: string): number {
 /**
  * Current bearer token for API calls, refreshed from Neon Auth when the
  * cached one is within 30s of expiry. Returns null when signed out.
- * (Decoding `exp` here only schedules refresh — verification is the
+ * (Decoding `exp` here only schedules refresh - verification is the
  * server's job.)
  */
 export async function getToken(): Promise<string | null> {
@@ -49,9 +49,9 @@ export async function getToken(): Promise<string | null> {
       cachedExp = decodeExp(data.token);
       return cachedToken;
     }
-    failedUntil = now + 20; // signed out — don't ask again for a bit
+    failedUntil = now + 20; // signed out - don't ask again for a bit
   } catch {
-    failedUntil = now + 20; // unreachable — keep the app fast, stay anonymous
+    failedUntil = now + 20; // unreachable - keep the app fast, stay anonymous
   }
   cachedToken = null;
   cachedExp = 0;
@@ -71,7 +71,7 @@ export function clearToken() {
  *
  * ResonTune deliberately has no admin credentials for the identity
  * provider, so this is the account holder's own request, made from their own
- * session — the same self-service endpoint the Neon Auth account UI uses.
+ * session - the same self-service endpoint the Neon Auth account UI uses.
  * Whether it is available at all is a property of the Neon Auth deployment
  * (Better Auth's `user.deleteUser` must be enabled), which is why every
  * outcome below is reported honestly rather than assumed.
@@ -105,7 +105,7 @@ interface AuthFailure {
  *
  * A 404 means this deployment has no self-service deletion endpoint (or no
  * such user behind it). Either way the identity was **not** deleted by us,
- * which is what the user is told — never the reverse.
+ * which is what the user is told - never the reverse.
  *
  * Exported for tests: this classification decides what a person is told
  * about their own identity, so it is worth pinning down.
@@ -163,7 +163,7 @@ export async function deleteIdentity(): Promise<IdentityDeletion> {
  * Deliberately narrow: the API response cache holds signed-in answers, so it
  * goes. Local music (IndexedDB `resontune-local`), the queue and UI
  * preferences belong to the person and the device, not to the account, and
- * are never touched by an account deletion — the app has no business
+ * are never touched by an account deletion - the app has no business
  * deleting someone's own files because a server row went away.
  */
 export async function clearAccountScopedCaches(): Promise<void> {
@@ -173,6 +173,6 @@ export async function clearAccountScopedCaches(): Promise<void> {
     const names = await caches.keys();
     await Promise.all(names.filter((n) => n.includes('-api')).map((n) => caches.delete(n)));
   } catch {
-    /* cache storage unavailable (private mode, old browser) — not fatal */
+    /* cache storage unavailable (private mode, old browser) - not fatal */
   }
 }
