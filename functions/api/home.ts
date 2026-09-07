@@ -1,4 +1,4 @@
-import { ApiError, database, env, json, type PagesContext } from '../_shared';
+import { database, json, type PagesContext } from '../_shared';
 
 const TRACK_SQL = `t.id,t.slug,t.title,t.track_no,t.duration_seconds,t.artwork_url,t.description,t.rights_holder,t.credits,t.play_count,t.like_count,t.created_at,t.source_type,t.attribution_text,t.territory,a.id artist_id,a.slug artist_slug,a.name artist_name,al.id album_id,al.slug album_slug,al.title album_title,al.artwork_url album_artwork`;
 
@@ -157,7 +157,3 @@ async function home(c: PagesContext) {
 }
 
 export const onRequestGet = (context: PagesContext) => home(context);
-export const onRequest = (context: PagesContext) => {
-  if (context.request.method !== 'GET') return new Response('Method Not Allowed', { status: 405 });
-  return home(context);
-};
