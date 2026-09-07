@@ -24,6 +24,10 @@ See [.env.example](../.env.example):
 | `NEON_AUTH_JWKS_URL` | optional override; defaults to `{NEON_AUTH_URL}/.well-known/jwks.json` |
 | `NEON_AUTH_JWKS_JSON` | optional inline JWKS (public keys) to pin keys / skip the fetch |
 | `VITE_NEON_AUTH_URL` | same base URL for the client bundle (public by design) |
+| `NEON_API_KEY` | **server-side only, optional.** Neon control-plane key that lets account deletion also delete the Neon Auth identity. Use a project-scoped key. Unset → the browser attempts the deletion instead and the UI reports the real outcome |
+| `NEON_PROJECT_ID` / `NEON_BRANCH_ID` | the project and the branch Neon Auth runs on; both required alongside `NEON_API_KEY` |
+| `NEON_API_BASE` | override the control-plane base URL (default `https://console.neon.tech/api/v2`); exists for testing |
+| `IDENTITY_TOMBSTONE_HOURS` | how long a deleted identity stays revoked in `deleted_identities` (default 24). Set it above your token lifetime |
 | `COMMUNITY_DISCORD_URL` / `COMMUNITY_TELEGRAM_URL` / `COMMUNITY_WHATSAPP_URL` | Release-music channel links (optional; admin-editable at runtime) |
 | `ADMIN_USER_IDS` / `MODERATOR_USER_IDS` | comma-separated user ids granted roles server-side — the only way to bootstrap the first production admin |
 | `IMGBB_API_KEY` | **server-side only.** Enables member profile-photo upload (browser → API → ImgBB → stored URL). Unset → uploads answer 503 and avatars fall back to initials. Never expose it to the client; catalog audio/artwork never use it |
@@ -49,6 +53,46 @@ are treated as anonymous. Identity providers (GitHub, Google, …) are
 configured **inside Neon Auth**, not in this codebase. Without the env vars
 the app runs fully anonymous: browsing, playback, radio and local music
 never require an account.
+
+## Identity deletion
+
+Deleting an account is two systems, and the app never conflates them. The
+ResonTune data always goes. The Neon Auth identity — email, password,
+sessions — goes only if one of these is available:
+
+1. **Server-side (recommended).** Set `NEON_API_KEY`, `NEON_PROJECT_ID` and
+   `NEON_BRANCH_ID`. `DELETE /api/me` then calls the documented endpoint
+   `DELETE /projects/{project_id}/branches/{branch_id}/auth/users/{auth_user_id}`
+   and reports exactly what Neon answered. Provision the key **project-scoped**
+   (org admin → *API keys* → scope to this project, or
+   `neon api-keys create --project-id <id>`): such a key cannot reach other
+   projects, create projects, or mint more keys. Rotate it like any other
+   secret; it never reaches the browser, a response body or a log line. Neon
+   documents the endpoint as beta and non-idempotent, so ResonTune calls it
+   exactly once per deletion and never retries automatically.
+2. **Browser-side.** Enable self-service deletion (`user.deleteUser`) on the
+   Neon Auth project. The member's own session then authorizes
+   `POST {NEON_AUTH_URL}/delete-user`. Depending on the project's settings
+   this may send a confirmation email, in which case the UI says the identity
+   still exists until the link is opened.
+3. **Neither.** Everything still works; the closing dialog states that the
+   ResonTune account is deleted, that the sign-in identity was *not* deleted,
+   and where to remove it. Signing in again creates a new, empty account.
+
+Verify the key never leaks into the bundle the same way as ImgBB:
+`grep -r NEON_API dist/` → no matches (only `VITE_`-prefixed values are
+inlined, and this one is not).
+
+### Multi-instance deployments
+
+Deletion writes a row to `deleted_identities` (migration `006`) in the same
+transaction that removes the account: the provider subject plus a deletion
+and an expiry timestamp, nothing about the person. Every instance reads that
+table on the one path that could re-create an account, so a stale token is
+refused everywhere, not just on the instance that handled the deletion. Rows
+expire after `IDENTITY_TOMBSTONE_HOURS` and are swept by the next deletion,
+so the table stays proportional to recent deletions. No Redis, no extra
+service, and normal authenticated requests never read it.
 
 ## Roles in production
 

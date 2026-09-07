@@ -61,11 +61,26 @@ describe('legal pages', () => {
     // the ResonTune half
     expect(text).toMatch(/Your ResonTune data\s*is deleted outright/);
     // the Neon Auth half, without pretending it always succeeds
-    expect(text).toMatch(/asks Neon Auth to delete that identity/);
-    expect(text).toMatch(/whether that request is allowed|self-service deletion is not enabled/);
+    expect(text).toMatch(/sign-in identity/);
+    expect(text).toMatch(/separate request to a separate system/);
+    // both documented routes, and the outcome when neither exists
+    expect(text).toMatch(/the server makes it for you/);
+    expect(text).toMatch(/your browser asks Neon Auth directly/);
+    expect(text).toMatch(/kept because neither route is available/);
+    expect(text).toMatch(/never told the identity is gone when only your ResonTune data/);
     expect(text).toMatch(/brand-new,\s*empty ResonTune account/);
     // and the promise it must not make
     expect(text).not.toMatch(/permanently erased everywhere|deleted from all backups/i);
+  });
+
+  it('describes revoked sign-ins as server-wide, and says what the record holds', () => {
+    const { container } = renderPage(<Privacy />);
+    const text = container.textContent ?? '';
+    expect(text).toMatch(/refused by every\s*server/);
+    expect(text).toMatch(/records the revoked sign-in id/);
+    // the tombstone is listed in retention, with its expiry and its contents
+    expect(text).toMatch(/about a day, then it expires/);
+    expect(text).toMatch(/no name, no email, no\s*content/);
   });
 
   it('distinguishes anonymous play counts from personal listening history', () => {

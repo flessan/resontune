@@ -24,7 +24,7 @@ import { catalogRouter } from './routes/catalog.ts';
 import { playlistsRouter } from './routes/playlists.ts';
 import { meRouter } from './routes/me.ts';
 import { moderationRouter } from './routes/moderation.ts';
-import { HttpError } from './util/http.ts';
+import { ACCOUNT_GONE_MESSAGE, HttpError, isDeletedAccountViolation } from './util/http.ts';
 import { playRouter } from './routes/play.ts';
 import { siteRouter } from './routes/site.ts';
 import { usersRouter } from './routes/users.ts';
@@ -148,6 +148,13 @@ export async function createApp() {
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Not found.')));
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    // A write that lost a race with account deletion reaches the database as
+    // a foreign-key violation against users. That is not a server fault and
+    // must not read like one: it is the account being gone, in one place, in
+    // one wording, for every router.
+    if (isDeletedAccountViolation(err)) {
+      return void res.status(401).json({ error: ACCOUNT_GONE_MESSAGE });
+    }
     const status = err instanceof HttpError ? err.status : Number(err?.status ?? err?.statusCode) || 500;
     if (status >= 500) console.error('[api]', err);
     // Only deliberate HttpErrors describe themselves to the client; anything

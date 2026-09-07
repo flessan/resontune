@@ -8,7 +8,7 @@ storage in `src/`. The user-facing summary of the same facts lives at
 
 > Not legal advice. Nothing here claims compliance with GDPR, CCPA or any
 > other regime; several items below explicitly need a lawyer and an operator
-> decision. Last reviewed against the implementation: **2026-09-06**.
+> decision. Last reviewed against the implementation: **2026-09-07**.
 
 ## 1. Data inventory (server side)
 
@@ -50,8 +50,13 @@ the verified token only to suggest a username for a brand-new account
 | `site_settings.updated_by` | admin audit | staff only | `SET NULL` |
 | `artists.user_id` | links a catalog artist page to an account | shared catalog record | `SET NULL` — **the artist page survives** |
 
+| `deleted_identities` | `auth_provider, auth_subject, deleted_at, expires_at` | pseudonymous — the provider's opaque user id, nothing else | written *by* deletion; expires after `IDENTITY_TOMBSTONE_HOURS` (24 h) and is swept by the next deletion |
+
 The `sessions` table was dropped in migration `004`; sessions live in Neon
-Auth, not here.
+Auth, not here. `deleted_identities` (migration `006`) is the only table that
+survives an account deletion on purpose; it exists so that a token minted
+before the deletion cannot resurrect the account on any instance, and it
+holds no name, email, handle or content.
 
 ### Transient, not stored
 
@@ -101,16 +106,27 @@ bytes in Postgres.
 
 ## 4. Retention (actual behaviour)
 
-There is **no scheduled deletion job in the codebase**. What exists:
+There is **no scheduled deletion job in the codebase**, and only one record
+type expires on its own. Application-controlled retention is what this
+codebase decides; infrastructure retention belongs to the operator and to
+Neon, and no period is invented for either.
 
-- Account, profile, playlists, favorites, likes: until the user edits or
-  deletes them, or deletes the account.
-- Listening history: until `DELETE /api/me/history` or account deletion.
-- Anonymous `play_events`: kept indefinitely; contains no identity.
-- Takedown and editorial records: kept as an audit trail, anonymized on
-  account deletion.
-- Backups/PITR: Neon's, on the operator's plan. Deleted rows can persist in
-  snapshots for that window. **Operator/legal decision.**
+| Data | Who controls it | Actual retention |
+| --- | --- | --- |
+| Account, profile, playlists, favorites, likes | Application | Until the user edits or deletes them, or deletes the account |
+| `play_history` (listening history) | Application | Indefinite; erased by `DELETE /api/me/history` or account deletion. No automatic expiry |
+| `play_events` (anonymous play counts) | Application | Indefinite. No user id, no session id, no IP — nothing to expire |
+| `takedowns`, `moderation_events`, editorial records | Application | Kept as an audit trail; the account reference is cleared on deletion (`SET NULL`) |
+| `deleted_identities` (deletion tombstones) | Application | `IDENTITY_TOMBSTONE_HOURS`, default 24 h; rows are swept by the next deletion. Holds the opaque provider subject and two timestamps — no name, no email |
+| Rate-limit counters | Application | In memory, 60-second window, never written to disk |
+| Application logs (stdout) | Hosting provider | Whatever the platform keeps. **Operator decision** |
+| Request/CDN logs | Hosting provider | Outside the application. **Operator decision** |
+| Backups / PITR | Neon | Deleted rows persist in snapshots for the plan's window. **Operator/legal decision** |
+
+Any retention period beyond the above would be a policy choice, not a
+property of this code; where one is needed it is marked as an operator or
+legal decision rather than asserted. The full review, including the open
+policy items, is in [data-retention.md](data-retention.md).
 
 ## 5. Self-service rights (implemented)
 
@@ -120,7 +136,8 @@ There is **no scheduled deletion job in the codebase**. What exists:
 | Rectification | `PATCH /api/me/profile`, `POST/DELETE /api/me/avatar` | Profile editor |
 | Erasure (history) | `DELETE /api/me/history` | Settings → Clear history |
 | Erasure (application data) | `DELETE /api/me` (requires the username as confirmation) | Settings → Delete account |
-| Erasure (sign-in identity) | `POST {NEON_AUTH_URL}/delete-user`, called by the browser from the user's own Neon Auth session | same flow, immediately after the call above |
+| Erasure (sign-in identity), server-side | `DELETE {NEON_API}/projects/{id}/branches/{id}/auth/users/{sub}` — only when the operator configured a Neon API key | same flow, inside `DELETE /api/me` |
+| Erasure (sign-in identity), browser-side | `POST {NEON_AUTH_URL}/delete-user`, from the user's own Neon Auth session | same flow, when the server could not do it |
 
 All the ResonTune endpoints take the account from the verified token; none
 accepts a user id from the client. The export omits `auth_subject`,
@@ -133,27 +150,68 @@ says so in a `notIncluded` field that is checked against the payload in
 "Delete account" covers two systems, and the product says so at every step:
 
 1. **ResonTune data** — `DELETE /api/me` cascades everything the account owns
-   and unlinks the shared records (§1). This always happens.
-2. **The Neon Auth identity** — email address, password, sessions. Neon Auth
-   is Better Auth, whose `POST /delete-user` endpoint is authenticated by the
-   *user's own session*, not by an API key. ResonTune deliberately holds no
-   Neon Auth admin credential, so the browser makes that call itself
-   (`deleteIdentity()` in `src/lib/authClient.ts`) right after step 1. Three
-   outcomes are possible and each is reported verbatim to the user:
-   identity deleted; a verification email sent (identity still exists until
-   the link is opened); or the endpoint is disabled for the deployment
-   (`user.deleteUser.enabled` off → HTTP 404), in which case the UI states
-   that the identity was *not* deleted and points at Neon Auth.
+   and unlinks the shared records (§1). This always happens, in a single
+   transaction that also writes the deletion tombstone, so there is no
+   instant where the account is gone but its stale tokens are still honoured.
+   Running it twice is harmless: the second run deletes nothing and says
+   `alreadyDeleted: true` instead of failing.
+2. **The Neon Auth identity** — email address, password, sessions. Two
+   documented mechanisms exist and the deployment decides which is available:
+
+   - **Server-side (preferred, opt-in).** Neon's control plane exposes
+     `DELETE /projects/{project_id}/branches/{branch_id}/auth/users/{auth_user_id}`
+     authenticated with a Neon API key. When `NEON_API_KEY`,
+     `NEON_PROJECT_ID` and `NEON_BRANCH_ID` are set, `DELETE /api/me` makes
+     that call itself (`server/util/neonAuthAdmin.ts`) and reports exactly
+     what came back: `deleted`, `already-absent` (HTTP 404 — possibly already
+     gone, possibly the wrong project/branch), `unauthorized` (the key was
+     rejected) or `failed`. The key is read from the server environment only;
+     it never reaches the browser, never appears in a response and is never
+     logged. A **project-scoped** Neon API key is strongly recommended: it
+     cannot reach another project, create projects or mint further keys — but
+     it can still change everything inside the one project, so this is a
+     deliberate operator trade-off, not a default.
+   - **Browser-side (fallback, always tried when the server could not).**
+     Neon Auth is Better Auth, whose `POST /delete-user` is authenticated by
+     the *user's own session*. `deleteIdentity()` in `src/lib/authClient.ts`
+     calls it and distinguishes: identity deleted; a verification email sent
+     (identity still exists until the link is opened); or the endpoint
+     disabled for the deployment (`user.deleteUser.enabled` off → HTTP 404).
+
+   Whichever path ran, the closing dialog states plainly whether the sign-in
+   identity is gone, still there, or waiting on an email — and never claims a
+   full account deletion when only the application data was removed.
 
 Because a JWT is stateless, a token minted before the deletion would happily
-recreate an empty account on the next request. `server/auth.ts` therefore
-keeps an in-memory tombstone — the provider subject and the deletion
-timestamp, nothing else, dropped after 24 hours — and treats any token
-*issued before* that moment as anonymous. A genuinely new sign-in produces a
-token issued afterwards and creates a new, empty account, which is what the
-privacy page describes. The tombstone is per-process and therefore best
-effort on a multi-instance deployment; it is a safety net, not the security
-boundary (the security boundary is that the row is gone).
+recreate an empty account on the next request. The deletion therefore writes
+a **tombstone** into `deleted_identities` (migration 006) inside the same
+transaction: the opaque provider subject, the deletion time and an expiry —
+nothing about the person. Any token *issued before* that moment is treated as
+anonymous by **every instance**, because the record lives in the shared
+database rather than in one process's memory. A genuinely new sign-in
+produces a token issued afterwards and creates a new, empty account, which is
+what the privacy page describes.
+
+How it stays cheap and race-safe:
+
+- An authenticated request whose account row exists never touches the
+  tombstone table — the check happens only on the path that would otherwise
+  *create* an account, which is a first sign-in or a stale token.
+- That creating `INSERT` carries the same condition as a `WHERE NOT EXISTS`
+  guard, so a deletion committing between the check and the write still wins.
+- A per-process cache in front of the table stops a looping stale client from
+  re-querying; it caches only positive results, so a tombstone written by
+  another instance is visible immediately.
+- Expired rows are swept by the next deletion, keeping the table proportional
+  to recent deletions rather than to all deletions ever.
+- If the tombstone lookup itself fails, the request is treated as deleted
+  rather than being handed an account.
+
+Writes that race the deletion are deterministic rather than lucky: `/api/me`
+re-checks that the account exists before anything is written or exported, a
+foreign-key violation against `users` anywhere in the API is reported as
+`401 This account no longer exists. Sign in again.`, and a play recorded
+during the race still counts for the track anonymously instead of failing.
 
 Local browser state after deletion: the session token and the API response
 cache (`resontune-v1-api`) are cleared. IndexedDB `resontune-local` (the
@@ -224,21 +282,38 @@ Consent surfaces audited:
   SSRF surface.
 - Public profile serialization (`server/util/profile.ts`) has a fixed column
   list; auth identifiers cannot leak through it.
+- Deleted identities are refused database-wide, not per process: the
+  tombstone is read from `deleted_identities` on the only path that could
+  create an account, and a failure of that lookup denies rather than allows.
+- `NEON_API_KEY` (optional, for server-side identity deletion) is read in
+  `server/env.ts`, used only by `server/util/neonAuthAdmin.ts`, never sent to
+  the browser, never echoed in a response and never logged — the deletion
+  test asserts the key appears in the `Authorization` header and nowhere
+  else. It is not a `VITE_` variable, so the bundler cannot inline it.
 
 ## 9. Known gaps
 
-1. Deleting the Neon Auth identity depends on the deployment: Better Auth's
-   self-service deletion must be enabled on the Neon Auth project, and it may
-   require a fresh session, the account password or an email confirmation.
-   When it is unavailable the UI says the identity still exists and where to
-   delete it. **Operator decision:** enable self-service deletion on the Neon
-   Auth project if you want one-step deletion.
+1. Deleting the Neon Auth identity depends on the deployment. Either the
+   operator provisions a Neon API key so the server can call the documented
+   branch-scoped deletion endpoint, or Better Auth's self-service deletion
+   must be enabled on the Neon Auth project (and it may require a fresh
+   session, the password or an email confirmation). When neither is
+   available the UI says the identity still exists and where to delete it.
+   **Operator decision:** see `docs/deployment.md` → "Identity deletion".
+   Neon's own changelog described API deletion as a *soft* delete
+   (`deleted_at` in `neon_auth.users_sync`) when the feature launched, so the
+   product says "Neon Auth reports the identity as deleted" rather than
+   promising the bytes are gone from the provider.
 2. No automated retention/cleanup jobs; retention is manual.
 3. Hosting-layer logs are outside the application's control.
 4. Backups retain deleted rows for the provider's window.
 5. No age verification.
 6. Legal review of `/privacy`, `/terms` and `/copyright` has not happened;
    the pages describe behaviour, not obligations.
-7. The deletion tombstone is per-process. A multi-instance deployment that
-   wants the same guarantee everywhere would need shared state — deliberately
-   not built, since it would mean storing something about deleted users.
+7. The deletion tombstone is now shared state in the application database, so
+   every instance refuses a revoked identity. The trade-off is deliberate and
+   documented above: one pseudonymous row per recent deletion, expiring after
+   24 hours. Deletions older than that window rely on the account row being
+   gone; a token that old is also past Neon Auth's own expiry.
+8. Neon backups and PITR can still contain the deleted rows, including a
+   tombstone that has since expired. That window is the operator's plan.

@@ -16,7 +16,8 @@ import { useDialogs } from '@/stores/dialogs';
 import type { IdentityDeletion } from '@/lib/authClient';
 import type { User } from '@/lib/types';
 
-const apiDel = vi.fn(async () => ({ deleted: true }));
+let deleteResponse: Record<string, unknown> = { deleted: true };
+const apiDel = vi.fn(async () => deleteResponse);
 const apiGet = vi.fn(async (path: string) => (path === '/auth/me' ? { user: null } : {}));
 vi.mock('@/lib/api', () => ({
   api: {
@@ -65,6 +66,7 @@ async function click(name: string) {
 }
 
 beforeEach(() => {
+  deleteResponse = { deleted: true };
   apiDel.mockClear();
   deleteIdentity.mockClear();
   clearAccountScopedCaches.mockClear();
@@ -168,6 +170,72 @@ describe('deleting an account', () => {
     const done = useDialogs.getState().confirm!;
     expect(done.body).toMatch(/confirmation email/i);
     expect(done.body).toMatch(/still exists at Neon Auth/i);
+  });
+
+  /* The server deletes the identity itself when the operator gave it a Neon
+     administrative credential. The browser must then not ask a second time —
+     that request would fail against an identity that is already gone. */
+  it('trusts the server when it already deleted the sign-in identity', async () => {
+    deleteResponse = {
+      deleted: true,
+      scope: 'resontune-application-data-and-identity',
+      identity: { provider: 'neon-auth', status: 'deleted', deletedByServer: true, clientShouldAttempt: false },
+    };
+    identityResult = { status: 'unsupported', message: 'not enabled' };
+    renderSettings();
+    await runDeletion('rina');
+    expect(deleteIdentity).not.toHaveBeenCalled();
+    const done = useDialogs.getState().confirm!;
+    expect(done.body).toMatch(/sign-in identity was deleted as well/i);
+    expect(done.body).not.toMatch(/NOT been deleted/);
+  });
+
+  it('still asks the browser when the server could not delete the identity', async () => {
+    deleteResponse = {
+      deleted: true,
+      scope: 'resontune-application-data',
+      identity: { provider: 'neon-auth', status: 'not-configured', deletedByServer: false, clientShouldAttempt: true },
+    };
+    identityResult = { status: 'deleted' };
+    renderSettings();
+    await runDeletion('rina');
+    expect(deleteIdentity).toHaveBeenCalled();
+    expect(useDialogs.getState().confirm!.body).toMatch(/deleted as well/i);
+  });
+
+  it('reports the server\u2019s reason when its credential was rejected', async () => {
+    deleteResponse = {
+      deleted: true,
+      scope: 'resontune-application-data',
+      identity: {
+        provider: 'neon-auth', status: 'unauthorized', deletedByServer: false, clientShouldAttempt: true,
+        reason: 'Neon rejected this deployment\u2019s administrative credential, so the identity was not deleted.',
+      },
+    };
+    identityResult = { status: 'unsupported', message: 'not enabled' };
+    renderSettings();
+    await runDeletion('rina');
+    const done = useDialogs.getState().confirm!;
+    expect(done.body).toMatch(/has NOT been deleted/);
+    expect(done.body).toMatch(/administrative credential/i);
+  });
+
+  it('prefers the server\u2019s reason over a bare browser error when the provider failed', async () => {
+    deleteResponse = {
+      deleted: true,
+      scope: 'resontune-application-data',
+      identity: {
+        provider: 'neon-auth', status: 'failed', deletedByServer: false, clientShouldAttempt: true,
+        reason: 'Neon Auth refused the deletion (HTTP 500).',
+      },
+    };
+    identityResult = { status: 'failed', message: 'Not found' };
+    renderSettings();
+    await runDeletion('rina');
+    const done = useDialogs.getState().confirm!;
+    expect(done.body).toMatch(/HTTP 500/);
+    expect(done.body).not.toMatch(/\(Not found\)/);
+    expect(done.body).toMatch(/new,\s*empty ResonTune account/i);
   });
 
   it('signs the user out and clears account-scoped caches, not their local library', async () => {

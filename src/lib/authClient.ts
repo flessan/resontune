@@ -85,7 +85,48 @@ export type IdentityDeletion =
 
 interface AuthResult {
   data?: { success?: boolean; message?: string } | null;
-  error?: { message?: string; status?: number; code?: string } | null;
+  /**
+   * Better Auth is inconsistent here: some builds resolve with an `error`
+   * object, others throw an `AuthApiError`; the HTTP status appears as
+   * `status: 404`, `status: 'NOT_FOUND'` or `statusCode`. Accept all of it.
+   */
+  error?: AuthFailure | null;
+}
+
+interface AuthFailure {
+  message?: string;
+  status?: number | string;
+  statusCode?: number;
+  code?: string;
+}
+
+/**
+ * Turn whatever Neon Auth reported into one of the honest outcomes.
+ *
+ * A 404 means this deployment has no self-service deletion endpoint (or no
+ * such user behind it). Either way the identity was **not** deleted by us,
+ * which is what the user is told — never the reverse.
+ *
+ * Exported for tests: this classification decides what a person is told
+ * about their own identity, so it is worth pinning down.
+ */
+export function classifyIdentityFailure(raw: unknown): IdentityDeletion {
+  const err = (raw ?? {}) as AuthFailure;
+  const code = typeof err.statusCode === 'number' ? err.statusCode
+    : typeof err.status === 'number' ? err.status : undefined;
+  const label = `${typeof err.status === 'string' ? err.status : ''} ${err.code ?? ''}`;
+  const message = err.message ?? (raw instanceof Error ? raw.message : '') ?? '';
+  const unsupported =
+    code === 404 || code === 501
+    || /not_found|not_implemented|user_not_found|not_enabled|disabled/i.test(label)
+    || (code === undefined && /not found|not implemented/i.test(message));
+  if (unsupported) {
+    return {
+      status: 'unsupported',
+      message: 'Self-service identity deletion is not available on this Neon Auth deployment.',
+    };
+  }
+  return { status: 'failed', message: message || 'Neon Auth refused the deletion request.' };
 }
 
 /**
@@ -103,18 +144,7 @@ export async function deleteIdentity(): Promise<IdentityDeletion> {
   }
   try {
     const res = await client.deleteUser({ callbackURL: '/' });
-    if (res?.error) {
-      const status = res.error.status;
-      // 404 is what Better Auth returns when account deletion is switched
-      // off for the deployment; 501 covers a proxy that never routed it.
-      if (status === 404 || status === 501) {
-        return {
-          status: 'unsupported',
-          message: 'Self-service identity deletion is not enabled on this Neon Auth deployment.',
-        };
-      }
-      return { status: 'failed', message: res.error.message ?? 'Neon Auth refused the deletion request.' };
-    }
+    if (res?.error) return classifyIdentityFailure(res.error);
     // Deployments that verify by email answer "Verification email sent" and
     // delete only when the link is opened. That is not a deletion yet.
     if (typeof res?.data?.message === 'string' && /verification/i.test(res.data.message)) {
@@ -122,10 +152,8 @@ export async function deleteIdentity(): Promise<IdentityDeletion> {
     }
     return { status: 'deleted' };
   } catch (err) {
-    return {
-      status: 'failed',
-      message: err instanceof Error ? err.message : 'Could not reach Neon Auth.',
-    };
+    // The Neon client throws an AuthApiError instead of resolving with one.
+    return classifyIdentityFailure(err);
   }
 }
 

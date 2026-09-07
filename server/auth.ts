@@ -127,38 +127,107 @@ async function verifyToken(token: string): Promise<VerifiedIdentity | null> {
  * expires, so a tab still holding one would immediately recreate an empty
  * account and make "deleted" look like a lie.
  *
- * So a deletion records the subject and the moment it happened, in memory
- * (like the rate-limit counters — no schema, no persistence, nothing about
- * the person beyond an opaque provider id). Tokens *issued before* that
- * moment are then treated as anonymous, while a genuinely new sign-in —
- * whose token is issued afterwards — creates a fresh, empty account as
- * documented. Best effort by design: it is per-process, so a multi-instance
- * deployment only covers the instance that served the deletion, and the
- * entry is dropped after a day.
+ * A deletion therefore writes a tombstone — the opaque provider subject, the
+ * moment of deletion, an expiry — into `deleted_identities`, in the same
+ * transaction that removes the account row. The database is the authority,
+ * so every instance of the app refuses the same stale tokens; the map below
+ * is only a per-process cache in front of it.
+ *
+ * Cost: none for ordinary traffic. A request whose account row exists never
+ * looks at tombstones at all — the check happens only on the path that would
+ * otherwise *create* an account, and the creating INSERT itself is guarded
+ * by the same table so two racing requests cannot slip a resurrection in
+ * between the check and the write.
  */
-const deletedSubjects = new Map<string, number>();
-const TOMBSTONE_TTL_SECONDS = 24 * 60 * 60;
+const TOMBSTONE_TTL_HOURS = (() => {
+  const raw = Number(process.env.IDENTITY_TOMBSTONE_HOURS ?? 24);
+  if (!Number.isFinite(raw)) return 24;
+  return Math.min(24 * 30, Math.max(1, raw)); // 1 hour … 30 days
+})();
+export const TOMBSTONE_TTL_SECONDS = TOMBSTONE_TTL_HOURS * 3600;
 
+/** Positive cache only: subject → deletion time (epoch seconds). */
+const deletedSubjects = new Map<string, number>();
+const TOMBSTONE_CACHE_MAX = 5_000;
+
+/**
+ * Remember a deletion in this process. The durable record is written by the
+ * deletion transaction; this only spares the instance that served it from
+ * asking the database again.
+ */
 export function markIdentityDeleted(subject: string, atSeconds = Math.floor(Date.now() / 1000)) {
   if (!subject) return;
   const cutoff = atSeconds - TOMBSTONE_TTL_SECONDS;
   for (const [key, when] of deletedSubjects) if (when < cutoff) deletedSubjects.delete(key);
+  if (deletedSubjects.size >= TOMBSTONE_CACHE_MAX) {
+    // Bounded memory: drop the oldest insertion (Map preserves insertion order).
+    const oldest = deletedSubjects.keys().next();
+    if (!oldest.done) deletedSubjects.delete(oldest.value);
+  }
   deletedSubjects.set(subject, atSeconds);
 }
 
-/** True when this token predates the deletion of its own account. */
-function predatesDeletion(identity: VerifiedIdentity): boolean {
-  const deletedAt = deletedSubjects.get(identity.subject);
-  if (deletedAt === undefined) return false;
-  if (Date.now() / 1000 - deletedAt > TOMBSTONE_TTL_SECONDS) {
-    deletedSubjects.delete(identity.subject);
-    return false;
+/**
+ * The statements that record a deletion, to be run inside the deletion
+ * transaction. The subject is read from the row being deleted, so a caller
+ * cannot tombstone somebody else's identity, and expired rows are swept in
+ * the same breath — the table stays proportional to recent deletions.
+ */
+export function tombstoneStatements(userId: string) {
+  return [
+    {
+      text: `INSERT INTO deleted_identities (auth_provider, auth_subject, deleted_at, expires_at)
+             SELECT u.auth_provider, u.auth_subject, now(), now() + ($2 || ' seconds')::interval
+               FROM users u
+              WHERE u.id = $1 AND u.auth_subject IS NOT NULL
+             ON CONFLICT (auth_provider, auth_subject) DO UPDATE
+                SET expires_at = GREATEST(EXCLUDED.expires_at, deleted_identities.expires_at)`,
+      params: [userId, String(TOMBSTONE_TTL_SECONDS)],
+    },
+    { text: `DELETE FROM deleted_identities WHERE expires_at < now()`, params: [] },
+  ];
+}
+
+/**
+ * When was this identity deleted? Cache first, then the shared table — which
+ * is what makes the refusal work on an instance that never served the
+ * deletion. Absence is never cached: a tombstone written by another instance
+ * has to be visible immediately.
+ */
+async function identityDeletedAt(subject: string): Promise<number | null> {
+  const cached = deletedSubjects.get(subject);
+  if (cached !== undefined) {
+    if (Date.now() / 1000 - cached <= TOMBSTONE_TTL_SECONDS) return cached;
+    deletedSubjects.delete(subject);
   }
+  try {
+    const db = await getDb();
+    const rows = await db.query<{ at: number | string }>(
+      `SELECT extract(epoch FROM deleted_at) AS at
+         FROM deleted_identities
+        WHERE auth_provider = 'neon' AND auth_subject = $1 AND expires_at > now()`,
+      [subject],
+    );
+    if (!rows[0]) return null;
+    const at = Number(rows[0].at);
+    if (!Number.isFinite(at)) return null;
+    markIdentityDeleted(subject, at);
+    return at;
+  } catch {
+    // A tombstone lookup that cannot run must not hand out an account.
+    return Math.floor(Date.now() / 1000);
+  }
+}
+
+/** True when this token predates the deletion of its own account. */
+async function predatesDeletion(identity: VerifiedIdentity): Promise<boolean> {
+  const deletedAt = await identityDeletedAt(identity.subject);
+  if (deletedAt === null) return false;
   // No `iat` to compare against — refuse rather than resurrect.
   return identity.issuedAt === null || identity.issuedAt <= deletedAt;
 }
 
-/** Test/maintenance helper: forget every tombstone in this process. */
+/** Test/maintenance helper: forget this process's cache (not the table). */
 export function clearIdentityTombstones() {
   deletedSubjects.clear();
 }
@@ -172,8 +241,16 @@ function handleFrom(identity: VerifiedIdentity): string {
   return checkUsername(candidate).ok ? candidate : `listener-${Math.floor(Math.random() * 10000)}`;
 }
 
-/** Find or create the ResonTune user for a verified Neon Auth identity. */
-async function userForIdentity(identity: VerifiedIdentity): Promise<SessionUser> {
+/**
+ * Find or create the ResonTune user for a verified Neon Auth identity, or
+ * return null when the identity has been deleted and this token predates it.
+ *
+ * The happy path is one indexed SELECT: an existing account never consults
+ * the tombstone table. Only the branch that would create an account pays for
+ * the check, and the INSERT repeats it as a `WHERE NOT EXISTS` guard so a
+ * deletion committing between the check and the write still wins.
+ */
+async function userForIdentity(identity: VerifiedIdentity): Promise<SessionUser | null> {
   const db = await getDb();
   const rows = await db.query<SessionUser>(
     `SELECT ${SESSION_USER_COLUMNS}
@@ -181,6 +258,10 @@ async function userForIdentity(identity: VerifiedIdentity): Promise<SessionUser>
     [identity.subject],
   );
   if (rows[0]) return rows[0];
+
+  // No account row: this is either a first sign-in or a token that outlived
+  // the account it belonged to.
+  if (await predatesDeletion(identity)) return null;
 
   const id = uuid();
   const base = handleFrom(identity);
@@ -190,23 +271,33 @@ async function userForIdentity(identity: VerifiedIdentity): Promise<SessionUser>
     if (!clash.length) break;
     handle = `${base}-${Math.floor(Math.random() * 10000)}`;
   }
+  const iat = identity.issuedAt;
   const created = await db.query<SessionUser>(
     `INSERT INTO users (id, handle, display_name, avatar_url, avatar_source,
                         auth_provider, auth_subject)
-     VALUES ($1, $2, $3, $4, $5, 'neon', $6)
+     SELECT $1, $2, $3, $4, $5, 'neon', $6
+      WHERE NOT EXISTS (
+        SELECT 1 FROM deleted_identities d
+         WHERE d.auth_provider = 'neon' AND d.auth_subject = $6
+           AND d.expires_at > now()
+           AND ($7::float8 IS NULL OR $7::float8 <= extract(epoch FROM d.deleted_at)))
      ON CONFLICT (auth_provider, auth_subject) WHERE auth_subject IS NOT NULL DO NOTHING
      RETURNING ${SESSION_USER_COLUMNS}`,
-    [id, handle, identity.name ?? handle, identity.image, identity.image ? 'auth' : null, identity.subject],
+    [id, handle, identity.name ?? handle, identity.image, identity.image ? 'auth' : null,
+     identity.subject, iat],
   );
   if (created[0]) return created[0];
-  // concurrent first request created it — read it back
+  // Either a concurrent first request created it, or the guard above refused.
   const again = await db.query<SessionUser>(
     `SELECT ${SESSION_USER_COLUMNS}
        FROM users WHERE auth_provider = 'neon' AND auth_subject = $1`,
     [identity.subject],
   );
-  if (!again[0]) throw new HttpError(500, 'Account mapping failed.');
-  return again[0];
+  if (again[0]) return again[0];
+  // Refused by the tombstone guard: remember it so a looping client stops
+  // costing a write attempt per request.
+  await identityDeletedAt(identity.subject);
+  return null;
 }
 
 /* ------------------------------- middleware ------------------------------ */
@@ -216,9 +307,9 @@ export async function attachUser(req: Request, _res: Response, next: NextFunctio
     const header = req.headers.authorization;
     if (header?.startsWith('Bearer ')) {
       const identity = await verifyToken(header.slice(7));
-      if (identity && !predatesDeletion(identity)) {
+      if (identity) {
         const user = await userForIdentity(identity);
-        req.user = { ...user, role: effectiveRole(user.id, user.role) };
+        if (user) req.user = { ...user, role: effectiveRole(user.id, user.role) };
       }
     }
   } catch {

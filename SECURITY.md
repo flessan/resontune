@@ -85,18 +85,32 @@ Things we consider vulnerabilities:
 - Local music never leaves the browser; there is no upload endpoint for it.
 - Account deletion is self-service and scoped to the account: shared catalog
   records survive with their reference cleared. Because bearer tokens are
-  stateless, the server keeps an in-memory tombstone (provider subject +
-  timestamp, 24 hours) and treats tokens issued before a deletion as
-  anonymous, so a stale tab cannot recreate the account.
-- ResonTune holds **no administrator credential for Neon Auth**. Deleting the
-  sign-in identity is the account holder's own request from their own Neon
-  Auth session, made by the browser; if the deployment does not allow it, the
-  UI says the identity still exists rather than implying otherwise.
+  stateless, the same transaction writes a tombstone to `deleted_identities`
+  (provider subject + deletion and expiry timestamps, 24 hours by default,
+  nothing about the person) and tokens issued before a deletion are treated
+  as anonymous. The row lives in the application database, so every instance
+  refuses the revoked identity and a stale tab cannot recreate the account on
+  any of them; if the lookup itself fails the request is denied rather than
+  granted. Post-deletion writes that race the transaction fail closed —
+  a foreign-key violation against `users` is answered `401 This account no
+  longer exists`, never a partial write.
+- Deleting the **sign-in identity** is separate from deleting ResonTune data,
+  and the UI never claims the former when only the latter happened. A
+  deployment may give the server a Neon control-plane API key
+  (`NEON_API_KEY`, project-scoped) so `DELETE /api/me` can call Neon's
+  documented branch-scoped user-deletion endpoint; otherwise the account
+  holder's own browser session calls Better Auth's self-service deletion.
+  When neither is available the UI says the identity still exists and where
+  to remove it. The API key is server-side only — never in the bundle, a
+  response body, or a log line — and there is no undocumented or guessed
+  provider endpoint anywhere in the codebase.
 
 ## Related documents
 
 - [docs/privacy-and-data.md](docs/privacy-and-data.md) — data inventory,
   third parties, retention, consent and dark-pattern audit
+- [docs/data-retention.md](docs/data-retention.md) — retention per data class,
+  application vs infrastructure vs provider
 - [docs/incident-response.md](docs/incident-response.md) — what happens after
   a report is confirmed
 - [/privacy](src/pages/legal/Privacy.tsx), [/terms](src/pages/legal/Terms.tsx),

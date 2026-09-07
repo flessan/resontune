@@ -248,6 +248,16 @@ export default function Privacy() {
             what remains is the decision itself.
           </li>
           <li>
+            The record of a deleted sign-in, written so that old tokens stay
+            refused: about a day, then it expires and is cleaned up. It holds
+            the opaque sign-in id and two timestamps — no name, no email, no
+            content.
+          </li>
+          <li>
+            Server logs are kept by whoever hosts the deployment, under their
+            settings; that part is outside this application.
+          </li>
+          <li>
             Database backups and point-in-time recovery are provided by Neon on
             the operator's plan. Deleted rows can survive in those snapshots for
             the provider's retention window.
@@ -285,15 +295,18 @@ export default function Privacy() {
           </li>
           <li>
             <strong>Your Neon Auth sign-in identity</strong> — the email address
-            and password, which ResonTune never stores — belongs to Neon Auth.
-            After deleting your data, your browser asks Neon Auth to delete that
-            identity too, using the same self-service request its own account
-            screen uses. ResonTune holds no administrator credentials for Neon
-            Auth and cannot do it on your behalf, so the deployment decides
-            whether that request is allowed. The closing dialog tells you which
-            of these happened: identity deleted, a confirmation email sent, or
-            identity kept because self-service deletion is not enabled — in
-            which case you can delete it in Neon Auth directly.
+            and password, which ResonTune never stores — belongs to Neon Auth,
+            so deleting it is a separate request to a separate system. How that
+            request is made depends on the deployment. If this one was set up
+            with a Neon administrative key, the server makes it for you as part
+            of the deletion. Otherwise your browser asks Neon Auth directly,
+            using the same self-service request its own account screen uses.
+            Either way the closing dialog tells you exactly which of these
+            happened: the identity was deleted, a confirmation email was sent
+            and the identity still exists until you open it, or the identity was
+            kept because neither route is available here — in which case you can
+            delete it in Neon Auth directly. You are never told the identity is
+            gone when only your ResonTune data was deleted.
           </li>
           <li>
             Deleting also signs you out and drops the browser cache of API
@@ -302,8 +315,10 @@ export default function Privacy() {
             does not delete them and never could, because it has no copy.
           </li>
           <li>
-            Sign-in tokens issued before the deletion are refused by the server,
-            so nothing quietly recreates the account. If you sign in again with
+            Sign-in tokens issued before the deletion are refused by every
+            server the site runs on — the deletion records the revoked sign-in
+            id (and nothing else about you) in the database for a day, so no
+            leftover tab or copy of a token can quietly recreate the account. If you sign in again with
             the same identity — because it still exists — you get a brand-new,
             empty ResonTune account: none of the deleted data comes back.
           </li>

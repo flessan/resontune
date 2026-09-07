@@ -108,6 +108,20 @@ function SupportConfigEditor() {
  * server-side operation scoped to the signed-in account.
  */
 /** Plain-language result of the Neon Auth half of an account deletion. */
+/**
+ * What the server said about the identity half of the deletion. Two things
+ * can delete a Neon Auth identity, and which one ran changes what the user
+ * must do next, so the shape is kept explicit rather than assumed.
+ */
+interface ServerDeletion {
+  identity?: {
+    status?: string;
+    deletedByServer?: boolean;
+    clientShouldAttempt?: boolean;
+    reason?: string;
+  };
+}
+
 function identityOutcome(identity: IdentityDeletion): string {
   const base = 'Everything ResonTune stored about your account has been deleted, and you are signed out. ';
   switch (identity.status) {
@@ -122,10 +136,14 @@ function identityOutcome(identity: IdentityDeletion): string {
         + 'Your Neon Auth sign-in identity has NOT been deleted: this deployment does not offer '
         + 'self-service identity deletion. Your email address and sign-in still exist at Neon Auth, '
         + 'where you can delete them directly. Signing in again here would create a new, empty ResonTune account.';
-    case 'failed':
+    case 'failed': {
+      // The reason often arrives as its own sentence; don't end up with "..).".
+      const why = identity.message.trim().replace(/[.\s]+$/, '');
       return base
-        + `Your Neon Auth sign-in identity has NOT been deleted (${identity.message}). It still exists at `
-        + 'Neon Auth, where you can delete it directly.';
+        + `Your Neon Auth sign-in identity has NOT been deleted (${why}). It still exists at `
+        + 'Neon Auth, where you can delete it directly. Signing in again here would create a new, '
+        + 'empty ResonTune account.';
+    }
     default:
       return base
         + 'This deployment has no sign-in provider configured, so there was no separate identity to delete.';
@@ -206,9 +224,24 @@ function AccountDataSection() {
     setBusy('delete');
     let identity: IdentityDeletion = { status: 'not-configured' };
     try {
-      await api.del('/me', { confirm: typed });
-      // Only now — the data is gone, so the identity can go too.
-      identity = await deleteIdentity();
+      const result = await api.del<ServerDeletion>('/me', { confirm: typed });
+      // The server deletes the identity itself when this deployment holds a
+      // Neon administrative credential. When it does, asking the provider a
+      // second time from here would fail against an identity that is already
+      // gone and turn a clean deletion into a scary message.
+      const server = result?.identity;
+      if (server?.deletedByServer) {
+        identity = { status: 'deleted' };
+      } else {
+        identity = await deleteIdentity();
+        // The browser could not do it either. When the server actually
+        // reached the provider and was refused, its account of why is the
+        // useful one — the browser's own error is usually a bare "Not found".
+        const serverTried = server?.status === 'unauthorized' || server?.status === 'failed';
+        if (identity.status !== 'deleted' && identity.status !== 'verification-sent' && serverTried) {
+          identity = { status: 'failed', message: server?.reason ?? 'the provider refused' };
+        }
+      }
       // Signing out can fail precisely because the identity just went away;
       // that must not turn a successful deletion into an error message.
       try {

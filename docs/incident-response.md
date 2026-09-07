@@ -33,11 +33,20 @@ scraper hitting public endpoints.
 Fastest safe action first:
 
 - Revoke or rotate what is exposed: Neon database credentials, Neon Auth
-  keys, `IMGBB_API_KEY`, deploy tokens, any leaked developer credential.
+  keys, `NEON_API_KEY` (the control-plane key used for identity deletion —
+  revoke it in the Neon console; a project-scoped key limits the blast radius
+  to one project), `IMGBB_API_KEY`, deploy tokens, any leaked developer
+  credential.
 - If a route is leaking, disable that route or take the deployment offline.
   Downtime is cheaper than continued exposure.
 - If an account is compromised, remove its elevated role (`ADMIN_USER_IDS` /
   `MODERATOR_USER_IDS`, `users.role`) before anything else.
+- To lock out a specific compromised sign-in immediately, delete the account
+  (`DELETE /api/me` as that user) or insert its tombstone directly:
+  `INSERT INTO deleted_identities (auth_provider, auth_subject, deleted_at,
+  expires_at) VALUES ('neon', '<sub>', now(), now() + interval '24 hours')`.
+  Every instance then refuses tokens issued before that moment. This revokes
+  ResonTune access only; the Neon Auth session itself is revoked in Neon Auth.
 - Do not "clean up" evidence. Contain, do not tidy.
 
 ## 3. Preserve evidence

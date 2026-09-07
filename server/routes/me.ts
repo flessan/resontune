@@ -8,8 +8,12 @@
 import { Router, raw } from 'express';
 import { z } from 'zod';
 import { getDb, uuid } from '../db/index.ts';
-import { asyncRoute, pagination, HttpError } from '../util/http.ts';
-import { markIdentityDeleted, requireAuth, SESSION_USER_COLUMNS, publicUser, type SessionUser } from '../auth.ts';
+import { asyncMiddleware, asyncRoute, pagination, HttpError, ACCOUNT_GONE_MESSAGE } from '../util/http.ts';
+import {
+  markIdentityDeleted, requireAuth, tombstoneStatements,
+  SESSION_USER_COLUMNS, publicUser, type SessionUser,
+} from '../auth.ts';
+import { deleteNeonAuthIdentity } from '../util/neonAuthAdmin.ts';
 import { queryTracks } from './catalog.ts';
 import { listLinks, replaceLinks } from '../db/links.ts';
 import { PROFILE_COLUMNS, serializeProfile, type ProfileRow } from '../util/profile.ts';
@@ -51,6 +55,28 @@ async function readOwnProfile(userId: string) {
 export function meRouter(): Router {
   const r = Router();
   r.use(requireAuth);
+
+  /**
+   * The account may have been deleted a moment after this request was
+   * authenticated — by another tab, or by another server instance. The
+   * verified token alone cannot know that, so anything that writes (or
+   * exports) re-checks that the account still exists and answers 401 rather
+   * than writing orphans or exporting a shell. One indexed lookup, on write
+   * paths only; reads and playback are untouched.
+   *
+   * The deletion route itself is exempt: running twice must be harmless, not
+   * an error.
+   */
+  r.use(
+    asyncMiddleware(async (req) => {
+      const isDeletion = req.method === 'DELETE' && (req.path === '/' || req.path === '');
+      if (req.method === 'GET' && req.path !== '/export') return;
+      if (isDeletion) return;
+      const db = await getDb();
+      const rows = await db.query(`SELECT 1 FROM users WHERE id = $1`, [req.user!.id]);
+      if (!rows.length) throw new HttpError(401, ACCOUNT_GONE_MESSAGE);
+    }),
+  );
 
   /* ------------------------------- favorites ------------------------------ */
 
@@ -476,7 +502,8 @@ export function meRouter(): Router {
   /* ---------------------------- account deletion ---------------------------- */
 
   /**
-   * Delete the signed-in account's ResonTune data.
+   * Delete the signed-in account's ResonTune data, then the sign-in identity
+   * when this deployment can.
    *
    * Deliberate by construction: the request must repeat the account's own
    * username. Scope is the account and the things it owns — playlists,
@@ -486,13 +513,17 @@ export function meRouter(): Router {
    * is true of curator/moderation references, which stay as anonymous audit
    * trail. Nothing here touches another account's rows.
    *
-   * What this route deliberately does NOT do is delete the Neon Auth
-   * identity. Neon Auth's deletion endpoint is a self-service action
-   * authenticated by the user's own Neon Auth session; this API only ever
-   * sees a bearer JWT, and giving the server admin credentials for the
-   * identity provider would be a much larger blast radius than the feature
-   * deserves. The browser makes that request itself after this one
-   * succeeds, and the response below says plainly that the server did not.
+   * Everything destructive happens in one transaction, and the tombstone is
+   * written inside it: there is no instant at which the account row is gone
+   * while the refusal of its still-valid tokens is missing. A second,
+   * concurrent delete finds nothing to remove and answers the same way
+   * instead of failing.
+   *
+   * The identity half is attempted here only when the operator configured a
+   * Neon administrative credential (see server/util/neonAuthAdmin.ts).
+   * Otherwise it stays what it always was: the browser's own self-service
+   * request, made from the user's own Neon Auth session — and the response
+   * says plainly which of the two happened.
    */
   r.delete(
     '/',
@@ -508,59 +539,76 @@ export function meRouter(): Router {
 
       const db = await getDb();
 
-      // The provider subject, read before the row goes away, so this process
-      // can refuse to recreate the account from tokens issued before now.
+      // The provider subject, read before the row goes away, so the identity
+      // can be addressed after the account no longer exists.
       const subjectRows = await db.query<{ auth_subject: string | null }>(
         `SELECT auth_subject FROM users WHERE id = $1`, [uid],
       );
-
-      // Public counters are derived numbers, not history: keep them honest
-      // before the owning rows disappear.
-      await db.query(
-        `UPDATE tracks SET like_count = greatest(like_count - 1, 0)
-          WHERE id IN (SELECT track_id FROM favorites WHERE user_id = $1)`, [uid],
-      );
-      await db.query(
-        `UPDATE playlists SET like_count = greatest(like_count - 1, 0)
-          WHERE id IN (SELECT playlist_id FROM playlist_likes WHERE user_id = $1)`, [uid],
-      );
-      // entity_links is a polymorphic table with no foreign key to users.
-      await db.query(`DELETE FROM entity_links WHERE entity_kind = 'user' AND entity_id = $1`, [uid]);
-
-      // The row itself. Every other reference is either ON DELETE CASCADE
-      // (things the account owns) or ON DELETE SET NULL (shared records).
-      await db.query(`DELETE FROM users WHERE id = $1`, [uid]);
-
       const subject = subjectRows[0]?.auth_subject ?? null;
+
+      const results = await db.transaction<{ id: string }>([
+        // Tombstone first — inside the transaction, derived from the row
+        // itself, so it can never name anyone else's identity.
+        ...tombstoneStatements(uid),
+        // Public counters are derived numbers, not history: keep them honest
+        // before the owning rows disappear.
+        {
+          text: `UPDATE tracks SET like_count = greatest(like_count - 1, 0)
+                  WHERE id IN (SELECT track_id FROM favorites WHERE user_id = $1)`,
+          params: [uid],
+        },
+        {
+          text: `UPDATE playlists SET like_count = greatest(like_count - 1, 0)
+                  WHERE id IN (SELECT playlist_id FROM playlist_likes WHERE user_id = $1)`,
+          params: [uid],
+        },
+        // entity_links is a polymorphic table with no foreign key to users.
+        {
+          text: `DELETE FROM entity_links WHERE entity_kind = 'user' AND entity_id = $1`,
+          params: [uid],
+        },
+        // The row itself. Every other reference is either ON DELETE CASCADE
+        // (things the account owns) or ON DELETE SET NULL (shared records).
+        { text: `DELETE FROM users WHERE id = $1 RETURNING id`, params: [uid] },
+      ]);
+      /** False when a concurrent request had already deleted this account. */
+      const removedNow = (results[results.length - 1] ?? []).length > 0;
+
       if (subject) markIdentityDeleted(subject);
+
+      const identity = await deleteNeonAuthIdentity(subject ?? '');
+      const identityDeleted = identity.deleted;
 
       res.json({
         deleted: true,
-        scope: 'resontune-application-data',
+        alreadyDeleted: !removedNow,
+        scope: identityDeleted ? 'resontune-application-data-and-identity' : 'resontune-application-data',
         deletedData: [
           'profile (display name, username, bio, location, website, avatar URL, profile links)',
           'playlists and their contents',
           'favorites and playlist likes',
           'listening history',
+          ...(identityDeleted ? ['your Neon Auth sign-in identity, including the email address it held'] : []),
         ],
         retainedData: [
           'catalog records you are credited on — the artist page, releases and tracks stay published with the link to your account cleared',
           'moderation and editorial records, with the account reference cleared',
           'anonymous play counts, which never referenced your account',
           'database backups, until the provider\u2019s retention window passes',
+          ...(identityDeleted ? [] : ['your Neon Auth sign-in identity and its email address, until it is deleted at the provider']),
         ],
         identity: {
           provider: 'neon-auth',
-          deletedByServer: false,
-          reason:
-            'Deleting a Neon Auth identity is a self-service request authenticated by your own '
-            + 'Neon Auth session. This API only receives a bearer token, so it cannot make that '
-            + 'request for you — your browser does it immediately after this call.',
+          status: identity.status,
+          deletedByServer: identityDeleted,
+          /** The browser's own self-service attempt is still worth making. */
+          clientShouldAttempt: !identityDeleted,
+          reason: identity.detail,
         },
         note:
-          'Your ResonTune data has been deleted. Tokens issued before now are refused by this '
-          + 'server, so nothing recreates the account behind your back; signing in again with the '
-          + 'same identity creates a new, empty ResonTune account.',
+          'Your ResonTune data has been deleted. Tokens issued before now are refused by every '
+          + 'instance of this server, so nothing recreates the account behind your back; signing in '
+          + 'again with the same identity creates a new, empty ResonTune account.',
       });
     }),
   );

@@ -116,6 +116,9 @@ production execute identical DDL.
 | [docs/visualizers.md](docs/visualizers.md) | Writing a visualizer mode |
 | [docs/moderation.md](docs/moderation.md) | Catalog administration and content states |
 | [docs/deployment.md](docs/deployment.md) | Deployment, env vars, security posture |
+| [docs/privacy-and-data.md](docs/privacy-and-data.md) | Data inventory, third parties, account deletion, privacy audit |
+| [docs/data-retention.md](docs/data-retention.md) | What is kept, for how long, and who controls it |
+| [docs/incident-response.md](docs/incident-response.md) | Security incident runbook |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
 | [SECURITY.md](SECURITY.md) | Reporting vulnerabilities |
 

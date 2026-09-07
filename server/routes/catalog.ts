@@ -4,7 +4,7 @@
  */
 import { Router } from 'express';
 import { getDb, uuid } from '../db/index.ts';
-import { asyncRoute, pagination, HttpError } from '../util/http.ts';
+import { asyncRoute, pagination, HttpError, isDeletedAccountViolation } from '../util/http.ts';
 import { listLinks } from '../db/links.ts';
 
 /* ------------------------------ serialization ----------------------------- */
@@ -331,10 +331,18 @@ export function catalogRouter(): Router {
       await db.query(`UPDATE tracks SET play_count = play_count + 1 WHERE id = $1`, [id]);
       await db.query(`INSERT INTO play_events (id, track_id) VALUES ($1, $2)`, [uuid(), id]);
       if (req.user) {
-        await db.query(
-          `INSERT INTO play_history (id, user_id, track_id) VALUES ($1, $2, $3)`,
-          [uuid(), req.user.id, id],
-        );
+        // The play itself is already counted. Attaching it to an account is
+        // the optional part: if that account was deleted a moment ago, the
+        // foreign key says so and playback carries on anonymously rather
+        // than failing in the listener's face.
+        try {
+          await db.query(
+            `INSERT INTO play_history (id, user_id, track_id) VALUES ($1, $2, $3)`,
+            [uuid(), req.user.id, id],
+          );
+        } catch (err) {
+          if (!isDeletedAccountViolation(err)) throw err;
+        }
       }
       res.json({ ok: true });
     }),
