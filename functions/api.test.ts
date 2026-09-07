@@ -69,6 +69,20 @@ describe('Cloudflare Pages API adapter', () => {
     vi.mocked(session).mockResolvedValue(null);
   });
 
+  it('resolves external playback sources with the Express response shape', async () => {
+    const trackId = crypto.randomUUID();
+    vi.mocked(database).mockResolvedValue({
+      query: vi.fn(async (sql: string) => {
+        if (sql.includes('FROM tracks t')) return [{ status: 'published', streaming_permission: true, source_type: 'external', artist_status: 'published', album_status: null }];
+        if (sql.includes('FROM track_sources')) return [{ source_type: 'external', kind: 'external_link', url: 'https://www.youtube.com/watch?v=abc', object_key: null, mime_type: null, availability: 'available', provider: 'youtube', priority: 0 }];
+        return [];
+      }),
+    } as any);
+    const response = await call(`/api/play/${trackId}`);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ mode: 'external', url: 'https://www.youtube.com/watch?v=abc', label: 'Watch on YouTube', sourceType: 'external', trackSourceType: 'external' });
+  });
+
   it('allows a different authenticated listener to like and unlike a public playlist', async () => {
     const ownerId = crypto.randomUUID();
     const listenerId = crypto.randomUUID();
