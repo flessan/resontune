@@ -1,4 +1,4 @@
-import { ApiError, body, database, json, session, type PagesContext } from '../../../../../_shared';
+import { ApiError, body, database, json, session, type PagesContext } from '../../../../_shared';
 
 const UUID_RE = /^[0-9a-f-]{36}$/;
 const STATES = ['published', 'unlisted', 'taken_down', 'archived'] as const;
