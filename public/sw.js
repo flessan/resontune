@@ -10,8 +10,13 @@
  *  - Audio (/media/*) is intentionally NOT cached here: remote catalog audio
  *    is only cached when the source's licensing/implementation permits it,
  *    and Range requests are better served straight from the network.
+ *
+ * The cache namespace is bumped whenever the application asset graph changes.
+ * Vite emits hashed chunks, so retaining a shell cache from an older build can
+ * leave a running document referring to chunks that no longer exist in the
+ * active deployment. A new namespace makes the new worker start cleanly.
  */
-const VERSION = 'resontune-v1';
+const VERSION = 'resontune-v2';
 const SHELL_CACHE = `${VERSION}-shell`;
 const API_CACHE = `${VERSION}-api`;
 
