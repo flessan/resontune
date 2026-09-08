@@ -27,6 +27,25 @@ vi.mock('@/lib/api', () => ({
   ApiError: class extends Error { },
 }));
 
+/* Expanding the player mounts the ambient visualizer - that engine is
+   not the shell's contract, and jsdom has no 2d canvas. */
+vi.mock('@/visualizer/engine', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/visualizer/engine')>();
+  return {
+    ...actual,
+    VisualizerRunner: class {
+      start() {}
+      destroy() {}
+      setMode() {}
+      setSettings() {}
+      setPaused() {}
+      setPaper() {}
+      setAccent() {}
+      setArtwork() {}
+    },
+  };
+});
+
 /* The audio engine belongs to the browser, not to the shell. */
 vi.mock('@/player/engine', () => {
   const audio = document.createElement('audio');
@@ -125,6 +144,31 @@ describe('the mobile shell', () => {
       const name = button.getAttribute('aria-label') ?? button.textContent?.trim();
       expect(name).toBeTruthy();
     }
+  });
+
+  it('wraps routed content in a page stage so chrome can stay still', () => {
+    renderShell();
+    expect(document.querySelector('.page-stage')).toBeTruthy();
+    expect(document.querySelector('.page-stage')!.textContent).toContain('Home page');
+  });
+
+  it('keeps the drawer in the document after it closes', async () => {
+    renderShell();
+    fireEvent.click(screen.getByLabelText('Open navigation'));
+    await waitFor(() => expect(document.querySelector('.drawer')!.classList.contains('open')).toBe(true));
+    fireEvent.click(screen.getByLabelText('Close navigation'));
+    await waitFor(() => expect(document.querySelector('.drawer')!.classList.contains('open')).toBe(false));
+    expect(document.querySelector('.drawer')).toBeTruthy();
+  });
+
+  it('expands the player without pausing playback', async () => {
+    usePlayer.setState({ queue: [makeQueueItem()], index: 0, playing: true, view: 'compact' });
+    renderShell();
+    fireEvent.click(screen.getByLabelText('Expand player'));
+    await waitFor(() => expect(usePlayer.getState().view).toBe('expanded'));
+    expect(usePlayer.getState().playing).toBe(true);
+    expect(document.querySelector('.player-sheet')).toBeTruthy();
+    expect(document.querySelector('.player-bar')).toBeTruthy();
   });
 
   it('holds the page still while the navigation drawer is open', async () => {

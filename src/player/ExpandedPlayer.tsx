@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '@/components/AppLink';
+import { DUR, PLAYER_ART, PLAYER_TITLE, prefersReducedMotion, shouldViewTransition, withViewTransition } from '@/lib/motion';
 import { usePlayer } from './store';
 import { engine } from './engine';
 import { SeekBar } from './SeekBar';
@@ -155,14 +156,18 @@ export function ExpandedPlayer() {
   const [detail, setDetail] = useState<Track | null>(null);
   const [closing, setClosing] = useState(false);
 
-  /* Close by playing the sheet's return motion first, then unmounting.
-     The sheet slides back toward the mini player it grew out of. */
+  /* Close by morphing back into the mini player when View Transitions
+     are available; otherwise play the sheet's CSS return, then unmount.
+     Playback is never touched. */
   const close = () => {
     if (closing) return;
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduced) { setView('compact'); return; }
+    if (prefersReducedMotion()) { setView('compact'); return; }
+    if (shouldViewTransition()) {
+      withViewTransition(() => setView('compact'), 'player-collapse');
+      return;
+    }
     setClosing(true);
-    window.setTimeout(() => setView('compact'), 240);
+    window.setTimeout(() => setView('compact'), DUR.quick + 60);
   };
 
   useEffect(() => {
@@ -225,7 +230,7 @@ export function ExpandedPlayer() {
         <span style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-faint)' }}>
           Now playing {item.origin === 'local' ? '· local file' : ''}
         </span>
-        <button className="icon-btn" onClick={() => setView('immersive')} aria-label="Full screen">
+        <button className="icon-btn" onClick={() => withViewTransition(() => setView('immersive'), 'fade')} aria-label="Full screen">
           <IconWave />
         </button>
       </div>
@@ -233,14 +238,14 @@ export function ExpandedPlayer() {
       <div className="ps-body">
         <div className="ps-left">
           {/* keyed on the queue item so track changes crossfade the artwork */}
-          <div className="ps-art" ref={artRef} key={item.queueId}>
+          <div className="ps-art" ref={artRef} key={item.queueId} style={{ viewTransitionName: PLAYER_ART }}>
             <Artwork src={item.artworkUrl} alt={`Artwork for ${item.title}`} />
           </div>
           <div className="ps-titleblock">
-            <h2 className="ps-track-title">{item.title}</h2>
+            <h2 className="ps-track-title" style={{ viewTransitionName: PLAYER_TITLE }}>{item.title}</h2>
             <p className="ps-track-artist">
               {item.origin === 'remote' && item.artistSlug ? (
-                <Link to={`/artist/${item.artistSlug}`} onClick={() => setView('compact')}>
+                <Link to={`/artist/${item.artistSlug}`} onClick={() => withViewTransition(() => setView('compact'), 'player-collapse')}>
                   {item.artistName}
                 </Link>
               ) : (

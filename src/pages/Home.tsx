@@ -3,7 +3,8 @@
  * A compact artwork-led featured banner, then horizontal shelves and dense
  * track lists. No promotional storytelling; the music is the interface.
  */
-import { Link } from 'react-router-dom';
+import { Link } from '@/components/AppLink';
+import { armSharedElement, vtName } from '@/lib/motion';
 import { useFetch } from '@/lib/useFetch';
 import type { Track, Album, Artist, Collection } from '@/lib/types';
 import { TrackTile, AlbumTile, ArtistTile, CollectionTile } from '@/components/Tiles';
@@ -109,7 +110,12 @@ export default function Home() {
       {feat && (
         <section className="featured" aria-label="Featured release">
           {feat.artworkUrl && (
-            <Link to={`/release/${feat.slug}`}><img src={feat.artworkUrl} alt="" /></Link>
+            <Link
+              to={`/release/${feat.slug}`}
+              onPointerDown={(e) => armSharedElement(e.currentTarget, vtName('release', feat.id))}
+            >
+              <img src={feat.artworkUrl} alt="" data-shared="" />
+            </Link>
           )}
           <div>
             <div className="kicker">

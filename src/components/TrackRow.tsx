@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from './AppLink';
 import { memo, useMemo } from 'react';
 import type { Track } from '@/lib/types';
 import { usePlayer } from '@/player/store';

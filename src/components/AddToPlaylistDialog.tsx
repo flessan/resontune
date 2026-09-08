@@ -15,11 +15,13 @@ export function AddToPlaylistDialog({
   trackIds,
   label,
   onClose,
+  closing = false,
 }: {
   trackIds: string[];
   /** What the user picked, for the confirmation copy. */
   label?: string;
   onClose: () => void;
+  closing?: boolean;
 }) {
   const user = useAuth((s) => s.user);
   useScrollLock(true);
@@ -76,7 +78,7 @@ export function AddToPlaylistDialog({
   };
 
   return (
-    <div className="dialog-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()} role="presentation">
+    <div className={`dialog-backdrop ${closing ? 'closing' : ''}`} onClick={(e) => e.target === e.currentTarget && onClose()} role="presentation">
       <div className="dialog" role="dialog" aria-modal="true" aria-label="Add to playlist" ref={ref}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>

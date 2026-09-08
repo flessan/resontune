@@ -1,0 +1,245 @@
+/* ============================================================
+   ResonTune motion system.
+
+   Tokens live in global.css (`--dur-*`, `--ease-*`). This sheet
+   describes how those tokens are used: route transitions, shared
+   elements, the drawer, the player, dialogs, and reduced motion.
+   It is not a second identity - it only teaches the existing UI
+   to occupy space instead of swapping.
+   ============================================================ */
+
+:root {
+  --dur-primary: 360ms;
+  --ease-enter: cubic-bezier(0.2, 0, 0, 1);
+  --dist-page: 28px;
+}
+
+/* ---- chrome stays put while the page moves --------------------
+   Named groups are extracted from the root snapshot, so a route
+   change interpolates `.page-stage` and leaves the shell still. */
+
+.sidebar { view-transition-name: rt-sidebar; }
+.topbar { view-transition-name: rt-topbar; }
+.player-bar { view-transition-name: rt-player; }
+.tabbar { view-transition-name: rt-tabbar; }
+.toast-zone { view-transition-name: rt-toasts; }
+
+.page-stage {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  view-transition-name: rt-page;
+}
+
+/* Short pages still pin the footer to the bottom of the shell. */
+.page-stage > .page:last-child { margin-top: auto; }
+
+/* The default page-in fade is the no-VT fallback. During a View
+   Transition it would double-animate the incoming page. */
+html:active-view-transition .page,
+html:active-view-transition .shelf > *,
+html:active-view-transition .home-greeting,
+html:active-view-transition .profile-head {
+  animation: none !important;
+}
+
+/* ---- route kinds (stamped as html[data-vt]) ------------------- */
+
+::view-transition-group(rt-page) {
+  animation-duration: var(--dur-primary);
+  animation-timing-function: var(--ease-emphasized);
+}
+
+html[data-vt='fade']::view-transition-old(rt-page) {
+  animation: rt-fade-out var(--dur-quick) var(--ease-exit) both;
+}
+html[data-vt='fade']::view-transition-new(rt-page) {
+  animation: rt-fade-in var(--dur-standard) var(--ease-enter) both;
+}
+
+html[data-vt='forward']::view-transition-old(rt-page) {
+  animation: rt-leave-left var(--dur-standard) var(--ease-exit) both;
+}
+html[data-vt='forward']::view-transition-new(rt-page) {
+  animation: rt-enter-right var(--dur-primary) var(--ease-emphasized) both;
+}
+
+html[data-vt='back']::view-transition-old(rt-page) {
+  animation: rt-leave-right var(--dur-standard) var(--ease-exit) both;
+}
+html[data-vt='back']::view-transition-new(rt-page) {
+  animation: rt-enter-left var(--dur-primary) var(--ease-emphasized) both;
+}
+
+@keyframes rt-fade-out { to { opacity: 0; } }
+@keyframes rt-fade-in { from { opacity: 0; } }
+@keyframes rt-leave-left {
+  to { opacity: 0; transform: translateX(calc(-1 * var(--dist-page))); }
+}
+@keyframes rt-enter-right {
+  from { opacity: 0; transform: translateX(var(--dist-page)); }
+}
+@keyframes rt-leave-right {
+  to { opacity: 0; transform: translateX(var(--dist-page)); }
+}
+@keyframes rt-enter-left {
+  from { opacity: 0; transform: translateX(calc(-1 * var(--dist-page))); }
+}
+
+/* Shared artwork / avatar / player art: let the UA morph the box.
+   A slightly longer group duration is the only opinion we add. */
+::view-transition-group(rt-player-art),
+::view-transition-group(rt-player-title) {
+  animation-duration: var(--dur-sheet);
+  animation-timing-function: var(--ease-emphasized);
+}
+
+/* Player expand/collapse: the sheet's own slide would fight the
+   shared-element morph, so it yields while a VT is running. */
+html:active-view-transition .player-sheet,
+html[data-vt='player-expand'] .player-sheet,
+html[data-vt='player-collapse'] .player-sheet {
+  animation: none;
+}
+
+/* ---- desktop rail: labels fade, icons stay --------------------
+   `display: none` snaps. Opacity + max-width interpolates with the
+   grid-template-columns transition already on `.app`. */
+
+@media (min-width: 861px) {
+  .nav-link span,
+  .brand-mark span {
+    display: inline-block;
+    max-width: 200px;
+    opacity: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    vertical-align: bottom;
+    transition:
+      opacity var(--dur-quick) var(--ease-standard),
+      max-width var(--dur-standard) var(--ease-emphasized);
+  }
+
+  .app.nav-collapsed .nav-link span,
+  .app.nav-collapsed .brand-mark span {
+    opacity: 0;
+    max-width: 0;
+    pointer-events: none;
+  }
+
+  .nav-section,
+  .sidebar-foot {
+    max-height: 96px;
+    opacity: 1;
+    overflow: hidden;
+    transition:
+      max-height var(--dur-standard) var(--ease-emphasized),
+      opacity var(--dur-quick) var(--ease-standard),
+      padding var(--dur-standard) var(--ease-emphasized);
+  }
+
+  .app.nav-collapsed .nav-section,
+  .app.nav-collapsed .sidebar-foot {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    pointer-events: none;
+  }
+}
+
+/* Undo the snap-hide from global.css so the interpolation above can play. */
+.app.nav-collapsed .nav-link span,
+.app.nav-collapsed .nav-section span,
+.app.nav-collapsed .sidebar-foot {
+  display: block;
+}
+
+@media (min-width: 861px) {
+  .app.nav-collapsed .brand-mark {
+    display: flex;
+    overflow: hidden;
+    max-width: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity var(--dur-quick) var(--ease-standard),
+      max-width var(--dur-standard) var(--ease-emphasized);
+  }
+}
+
+/* The expand-only fade-in on labels fights the interpolation. */
+.app:not(.nav-collapsed) .nav-link span,
+.app:not(.nav-collapsed) .brand-mark span {
+  animation: none;
+}
+
+/* ---- drawer: stays mounted; closed state is inert, not gone ---- */
+
+.drawer {
+  transition:
+    transform var(--dur-sheet) var(--ease-emphasized),
+    visibility var(--dur-sheet);
+}
+.drawer-backdrop {
+  transition: opacity var(--dur-standard) var(--ease-standard);
+}
+
+/* ---- dialogs: exit as well as enter ---------------------------- */
+
+.dialog-backdrop.closing {
+  animation: fade-out var(--dur-quick) var(--ease-exit) forwards;
+  pointer-events: none;
+}
+.dialog-backdrop.closing .dialog {
+  animation: dialog-out var(--dur-quick) var(--ease-exit) forwards;
+}
+@keyframes dialog-out {
+  from { transform: none; opacity: 1; }
+  to { transform: scale(0.98); opacity: 0; }
+}
+@media (max-width: 640px) {
+  .dialog-backdrop.closing .dialog {
+    animation: dialog-sheet-out var(--dur-quick) var(--ease-exit) forwards;
+  }
+}
+@keyframes dialog-sheet-out {
+  from { transform: none; opacity: 1; }
+  to { transform: translateY(12px); opacity: 0; }
+}
+
+/* Library tab panels ride the same sibling fade as the route. */
+
+/* ---- reduced motion: short fade, never a morph ----------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .topbar,
+  .player-bar,
+  .tabbar,
+  .toast-zone,
+  .page-stage,
+  .pb-art,
+  .ps-art,
+  .detail-art,
+  .tile-art,
+  .collection-art,
+  .featured img,
+  .profile-avatar,
+  .avatar {
+    view-transition-name: none !important;
+  }
+
+  html::view-transition-group(*),
+  html::view-transition-old(*),
+  html::view-transition-new(*) {
+    animation: none !important;
+  }
+
+  .drawer,
+  .drawer-backdrop {
+    transition-duration: 0.01ms !important;
+  }
+}

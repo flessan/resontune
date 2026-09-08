@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink } from './AppLink';
+import { PageStage } from './PageStage';
 import { usePlayer } from '@/player/store';
 import { useAuth } from '@/stores/auth';
 import { useToasts } from '@/stores/toast';
@@ -7,6 +9,7 @@ import { PlayerBar } from '@/player/PlayerBar';
 import { ExpandedPlayer } from '@/player/ExpandedPlayer';
 import { ImmersivePlayer } from '@/player/ImmersivePlayer';
 import { engine } from '@/player/engine';
+import { armSharedElement, usePresence, vtName, vtNavigateOptions } from '@/lib/motion';
 import {
   IconHome, IconSearch, IconLibrary, IconMic, IconDisc, IconMenu, IconClose,
   IconSubmit, IconUser, IconSettings, IconShield, IconWave, IconGitHub,
@@ -107,8 +110,10 @@ export function Layout() {
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (q.trim()) navigate(`/search?q=${encodeURIComponent(q.trim())}`);
+    if (q.trim()) navigate(`/search?q=${encodeURIComponent(q.trim())}`, vtNavigateOptions());
   };
+
+  const signInUi = usePresence(signIn);
 
   const nav = ({ isActive }: { isActive: boolean }) => `nav-link ${isActive ? 'active' : ''}`;
 
@@ -184,6 +189,8 @@ export function Layout() {
         className={`drawer ${drawer ? 'open' : ''}`}
         aria-label="Application navigation"
         aria-hidden={!drawer}
+        aria-modal={drawer || undefined}
+        inert={!drawer || undefined}
         ref={drawerRef}
         tabIndex={-1}
       >
@@ -246,17 +253,24 @@ export function Layout() {
             <IconSearch width={19} height={19} />
           </NavLink>
           {user ? (
-            <NavLink to={`/u/${user.handle}`} className="topbar-avatar" title={`${user.displayName} - your profile`}>
-              <Avatar src={user.avatarThumbUrl ?? user.avatarUrl} name={user.displayName} size={30} />
+            <NavLink
+              to={`/u/${user.handle}`}
+              className="topbar-avatar"
+              title={`${user.displayName} - your profile`}
+              onPointerDown={(e) => armSharedElement(e.currentTarget, vtName('avatar', user.id))}
+            >
+              <Avatar src={user.avatarThumbUrl ?? user.avatarUrl} name={user.displayName} size={30} shared />
             </NavLink>
           ) : (
             <button className="btn small" onClick={() => setSignIn(true)}>Sign in</button>
           )}
         </div>
-        <Outlet />
-        <div className="page" style={{ paddingTop: 0 }}>
-          <Footer />
-        </div>
+        <PageStage>
+          <Outlet />
+          <div className="page" style={{ paddingTop: 0 }}>
+            <Footer />
+          </div>
+        </PageStage>
       </main>
 
       <PlayerBar />
@@ -276,7 +290,7 @@ export function Layout() {
 
       {view === 'expanded' && <ExpandedPlayer />}
       {view === 'immersive' && <ImmersivePlayer />}
-      {signIn && <SignInDialog onClose={() => setSignIn(false)} />}
+      {signInUi.present && <SignInDialog onClose={() => setSignIn(false)} closing={signInUi.exiting} />}
 
       {/* Contextual menus and the dialogs their actions raise, mounted once
           so any row anywhere in the app can reach them. */}

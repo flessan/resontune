@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '@/components/AppLink';
+import { PLAYER_ART, PLAYER_TITLE, withViewTransition } from '@/lib/motion';
 import { usePlayer } from './store';
 import { engine } from './engine';
 import { SeekBar } from './SeekBar';
@@ -26,6 +27,7 @@ export function PlayerBar() {
   const muted = usePlayer((s) => s.muted);
   const error = usePlayer((s) => s.error);
   const externalLink = usePlayer((s) => s.externalLink);
+  const view = usePlayer((s) => s.view);
   const { toggle, next, prev, toggleShuffle, cycleRepeat, setVolume, toggleMute, setView } = usePlayer.getState();
 
   const miniRef = useRef<HTMLDivElement>(null);
@@ -49,7 +51,7 @@ export function PlayerBar() {
     return () => { alive = false; };
   }, [item?.queueId, item?.artworkUrl]);
 
-  const openExpanded = () => setView('expanded');
+  const openExpanded = () => withViewTransition(() => setView('expanded'), 'player-expand');
 
   /* The bar acts on the playing queue entry, so its menu is the queue menu. */
   const nowTarget = useMemo<ContextTarget | null>(
@@ -78,11 +80,20 @@ export function PlayerBar() {
       <div className="pb-now" key={item?.queueId ?? 'idle'} {...ctxProps}>
         {item ? (
           <>
-            <button className="pb-art" onClick={openExpanded} aria-label="Open player" style={{ padding: 0, border: 'none' }}>
+            <button
+              className="pb-art"
+              onClick={openExpanded}
+              aria-label="Open player"
+              style={{
+                padding: 0,
+                border: 'none',
+                viewTransitionName: view === 'compact' ? PLAYER_ART : undefined,
+              }}
+            >
               <Artwork src={item.artworkUrl} alt="" />
             </button>
             <div className="pb-meta">
-              <div className="pb-title">
+              <div className="pb-title" style={{ viewTransitionName: view === 'compact' ? PLAYER_TITLE : undefined }}>
                 {item.origin === 'remote' && item.trackSlug ? (
                   <Link to={`/track/${item.trackSlug}`} onClick={(e) => e.stopPropagation()}>{item.title}</Link>
                 ) : (
@@ -158,7 +169,7 @@ export function PlayerBar() {
           <IconQueue width={17} height={17} />
         </button>
         <ContextMenuButton target={nowTarget} className="icon-btn" size={17} label="More actions for the playing track" />
-        <button className="icon-btn desktop-only" onClick={() => setView('immersive')} aria-label="Full screen player" disabled={!item}>
+        <button className="icon-btn desktop-only" onClick={() => withViewTransition(() => setView('immersive'), 'fade')} aria-label="Full screen player" disabled={!item}>
           <IconWave width={17} height={17} />
         </button>
         {/* The slider is a rarely-used control, so it stays out of the way:

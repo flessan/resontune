@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Link } from '@/components/AppLink';
+import { sharedStyle, vtNavigateOptions } from '@/lib/motion';
 import { useFetch } from '@/lib/useFetch';
 import type { Playlist, Track } from '@/lib/types';
 import { TrackRow } from '@/components/TrackRow';
@@ -70,7 +72,7 @@ export default function PlaylistPage() {
     try {
       const r = await api.post<{ playlist: Playlist }>(`/playlists/${playlist.id}/duplicate`);
       toast('Playlist duplicated');
-      navigate(`/playlist/${r.playlist.slug}`);
+      navigate(`/playlist/${r.playlist.slug}`, vtNavigateOptions());
     } catch (e: any) { toast(e.message); }
   };
 
@@ -107,7 +109,7 @@ export default function PlaylistPage() {
     try {
       await api.del(`/playlists/${playlist.id}`);
       toast('Playlist deleted');
-      navigate('/playlists');
+      navigate('/playlists', vtNavigateOptions());
     } catch (e: any) { toast(e.message); }
   };
 
@@ -141,7 +143,7 @@ export default function PlaylistPage() {
   return (
     <div className="page">
       <div className="detail-head" {...headProps}>
-        <div className="detail-art" style={{ display: 'grid', placeItems: 'center', background: 'var(--accent-soft)' }}>
+        <div className="detail-art" style={{ display: 'grid', placeItems: 'center', background: 'var(--accent-soft)', ...sharedStyle('playlist', playlist.id) }}>
           <span style={{ fontSize: 26, fontWeight: 600, color: 'var(--on-surface-faint)', textAlign: 'center', padding: '0 16px', lineHeight: 1.25 }}>
             {playlist.title}
           </span>

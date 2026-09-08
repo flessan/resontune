@@ -2,7 +2,8 @@
  * Track detail page.
  */
 import { useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { Link } from '@/components/AppLink';
 import { useFetch } from '@/lib/useFetch';
 import type { Track } from '@/lib/types';
 import { usePlayer } from '@/player/store';
@@ -11,6 +12,7 @@ import { trackToQueueItem } from '@/providers';
 import { TrackRow } from '@/components/TrackRow';
 import { Blurb } from '@/components/Blurb';
 import { Artwork } from '@/components/Artwork';
+import { sharedStyle } from '@/lib/motion';
 import { formatDuration, formatCount, formatDate } from '@/lib/format';
 import { toast } from '@/stores/toast';
 import { IconPlay, IconPause, IconHeart, IconQueue, IconWave, IconFlow } from '@/components/Icons';
@@ -94,7 +96,7 @@ export default function TrackPage() {
   return (
     <div className="page">
       <div className="detail-head" {...headProps}>
-        <div className="detail-art">
+        <div className="detail-art" style={sharedStyle('track', track.id)}>
           <Artwork src={track.artworkUrl} alt={`Artwork for ${track.title}`} />
         </div>
         <div className="detail-identity">

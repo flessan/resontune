@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { Link } from '@/components/AppLink';
 import { useFetch } from '@/lib/useFetch';
 import type { Album, Track } from '@/lib/types';
 import { TrackRow } from '@/components/TrackRow';
 import { Blurb } from '@/components/Blurb';
 import { Artwork } from '@/components/Artwork';
+import { sharedStyle } from '@/lib/motion';
 import { usePlayer } from '@/player/store';
 import { trackToQueueItem } from '@/providers';
 import { formatDate } from '@/lib/format';
@@ -48,7 +50,7 @@ export default function AlbumPage() {
   return (
     <div className="page">
       <div className="detail-head" {...headProps}>
-        <div className="detail-art">
+        <div className="detail-art" style={sharedStyle('release', album.id)}>
           <Artwork src={album.artworkUrl} alt={`Cover of ${album.title}`} />
         </div>
         <div className="detail-identity">
