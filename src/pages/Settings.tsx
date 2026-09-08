@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { clearAccountScopedCaches, deleteIdentity, type IdentityDeletion } from '@/lib/authClient';
 import { dialogs } from '@/stores/dialogs';
 import { toast } from '@/stores/toast';
-import { listModes } from '@/visualizer/engine';
+import { listModes, type VizLevel } from '@/visualizer/engine';
 import '@/visualizer/modes';
 import { usePlayer } from '@/player/store';
 import { IconSun, IconMoon, IconSettings as IconSys, IconWave } from '@/components/Icons';
@@ -318,8 +318,8 @@ export default function Settings() {
   const user = useAuth((s) => s.user);
   const theme = useSettings((s) => s.theme);
   const visualizerMode = useSettings((s) => s.visualizerMode);
-  const vis = useSettings((s) => s.visualizer);
-  const { setTheme, setVisualizerMode, updateVisualizer } = useSettings.getState();
+  const visualizerLevel = useSettings((s) => s.visualizerLevel);
+  const { setTheme, setVisualizerMode, setVisualizerLevel } = useSettings.getState();
   const modes = listModes();
 
   return (
@@ -349,9 +349,10 @@ export default function Settings() {
 
       <div className="section-head"><h2 className="section-title">Visualizer</h2></div>
       <p style={{ color: 'var(--ink-muted)', fontSize: 13.5, marginTop: 0 }}>
-        Default mode for the immersive player. You can also change it live while it's open.
+        Style and intensity for the expanded and immersive player. Off is a real style.
+        Flow uses the same engine behind the notes.
       </p>
-      <div className="pill-row" role="radiogroup" aria-label="Visualizer mode" style={{ marginBottom: 22 }}>
+      <div className="pill-row" role="radiogroup" aria-label="Visualizer style" style={{ marginBottom: 14 }}>
         {modes.map((m) => (
           <button
             key={m.id}
@@ -365,31 +366,21 @@ export default function Settings() {
           </button>
         ))}
       </div>
-
-      <div style={{ maxWidth: 420 }}>
+      <div className="pill-row" role="radiogroup" aria-label="Visualizer intensity" style={{ marginBottom: 22 }}>
         {([
-          ['sensitivity', 'Sensitivity', 0.4, 2],
-          ['intensity', 'Intensity', 0.4, 2],
-          ['speed', 'Speed', 0.3, 2],
-          ['opacity', 'Opacity', 0.2, 1],
-          ['smoothing', 'Smoothing', 0, 0.95],
-          ['scale', 'Scale', 0.5, 1.6],
-        ] as const).map(([key, label, min, max]) => (
-          <div key={key} className="field" style={{ marginBottom: 12 }}>
-            <label htmlFor={`set-${key}`} style={{ display: 'flex', justifyContent: 'space-between' }}>
-              {label} <span style={{ color: 'var(--ink-faint)' }}>{vis[key].toFixed(2)}</span>
-            </label>
-            <input
-              id={`set-${key}`}
-              type="range"
-              min={min}
-              max={max}
-              step={0.01}
-              value={vis[key]}
-              onChange={(e) => updateVisualizer({ [key]: Number(e.target.value) })}
-              style={{ width: '100%', accentColor: 'var(--accent)' }}
-            />
-          </div>
+          ['minimal', 'Minimal'],
+          ['ambient', 'Ambient'],
+          ['full', 'Full'],
+        ] as [VizLevel, string][]).map(([id, label]) => (
+          <button
+            key={id}
+            role="radio"
+            aria-checked={visualizerLevel === id}
+            className={`pill ${visualizerLevel === id ? 'active' : ''}`}
+            onClick={() => setVisualizerLevel(id)}
+          >
+            {label}
+          </button>
         ))}
       </div>
       <button

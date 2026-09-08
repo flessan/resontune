@@ -4,6 +4,9 @@
  * Holds stay on stage until they are cleared or dropped: the head being
  * judged does not cull the body or tail.
  */
+import type { AnalysisFrame } from '@/player/engine';
+import { findMode, paintVisualizer, type VisualizerSettings } from '@/visualizer/engine';
+import '@/visualizer/modes';
 import type {
   ActiveHold,
   FeverState,
@@ -58,6 +61,10 @@ export interface ViewWorld {
   level: number;
   section: SectionKind;
   practice: boolean;
+  vizFrame: AnalysisFrame | null;
+  vizMode: string;
+  vizSettings: VisualizerSettings;
+  vizClock: number;
 }
 
 const STAGE = '#100e0d';
@@ -186,6 +193,7 @@ export class GameView {
     const { ctx, w: W, h: H } = this;
     ctx.fillStyle = STAGE;
     ctx.fillRect(0, 0, W, H);
+    this.visualizer(w);
 
     const fever = w.fever.phase === 'flow' ? 0.26 : w.fever.phase === 'fever' ? 0.16 : 0.05;
     const drift = Math.sin(w.now * 0.55) * 18;
@@ -216,6 +224,27 @@ export class GameView {
     vignette.addColorStop(1, 'rgba(8,7,6,0.45)');
     ctx.fillStyle = vignette;
     ctx.fillRect(0, 0, W, H);
+  }
+
+  private visualizer(w: ViewWorld): void {
+    if (w.vizMode === 'off' || !w.vizFrame) return;
+    const mode = findMode(w.vizMode);
+    if (!mode || mode.id === 'off') return;
+    const { ctx, w: W, h: H } = this;
+    const fever = w.fever.phase === 'idle' ? 1 : w.fever.phase === 'fever' ? 1.08 : 1.12;
+    const settings = {
+      ...w.vizSettings,
+      intensity: w.vizSettings.intensity * 0.72 * fever,
+      opacity: Math.min(0.42, w.vizSettings.opacity * 0.55),
+      scale: w.vizSettings.scale * 0.92,
+    };
+    ctx.save();
+    paintVisualizer(ctx, W, H, w.vizFrame, mode, settings, {
+      accent: PEACH,
+      paper: CREAM,
+      t: w.paused ? 0 : w.vizClock,
+    });
+    ctx.restore();
   }
 
   private lanes(w: ViewWorld): void {

@@ -22,11 +22,47 @@ export const DEFAULT_SETTINGS: VisualizerSettings = {
   sensitivity: 1,
   intensity: 1,
   speed: 1,
-  opacity: 1,
+  opacity: 0.72,
   smoothing: 0.55,
   scale: 1,
   background: 'ink',
 };
+
+export type VizLevel = 'minimal' | 'ambient' | 'full';
+
+export const LEVEL_PRESETS: Record<VizLevel, Pick<VisualizerSettings, 'sensitivity' | 'intensity' | 'speed' | 'opacity' | 'scale'>> = {
+  minimal: { sensitivity: 0.85, intensity: 0.55, speed: 0.7, opacity: 0.42, scale: 0.82 },
+  ambient: { sensitivity: 1, intensity: 1, speed: 1, opacity: 0.72, scale: 1 },
+  full: { sensitivity: 1.15, intensity: 1.35, speed: 1.15, opacity: 0.95, scale: 1.12 },
+};
+
+export const SILENT_FRAME: AnalysisFrame = {
+  freq: new Uint8Array(1024),
+  wave: new Uint8Array(2048).fill(128),
+  level: 0,
+  bass: 0,
+  mid: 0,
+  treble: 0,
+  sampleRate: 44100,
+  binCount: 1024,
+};
+
+const MODE_ALIAS: Record<string, string> = {
+  minimal: 'bars',
+  waveform: 'wave',
+  radial: 'corona',
+  organic: 'ribbon',
+  geometric: 'scope',
+  album: 'hifi',
+  albumReactive: 'hifi',
+  typography: 'wave',
+  procedural: 'hyperspace',
+};
+
+export function resolveModeId(id: string | null | undefined): string {
+  if (!id) return 'bars';
+  return MODE_ALIAS[id] ?? id;
+}
 
 export interface VisualizerContext {
   ctx: CanvasRenderingContext2D;
@@ -58,6 +94,39 @@ export function registerMode(mode: VisualizerMode): void {
 
 export function listModes(): VisualizerMode[] {
   return registry;
+}
+
+export function findMode(id: string): VisualizerMode | undefined {
+  const resolved = resolveModeId(id);
+  return registry.find((m) => m.id === resolved) ?? registry.find((m) => m.id === id);
+}
+
+/** Paint one mode into an existing 2d context (Flow stage, tests). */
+export function paintVisualizer(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  frame: AnalysisFrame,
+  mode: VisualizerMode,
+  settings: VisualizerSettings,
+  opts: { accent?: string; paper?: string; t?: number; artwork?: HTMLImageElement | null; reducedMotion?: boolean } = {},
+): void {
+  ctx.save();
+  ctx.globalAlpha = settings.opacity;
+  mode.render({
+    ctx,
+    w,
+    h,
+    dpr: 1,
+    t: opts.t ?? 0,
+    frame,
+    settings,
+    accent: opts.accent ?? '#ffb693',
+    paper: opts.paper ?? '#f3e6d8',
+    artwork: opts.artwork ?? null,
+    reducedMotion: opts.reducedMotion ?? false,
+  });
+  ctx.restore();
 }
 
 /** Apply sensitivity + smoothing to a bin array into a persistent buffer. */
@@ -96,6 +165,7 @@ export class VisualizerRunner {
   private lastFrame: AnalysisFrame | null = null;
   private clock = 0;
   private lastTick = performance.now();
+  private paused = false;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -148,6 +218,13 @@ export class VisualizerRunner {
     this.artwork = img;
   }
 
+  /** Freeze the clock and keep the last frame. Seek/resume pick the analyser back up. */
+  setPaused(paused: boolean) {
+    if (this.paused === paused) return;
+    this.paused = paused;
+    if (!paused) this.lastTick = performance.now();
+  }
+
   start() {
     if (this.rafId != null) return;
     this.lastTick = performance.now();
@@ -169,6 +246,10 @@ export class VisualizerRunner {
   }
 
   private tick() {
+    if (this.paused) {
+      if (this.lastFrame) this.render(this.lastFrame);
+      return;
+    }
     const now = performance.now();
     const dt = Math.min(0.1, (now - this.lastTick) / 1000);
     this.lastTick = now;
@@ -178,14 +259,7 @@ export class VisualizerRunner {
 
     const frame = this.readFrame() ?? this.lastFrame;
     if (!frame) {
-      // No audio graph yet - render an idle frame with silence.
-      const silent: AnalysisFrame = {
-        freq: new Uint8Array(1024),
-        wave: new Uint8Array(2048).fill(128),
-        level: 0, bass: 0, mid: 0, treble: 0,
-        sampleRate: 44100, binCount: 1024,
-      };
-      this.render(silent);
+      this.render(SILENT_FRAME);
       return;
     }
     this.lastFrame = frame;

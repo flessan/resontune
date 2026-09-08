@@ -1,9 +1,8 @@
 /**
  * Beat detection + phrase charts.
  *
- * Detection, hold-gap math and the Preview Beat grid are FLOW 0.3.
- * Phrase language (intro / verse / build / chorus / break / drop / outro)
- * and true dual-lane chords live here.
+ * Onsets → tempo grid → phrases → patterns. Holds come from the pattern
+ * language, not from waiting for a 0.85s hole in the beat stream.
  */
 import {
   CHART_VERSION,
@@ -19,33 +18,111 @@ export { CHART_VERSION };
 export function detectBeats(buffer: Pick<AudioBuffer, 'getChannelData' | 'sampleRate' | 'duration'>): number[] {
   const data = buffer.getChannelData(0);
   const sr = buffer.sampleRate;
+  const onsets = detectOnsets(data, sr);
+  if (onsets.length < 8) return fallbackGrid(buffer.duration);
+
+  const { step, phase } = estimateTempo(onsets);
+  const grid: number[] = [];
+  const start = phase > 0.45 ? phase : phase + step;
+  for (let t = start; t < buffer.duration - 0.3; t += step) {
+    const near = nearestOnset(onsets, t);
+    const idx = Math.round((t - start) / step);
+    const downbeat = idx % 4 === 0;
+    if (Math.abs(near - t) <= step * 0.42 || (downbeat && Math.abs(near - t) <= step * 0.8)) {
+      const snapped = Math.abs(near - t) <= step * 0.28 ? near : t;
+      if (!grid.length || snapped - grid[grid.length - 1] > step * 0.55) grid.push(snapped);
+    }
+  }
+  if (grid.length < 8) return spaceOnsets(onsets, 0.38);
+  return grid;
+}
+
+function detectOnsets(data: Float32Array, sr: number): number[] {
   const size = 1024;
   const hop = 512;
-  const energies: number[] = [];
-
+  const flux: number[] = [];
+  let prev = 0;
   for (let i = 0; i + size < data.length; i += hop) {
-    let energy = 0;
-    for (let j = 0; j < size; j++) energy += data[i + j] * data[i + j];
-    energies.push(energy / size);
+    let low = 0;
+    let high = 0;
+    let prevSample = data[i];
+    for (let j = 0; j < size; j++) {
+      const x = data[i + j];
+      const hp = x - prevSample;
+      prevSample = x;
+      const e = x * x;
+      if (j < size * 0.18) low += e;
+      high += hp * hp;
+    }
+    const env = low / (size * 0.18) * 0.55 + high / size * 0.45;
+    flux.push(Math.max(0, env - prev));
+    prev = env * 0.85 + prev * 0.15;
   }
 
-  const beats: number[] = [];
-  const window = 22;
-  for (let i = window; i < energies.length - window; i++) {
+  const onsets: number[] = [];
+  const window = 18;
+  for (let i = window; i < flux.length - window; i++) {
     let mean = 0;
-    for (let k = i - window; k <= i + window; k++) mean += energies[k];
+    for (let k = i - window; k <= i + window; k++) mean += flux[k];
     mean /= window * 2 + 1;
     const t = (i * hop) / sr;
-    const last = beats[beats.length - 1] ?? -99;
-    if (energies[i] > mean * 1.4 && t - last > 0.22) beats.push(t);
+    const last = onsets[onsets.length - 1] ?? -99;
+    if (flux[i] > mean * 1.35 && flux[i] >= (flux[i - 1] ?? 0) && t - last > 0.12) onsets.push(t);
   }
+  return onsets;
+}
 
-  if (beats.length < 8) {
-    const out: number[] = [];
-    for (let t = 1; t < buffer.duration - 0.4; t += 0.5) out.push(t);
-    return out;
+function estimateTempo(onsets: number[]): { step: number; phase: number } {
+  const minI = 0.33;
+  const maxI = 0.86;
+  const bins = new Float32Array(54);
+  for (let i = 1; i < onsets.length; i++) {
+    let dt = onsets[i] - onsets[i - 1];
+    while (dt > maxI) dt /= 2;
+    while (dt < minI && dt > 0.08) dt *= 2;
+    if (dt < minI || dt > maxI) continue;
+    const b = Math.round((dt - minI) / 0.01);
+    if (b >= 0 && b < bins.length) bins[b] += 1;
   }
-  return beats;
+  let best = 0;
+  let bestI = 17; // ~0.5s
+  for (let i = 0; i < bins.length; i++) {
+    const score = bins[i] + 0.45 * (bins[i - 1] ?? 0) + 0.45 * (bins[i + 1] ?? 0);
+    if (score > best) {
+      best = score;
+      bestI = i;
+    }
+  }
+  const step = minI + bestI * 0.01;
+  return { step, phase: onsets[0] };
+}
+
+function nearestOnset(onsets: number[], t: number): number {
+  let best = onsets[0];
+  let bestD = Math.abs(best - t);
+  for (const o of onsets) {
+    const d = Math.abs(o - t);
+    if (d < bestD) {
+      best = o;
+      bestD = d;
+    }
+    if (o > t && d > bestD) break;
+  }
+  return best;
+}
+
+function spaceOnsets(onsets: number[], minGap: number): number[] {
+  const out: number[] = [];
+  for (const t of onsets) {
+    if (!out.length || t - out[out.length - 1] >= minGap) out.push(t);
+  }
+  return out;
+}
+
+function fallbackGrid(duration: number): number[] {
+  const out: number[] = [];
+  for (let t = 1; t < duration - 0.4; t += 0.5) out.push(t);
+  return out;
 }
 
 /** FLOW 0.3 Preview Beat: 7 hits at 0.5s then a 1.75s rest, t = 1..56. */
@@ -155,7 +232,6 @@ export function densifyBeats(beats: number[], difficulty: 'easy' | 'normal' | 'h
     out.push(beats[i]);
     if (i === beats.length - 1) continue;
     const gap = beats[i + 1] - beats[i];
-    // Never split a hold-worthy rest — that gap becomes the tail.
     if (gap >= HOLD_MIN_GAP) continue;
     if (difficulty === 'hard' && gap > 0.42) out.push(beats[i] + gap / 2);
     else if (difficulty === 'normal' && gap > 0.7) out.push(beats[i] + gap / 2);
@@ -197,6 +273,14 @@ function flavoredHold(gap: number, flavor: number): number {
   const cycle = flavor % 3;
   if (cycle === 2) return Math.max(0.4, Math.min(base, 0.55));
   if (cycle === 0) return Math.max(0.4, Math.min(base, 0.95));
+  return base;
+}
+
+function flavoredRaw(raw: number, flavor: number): number {
+  const base = Math.max(0.45, Math.min(raw, 1.4));
+  const cycle = flavor % 3;
+  if (cycle === 2) return Math.max(0.45, Math.min(base, 0.55));
+  if (cycle === 0) return Math.max(0.45, Math.min(base, 0.95));
   return base;
 }
 
@@ -279,13 +363,212 @@ function weaveHoldTaps(
   }
 }
 
-export function buildChart(beats: number[], options: ChartOptions): Note[] {
+type Take = (time: number, lane: 0 | 1, duration: number, group: number | null, section: SectionKind) => void;
+type PatternName = 'sparse' | 'pulse' | 'alt' | 'holdGroove' | 'holdAccent' | 'burst' | 'bounce' | 'dualHold' | 'holdShort';
+
+function pickPattern(
+  section: SectionKind,
+  group: number,
+  hard: boolean,
+  dual: boolean,
+  dualCount: number,
+): PatternName {
+  if (section === 'intro' || section === 'break') return 'sparse';
+  if (section === 'outro') return group % 2 === 0 ? 'pulse' : 'holdShort';
+  if (section === 'build') return 'burst';
+  if (section === 'drop') {
+    if ((hard || dual) && dualCount < 3 && group % 2 === 0) return 'dualHold';
+    return 'holdGroove';
+  }
+  if (section === 'chorus') {
+    if (hard && dualCount < 2 && group % 3 === 0) return 'dualHold';
+    return group % 2 === 0 ? 'holdAccent' : 'bounce';
+  }
+  return (['holdGroove', 'alt', 'pulse', 'holdGroove'] as const)[group % 4];
+}
+
+function patternHoldDur(slice: number[], start: number, steps: number, pulse: number, flavor: number): number {
+  const t = slice[start];
+  const end = slice[start + steps] ?? t + pulse * steps;
+  return flavoredRaw(end - t - 0.12, flavor);
+}
+
+function tapInside(
+  take: Take,
+  t: number,
+  dur: number,
+  at: number | undefined,
+  lane: 0 | 1,
+  section: SectionKind,
+): boolean {
+  if (at == null) return false;
+  if (at <= t + 0.18 || at >= t + dur - 0.15) return false;
+  take(at, lane, 0, null, section);
+  return true;
+}
+
+function applyPattern(
+  slice: number[],
+  name: PatternName,
+  ctx: {
+    take: Take;
+    pulse: number;
+    hard: boolean;
+    dual: boolean;
+    classic: boolean;
+    section: SectionKind;
+    group: number;
+    holdAlt: number;
+    holdFlavor: number;
+    chordGroup: number;
+    lastChord: number;
+  },
+): { holdAlt: number; holdFlavor: number; chordGroup: number; lastChord: number; dual: boolean } {
+  const { take, pulse, hard, dual, classic, section, group } = ctx;
+  let { holdAlt, holdFlavor, chordGroup, lastChord } = ctx;
+  const laneA = (holdAlt % 2) as 0 | 1;
+  const laneB = (1 - laneA) as 0 | 1;
+  const bounce = (k: number) => ((group + k) % 2) as 0 | 1;
+  let placedDual = false;
+
+  const chordOk = (t: number) => t - lastChord >= 0.7;
+
+  if (name === 'sparse') {
+    for (let k = 0; k < slice.length; k += 4) take(slice[k], bounce(k), 0, null, section);
+  } else if (name === 'pulse') {
+    for (let k = 0; k < slice.length; k += 2) take(slice[k], laneA, 0, null, section);
+  } else if (name === 'alt') {
+    for (let k = 0; k < slice.length; k++) take(slice[k], bounce(k), 0, null, section);
+  } else if (name === 'bounce') {
+    for (let k = 0; k < slice.length; k++) {
+      if (k % 3 === 2) continue;
+      take(slice[k], bounce(k), 0, null, section);
+    }
+  } else if (name === 'burst') {
+    for (let k = 0; k < slice.length; k++) {
+      const t = slice[k];
+      const next = slice[k + 1];
+      const gap = next != null ? next - t : pulse;
+      take(t, bounce(k), 0, null, section);
+      if (k % 4 === 1 && gap >= 0.4 && gap < HOLD_MIN_GAP) {
+        take(t + Math.min(pulse * 0.5, gap * 0.5), bounce(k + 1), 0, null, section);
+      }
+    }
+  } else if (name === 'holdShort' || name === 'holdGroove' || name === 'holdAccent' || name === 'dualHold') {
+    const t = slice[0];
+    const steps = name === 'holdShort' ? 2 : name === 'holdAccent' ? 3 : 4;
+    const dur = name === 'dualHold'
+      ? Math.max(0.5, Math.min(1.2, (slice[3] ?? t + pulse * 3) - t - 0.12))
+      : patternHoldDur(slice, 0, steps, pulse, holdFlavor++);
+    if (name === 'dualHold' && !classic) {
+      const groupId = chordGroup++;
+      take(t, 0, dur, groupId, section);
+      take(t, 1, dur, groupId, section);
+      lastChord = t;
+      placedDual = true;
+      if (dual && slice[1] != null) take(slice[1], 0, 0, null, section);
+    } else if (name === 'dualHold' && classic) {
+      const groupId = chordGroup++;
+      take(t, 0, dur, groupId, section);
+      take(t, 1, dur, groupId, section);
+      lastChord = t;
+      placedDual = true;
+    } else {
+      const chord = name === 'holdAccent' && !classic && chordOk(t);
+      const groupId = chord ? chordGroup++ : null;
+      take(t, laneA, dur, groupId, section);
+      if (chord) {
+        take(t, laneB, 0, groupId, section);
+        lastChord = t;
+      }
+      const insideAt = t + Math.max(0.22, Math.min(pulse, dur - 0.22));
+      tapInside(take, t, dur, insideAt, laneB, section);
+      if (hard && name === 'holdAccent') tapInside(take, t, dur, t + pulse * 2, laneB, section);
+      const later = slice[4] ?? slice[3];
+      if (later != null && later >= t + dur + 0.18) take(later, laneB, 0, null, section);
+      else if (later != null) tapInside(take, t, dur, later, laneB, section);
+      if (slice[6] != null && slice[6] >= t + dur + 0.15) take(slice[6], laneA, 0, null, section);
+      holdAlt += 1;
+    }
+    if (dual && name === 'holdGroove' && !classic && dur >= 0.85) {
+      const off = Math.max(0.25, pulse * 0.5);
+      take(t + off, laneB, Math.max(0.4, dur - off), null, section);
+    }
+  }
+
+  return { holdAlt, holdFlavor, chordGroup, lastChord, dual: placedDual };
+}
+
+function buildPhrasedChart(times: number[], options: ChartOptions, sections: ChartSection[]): Note[] {
   const { difficulty, modifiers } = options;
-  const sections = options.sections ?? inferSections(beats, beats[beats.length - 1] ?? 0);
+  const hard = difficulty === 'hard';
+  const dual = modifiers.has('dual');
+  const classic = modifiers.has('classic');
+  const pulse = chartPulse(times);
+  const notes: Note[] = [];
+  let id = 0;
+  const take: Take = (time, lane, duration, group, _section) => {
+    notes.push({
+      id: id++,
+      time,
+      lane,
+      duration,
+      hit: false,
+      missed: false,
+      judged: false,
+      holding: false,
+      chordGroup: group,
+      section: sectionAt(sections, time),
+    });
+  };
+
+  let holdAlt = 0;
+  let holdFlavor = 0;
+  let chordGroup = 1;
+  let lastChord = -99;
+  let dualCount = 0;
+  let i = 0;
+  let group = 0;
+
+  while (i < times.length) {
+    const section = sectionAt(sections, times[i]);
+    const span = Math.min(8, times.length - i);
+    const slice = times.slice(i, i + span);
+    const name = pickPattern(section, group, hard, dual, dualCount);
+    const next = applyPattern(slice, name, {
+      take,
+      pulse,
+      hard,
+      dual,
+      classic,
+      section,
+      group,
+      holdAlt,
+      holdFlavor,
+      chordGroup,
+      lastChord,
+    });
+    holdAlt = next.holdAlt;
+    holdFlavor = next.holdFlavor;
+    chordGroup = next.chordGroup;
+    lastChord = next.lastChord;
+    if (next.dual) dualCount += 1;
+    i += span;
+    group += 1;
+  }
+
+  notes.sort((a, b) => a.time - b.time || a.lane - b.lane);
+  if (modifiers.has('mirror')) {
+    for (const n of notes) n.lane = (1 - n.lane) as 0 | 1;
+  }
+  return notes;
+}
+
+function buildLinearChart(times: number[], options: ChartOptions, sections: ChartSection[]): Note[] {
+  const { difficulty, modifiers } = options;
   const easy = difficulty === 'easy';
   const dual = modifiers.has('dual');
   const classic = modifiers.has('classic');
-  const times = densifyBeats(beats, difficulty);
   const pulse = chartPulse(times);
   const notes: Note[] = [];
   let id = 0;
@@ -296,7 +579,7 @@ export function buildChart(beats: number[], options: ChartOptions): Note[] {
   const isolatedAt: Record<string, number> = { verse: 0, outro: 0 };
   const seed = times[0] ?? 0;
 
-  const take = (time: number, lane: 0 | 1, duration: number, group: number | null, section: SectionKind) => {
+  const take: Take = (time, lane, duration, group, section) => {
     notes.push({
       id: id++,
       time,
@@ -409,6 +692,14 @@ export function buildChart(beats: number[], options: ChartOptions): Note[] {
     for (const n of notes) n.lane = (1 - n.lane) as 0 | 1;
   }
   return notes;
+}
+
+export function buildChart(beats: number[], options: ChartOptions): Note[] {
+  const sections = options.sections ?? inferSections(beats, beats[beats.length - 1] ?? 0);
+  const easy = options.difficulty === 'easy';
+  const times = easy || beats.length < 8 ? densifyBeats(beats, options.difficulty) : beats.slice();
+  if (easy || times.length < 8) return buildLinearChart(times, options, sections);
+  return buildPhrasedChart(times, options, sections);
 }
 
 export function chartStats(notes: Note[]): { notes: number; holds: number; chords: number } {

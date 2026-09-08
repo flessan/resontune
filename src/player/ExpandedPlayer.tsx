@@ -8,9 +8,8 @@ import { api } from '@/lib/api';
 import { Artwork } from '@/components/Artwork';
 import { SourceChip, provenanceLabel } from '@/components/Provenance';
 import { useSettings } from '@/stores/settings';
-import { VisualizerRunner, listModes } from '@/visualizer/engine';
+import { VisualizerRunner, listModes, type VizLevel } from '@/visualizer/engine';
 import '@/visualizer/modes';
-import { setTypographyText } from '@/visualizer/modes/typography';
 import { extractAccent, loadImage } from '@/lib/artworkColor';
 import type { Track } from '@/lib/types';
 import { formatDuration } from '@/lib/format';
@@ -31,6 +30,7 @@ type Tab = 'queue' | 'lyrics' | 'about';
 function AmbientVisualizer({ item }: { item: { artworkUrl: string | null; title: string; artistName: string; queueId: string } }) {
   const modeId = useSettings((s) => s.visualizerMode);
   const vSettings = useSettings((s) => s.visualizer);
+  const playing = usePlayer((s) => s.playing);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runnerRef = useRef<VisualizerRunner | null>(null);
 
@@ -53,9 +53,9 @@ function AmbientVisualizer({ item }: { item: { artworkUrl: string | null; title:
 
   useEffect(() => { runnerRef.current?.setMode(mode); }, [mode]);
   useEffect(() => { runnerRef.current?.setSettings(vSettings); }, [vSettings]);
+  useEffect(() => { runnerRef.current?.setPaused(!playing); }, [playing]);
 
   useEffect(() => {
-    setTypographyText(item.title, item.artistName);
     if (item.artworkUrl) {
       void extractAccent(item.artworkUrl).then((hex) => { if (hex) runnerRef.current?.setAccent(hex); });
       void loadImage(item.artworkUrl)
@@ -76,8 +76,8 @@ function AmbientVisualizer({ item }: { item: { artworkUrl: string | null; title:
  */
 function VisualizerControl() {
   const modeId = useSettings((s) => s.visualizerMode);
-  const vSettings = useSettings((s) => s.visualizer);
-  const { setVisualizerMode, updateVisualizer } = useSettings.getState();
+  const level = useSettings((s) => s.visualizerLevel);
+  const { setVisualizerMode, setVisualizerLevel } = useSettings.getState();
   const [open, setOpen] = useState(false);
   const modes = listModes();
 
@@ -93,7 +93,7 @@ function VisualizerControl() {
       </button>
       {open && (
         <div className="ps-vis-pop" role="group" aria-label="Visualizer settings">
-          <label className="visually-hidden" htmlFor="ps-vis-mode">Visualizer mode</label>
+          <label className="visually-hidden" htmlFor="ps-vis-mode">Visualizer style</label>
           <select
             id="ps-vis-mode"
             className="ps-vis-select"
@@ -104,23 +104,24 @@ function VisualizerControl() {
               <option key={m.id} value={m.id}>{m.name}</option>
             ))}
           </select>
-          {([
-            ['Sensitivity', 'sensitivity', 0.4, 2],
-            ['Intensity', 'intensity', 0.4, 2],
-            ['Speed', 'speed', 0.3, 2],
-          ] as const).map(([label, key, min, max]) => (
-            <label key={key} className="ps-vis-dial">
-              <span>{label}</span>
-              <input
-                type="range"
-                min={min}
-                max={max}
-                step={0.05}
-                value={vSettings[key]}
-                onChange={(e) => updateVisualizer({ [key]: Number(e.target.value) })}
-              />
-            </label>
-          ))}
+          <div className="pill-row" role="radiogroup" aria-label="Intensity" style={{ marginTop: 8 }}>
+            {([
+              ['minimal', 'Min'],
+              ['ambient', 'Amb'],
+              ['full', 'Full'],
+            ] as [VizLevel, string][]).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="radio"
+                aria-checked={level === id}
+                className={`pill ${level === id ? 'active' : ''}`}
+                onClick={() => setVisualizerLevel(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

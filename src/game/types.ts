@@ -7,7 +7,7 @@
  */
 
 export const GAME_VERSION = '0.5.0';
-export const CHART_VERSION = 5;
+export const CHART_VERSION = 6;
 export const GAME_HERITAGE = 'FLOW RHYTHM 0.3.0';
 
 export type DifficultyId = 'easy' | 'normal' | 'hard';

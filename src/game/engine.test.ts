@@ -105,6 +105,35 @@ describe('multi-input holds', () => {
     engine.dispose();
   });
 
+  it('does not judge, miss, or autoplay while paused', () => {
+    const engine = new FlowEngine();
+    engine.auto = true;
+    live(engine, 0);
+    engine.paused = true;
+    engine.notes = [note({ id: 0, time: 0, lane: 0, duration: 1.2 })];
+    engine.tick();
+    expect(engine.notes[0].hit).toBe(false);
+    expect(engine.notes[0].judged).toBe(false);
+    expect(engine.holds).toHaveLength(0);
+    engine.dispose();
+  });
+
+  it('keeps hold progress frozen across a pause tick', () => {
+    const engine = new FlowEngine();
+    live(engine, 0);
+    engine.notes = [note({ id: 0, time: 0, lane: 0, duration: 1.2 })];
+    engine.tap('k:KeyD', null);
+    expect(engine.holds).toHaveLength(1);
+    const nextTick = engine.holds[0].nextTick;
+    engine.paused = true;
+    live(engine, 0.5);
+    engine.paused = true;
+    engine.tick();
+    expect(engine.holds).toHaveLength(1);
+    expect(engine.holds[0].nextTick).toBe(nextTick);
+    engine.dispose();
+  });
+
   it('plays a tick every fourth hold tick', () => {
     const engine = new FlowEngine();
     const kinds: string[] = [];

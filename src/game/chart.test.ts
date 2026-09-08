@@ -262,6 +262,23 @@ describe('chart construction', () => {
     expect(easy).toHaveLength(4);
   });
 
+  it('places pattern holds on a tight quarter grid without 0.85s gaps', () => {
+    const times = Array.from({ length: 32 }, (_, i) => 1 + i * 0.5);
+    const notes = buildChart(times, {
+      difficulty: 'normal',
+      modifiers: new Set(),
+      sections: [
+        { kind: 'verse', start: 0, end: 12 },
+        { kind: 'chorus', start: 12, end: 20 },
+      ],
+    });
+    const holds = notes.filter((n) => n.duration > 0);
+    expect(holds.length).toBeGreaterThan(0);
+    expect(holds.some((h) => notes.some((n) => n.duration === 0 && n.time > h.time && n.time < h.time + h.duration))).toBe(true);
+    const easy = buildChart(times, { difficulty: 'easy', modifiers: new Set() });
+    expect(easy.filter((n) => n.duration > 0 && n.time < times[times.length - 1])).toHaveLength(0);
+  });
+
   it('does not weave taps into Easy holds', () => {
     const notes = buildChart([1, 2.8], {
       difficulty: 'easy',

@@ -5,6 +5,8 @@
  * MUSIC → musicGain → master
  * SFX   → sfxGain   → master
  */
+import type { AnalysisFrame } from '@/player/engine';
+import { SILENT_FRAME } from '@/visualizer/engine';
 import { playKick, type KickKind } from './hitsound';
 
 export const DEFAULT_MUSIC = 0.9;
@@ -20,7 +22,9 @@ export class GameAudio {
   sfxLevel = DEFAULT_SFX;
   private source: AudioBufferSourceNode | null = null;
   private previewSource: AudioBufferSourceNode | null = null;
-  private freq = new Uint8Array(32);
+  private freq = new Uint8Array(1024);
+  private wave = new Uint8Array(2048);
+  private smoothedLevel = 0;
   private onEnded: (() => void) | null = null;
   private lastDuck = 0;
 
@@ -37,9 +41,11 @@ export class GameAudio {
     const music = ctx.createGain();
     music.gain.value = this.musicLevel;
     const analyser = ctx.createAnalyser();
-    analyser.fftSize = 64;
-    analyser.smoothingTimeConstant = 0.72;
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.78;
     music.connect(analyser).connect(master);
+    this.freq = new Uint8Array(analyser.frequencyBinCount);
+    this.wave = new Uint8Array(analyser.fftSize);
 
     const sfx = ctx.createGain();
     sfx.gain.value = this.sfxLevel;
@@ -59,13 +65,37 @@ export class GameAudio {
   }
 
   bands(): { bass: number; level: number } {
-    if (!this.analyser) return { bass: 0, level: 0 };
+    const frame = this.readFrame();
+    return { bass: frame.bass, level: frame.level };
+  }
+
+  /** Same AnalysisFrame the ResonTune visualizer consumes. Frozen while ctx is suspended. */
+  readFrame(): AnalysisFrame {
+    if (!this.analyser || !this.ctx) return SILENT_FRAME;
     this.analyser.getByteFrequencyData(this.freq);
-    let bass = 0;
-    let all = 0;
-    for (let i = 0; i < 4; i++) bass += this.freq[i];
-    for (let i = 0; i < this.freq.length; i++) all += this.freq[i];
-    return { bass: bass / (4 * 255), level: all / (this.freq.length * 255) };
+    this.analyser.getByteTimeDomainData(this.wave);
+    const bins = this.freq.length;
+    let sum = 0;
+    for (let i = 0; i < bins; i++) sum += this.freq[i];
+    const raw = sum / (bins * 255);
+    this.smoothedLevel += (raw - this.smoothedLevel) * 0.25;
+    const band = (from: number, to: number) => {
+      const a = Math.floor(bins * from);
+      const b = Math.max(a + 1, Math.floor(bins * to));
+      let s = 0;
+      for (let i = a; i < b; i++) s += this.freq[i];
+      return s / ((b - a) * 255);
+    };
+    return {
+      freq: this.freq,
+      wave: this.wave,
+      level: this.smoothedLevel,
+      bass: band(0, 0.08),
+      mid: band(0.08, 0.4),
+      treble: band(0.4, 0.9),
+      sampleRate: this.ctx.sampleRate,
+      binCount: bins,
+    };
   }
 
   async decode(data: ArrayBuffer): Promise<AudioBuffer> {

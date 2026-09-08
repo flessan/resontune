@@ -46,6 +46,7 @@ export default function GamePage() {
   const [loading, setLoading] = useState(false);
   const [local, setLocal] = useState<LocalTrack[]>([]);
   const [catalog, setCatalog] = useState<Track[]>([]);
+  const [paused, setPaused] = useState(false);
   const deepLink = params.get('track');
 
   useEffect(() => {
@@ -70,6 +71,8 @@ export default function GamePage() {
         setDuration(engine.buffer?.duration ?? engine.song.duration ?? 56);
         refreshBest(engine);
       }
+      if (event.type === 'paused') setPaused(event.paused);
+      if (event.type === 'started') setPaused(false);
       if (event.type === 'finished') finishRun(engine, event.result);
     };
     void listLocalTracks().then(setLocal);
@@ -299,7 +302,21 @@ export default function GamePage() {
     engine.audio.setMusic(musicVolume);
     engine.audio.setSfx(sfxVolume);
     refreshBest(engine);
+    setPaused(false);
     setMode('play');
+  };
+
+  const resumePlay = () => {
+    const engine = engineRef.current;
+    if (engine?.paused) void engine.togglePause();
+  };
+
+  const restartPlay = async () => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    await engine.stopSession();
+    setPaused(false);
+    await engine.begin();
   };
 
   useLayoutEffect(() => {
@@ -363,10 +380,7 @@ export default function GamePage() {
     const g = engineRef.current;
     if (!g) return;
     try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* */ }
-    if (g.paused) {
-      void g.togglePause();
-      return;
-    }
+    if (g.paused) return;
     if (!g.capturing) return;
     const split = modifiers.has('split');
     const rect = event.currentTarget.getBoundingClientRect();
@@ -387,6 +401,7 @@ export default function GamePage() {
   const leavePlay = useCallback(async () => {
     await engineRef.current?.stopSession();
     engineRef.current?.detach();
+    setPaused(false);
     setMode('prep');
   }, []);
 
@@ -410,6 +425,23 @@ export default function GamePage() {
           >
             <IconExpand width={16} height={16} />
           </button>
+          {paused && (
+            <div className="flow-pause" role="dialog" aria-label="Paused" aria-modal="true">
+              <p className="flow-pause-kicker">Paused</p>
+              <div className="flow-pause-actions">
+                <button type="button" className="btn primary" onPointerDown={(e) => e.stopPropagation()} onClick={resumePlay}>
+                  Resume
+                </button>
+                <button type="button" className="btn" onPointerDown={(e) => e.stopPropagation()} onClick={() => void restartPlay()}>
+                  Restart
+                </button>
+                <button type="button" className="btn" onPointerDown={(e) => e.stopPropagation()} onClick={() => void leavePlay()}>
+                  Exit
+                </button>
+              </div>
+              <p className="flow-pause-hint">Esc to resume</p>
+            </div>
+          )}
         </div>
       </div>
     );

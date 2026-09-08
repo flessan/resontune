@@ -4,6 +4,8 @@
  * gameTime = (ctx.currentTime - startTime) * speed + playOffset - offsetMs/1000
  * Pause = AudioContext.suspend(). Holds tick from that same clock.
  */
+import { SILENT_FRAME } from '@/visualizer/engine';
+import { useSettings } from '@/stores/settings';
 import { GameAudio } from './audio';
 import { buildChart, describeBeats, describeChart, detectBeats, inferSections, previewBeats, previewSections } from './chart';
 import { feverOnHit, feverOnMiss, feverTick } from './fever';
@@ -114,6 +116,8 @@ export class FlowEngine {
   private lastLoopCheck = 0;
   private lastChordGroup: number | null = null;
   private lastChordAt = 0;
+  private vizClock = 0;
+  private lastVizTick = 0;
 
   onEvent: ((e: EngineEvent) => void) | null = null;
 
@@ -223,6 +227,8 @@ export class FlowEngine {
     this.lastHitError = null;
     this.lastChordGroup = null;
     this.lastChordAt = 0;
+    this.vizClock = 0;
+    this.lastVizTick = 0;
     this.playOffset = this.practice.enabled ? this.practice.startAt : 0;
     this.speed = this.practice.enabled ? this.practice.speed : 1;
     for (const n of this.notes) {
@@ -408,7 +414,14 @@ export class FlowEngine {
 
   world(): ViewWorld {
     this.tick();
-    const bands = this.playing && !this.paused ? this.audio.bands() : { bass: 0, level: 0 };
+    const viz = useSettings.getState();
+    const vizFrame = this.playing ? this.audio.readFrame() : SILENT_FRAME;
+    if (this.playing && !this.paused) {
+      const audioNow = this.audio.now();
+      const dt = this.lastVizTick ? Math.min(0.1, Math.max(0, audioNow - this.lastVizTick)) : 0;
+      this.lastVizTick = audioNow;
+      this.vizClock += dt * (viz.visualizer.speed || 1);
+    }
     return {
       now: this.now(),
       notes: this.notes,
@@ -449,10 +462,14 @@ export class FlowEngine {
       duration: this.buffer?.duration ?? this.song.duration ?? 56,
       playOffset: this.playOffset,
       speed: this.speed,
-      bass: bands.bass,
-      level: bands.level,
+      bass: vizFrame.bass,
+      level: vizFrame.level,
       section: this.currentSection(),
       practice: this.practice.enabled,
+      vizFrame,
+      vizMode: viz.visualizerMode,
+      vizSettings: viz.visualizer,
+      vizClock: this.vizClock,
     };
   }
 
