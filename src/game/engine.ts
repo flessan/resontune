@@ -28,7 +28,6 @@ import {
   type FeverState,
   type GameResult,
   type HitCounts,
-  type HitKind,
   type HitRing,
   type HudState,
   type ModifierId,
@@ -97,10 +96,13 @@ export class FlowEngine {
   lastFeverPhase: FeverState['phase'] = 'idle';
 
   judgeFlash = '';
-  judgeColor = '#f4e4c1';
+  judgeColor = '#ffe7c2';
   judgeLife = 0;
   pulse = 0;
   shake = 0;
+  lanePulse: [number, number] = [0, 0];
+  comboPunch = 0;
+  judgeScale = 1;
   lastHitError: number | null = null;
   best = 0;
   bestGrade = '—';
@@ -213,6 +215,9 @@ export class FlowEngine {
     this.judgeLife = 0;
     this.pulse = 0;
     this.shake = 0;
+    this.lanePulse = [0, 0];
+    this.comboPunch = 0;
+    this.judgeScale = 1;
     this.lastHitError = null;
     this.playOffset = this.practice.enabled ? this.practice.startAt : 0;
     this.speed = this.practice.enabled ? this.practice.speed : 1;
@@ -428,6 +433,9 @@ export class FlowEngine {
       judgeLife: this.judgeLife,
       pulse: this.pulse,
       shake: this.shake,
+      lanePulse: this.lanePulse,
+      comboPunch: this.comboPunch,
+      judgeScale: this.judgeScale,
       lastHitError: this.lastHitError,
       goodWindow: this.d().good,
       songTitle: this.song.title,
@@ -476,16 +484,19 @@ export class FlowEngine {
     this.lastHitError = error;
     this.timings.push({ error, kind });
     if (this.timings.length > 40) this.timings.shift();
-    this.flash(
-      this.fever.phase !== prev && (this.fever.phase === 'fever' || this.fever.phase === 'flow')
-        ? (this.fever.phase === 'flow' ? 'FLOW STATE' : 'FEVER')
-        : label,
-      this.fever.phase !== prev && this.fever.phase !== 'idle' ? (this.fever.phase === 'flow' ? '#ffe7b0' : '#f0c36b') : color,
-    );
-    this.pulse = 1;
+    this.flash(label, color);
+    this.pulse = kind === 'perfect' ? 1 : 0.62;
+    this.lanePulse[note.lane] = kind === 'perfect' ? 1 : kind === 'great' ? 0.72 : 0.48;
+    this.comboPunch = kind === 'perfect' ? 1 : 0.55;
+    this.judgeScale = kind === 'perfect' ? 1.16 : kind === 'great' ? 1 : 0.9;
     const chord = note.chordGroup != null;
-    this.audio.hit(chord && kind === 'perfect' ? 'chord' : kind);
-    this.burst(note.lane, color, kind === 'perfect' ? 10 : 6);
+    const sfx = note.duration > 0 ? 'hold' : chord && kind === 'perfect' ? 'chord' : kind;
+    this.audio.hit(sfx);
+    this.burst(note.lane, color, kind === 'perfect' ? 12 : 7);
+    if (this.combo === 10 || this.combo === 25 || this.combo === 50 || this.combo === 100) {
+      this.burst(note.lane, '#ffe7c2', 14);
+      this.pulse = 1;
+    }
   }
 
   private missNote(note: Note): void {
@@ -498,8 +509,8 @@ export class FlowEngine {
     this.perfectChain = 0;
     this.health = Math.max(0, this.health - this.d().healthMiss);
     this.fever = feverOnMiss(this.fever);
-    this.flash('MISS', '#d98980');
-    this.shake = 1;
+    this.flash('MISS', '#ffb4ab');
+    this.shake = 0.55;
     this.audio.hit('miss');
   }
 
@@ -540,16 +551,17 @@ export class FlowEngine {
     hold.note.holding = false;
     if (success) {
       this.score += HOLD_CLEAR_SCORE;
-      this.flash('CLEAR', '#f4e4c1');
+      this.flash('CLEAR', '#ffe7c2');
       this.audio.hit('clear');
-      this.burst(hold.note.lane, '#f4e4c1', 8);
+      this.lanePulse[hold.note.lane] = 0.85;
+      this.burst(hold.note.lane, '#ffe7c2', 10);
     } else {
       this.counts.drop += 1;
       this.combo = 0;
       this.perfectChain = 0;
       this.health = Math.max(0, this.health - HOLD_DROP_HEALTH);
       this.fever = feverOnMiss(this.fever);
-      this.flash('DROP', '#d98980');
+      this.flash('DROP', '#ffb4ab');
       this.audio.hit('drop');
     }
   }
@@ -558,7 +570,7 @@ export class FlowEngine {
     for (const note of this.notes) {
       if (note.judged || note.holding) continue;
       if (now >= note.time) {
-        this.applyHit(note, 'perfect', 300, 'PERFECT', '#f4e4c1', 0);
+        this.applyHit(note, 'perfect', 300, 'PERFECT', '#ffe7c2', 0);
         if (note.duration > 0) this.beginHold(note, now, 'auto');
       }
     }
@@ -612,7 +624,7 @@ export class FlowEngine {
     const view = this.view;
     if (!view) return;
     const { x, y } = view.receptor(lane);
-    this.rings.push({ x, y, r: 16, life: 1, color, width: 3 });
+    this.rings.push({ x, y, r: 20, life: 1, color, width: 2.4 });
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
       const s = 40 + Math.random() * 90;
@@ -631,7 +643,11 @@ export class FlowEngine {
   private advanceFx(dt: number): void {
     this.judgeLife = Math.max(0, this.judgeLife - dt * 1.6);
     this.pulse = Math.max(0, this.pulse - dt * 4);
-    this.shake = Math.max(0, this.shake - dt * 5);
+    this.shake = Math.max(0, this.shake - dt * 6);
+    this.lanePulse[0] = Math.max(0, this.lanePulse[0] - dt * 5.5);
+    this.lanePulse[1] = Math.max(0, this.lanePulse[1] - dt * 5.5);
+    this.comboPunch = Math.max(0, this.comboPunch - dt * 4.2);
+    this.judgeScale += (1 - this.judgeScale) * Math.min(1, dt * 8);
     for (const p of this.particles) {
       p.x += p.vx * dt;
       p.y += p.vy * dt;

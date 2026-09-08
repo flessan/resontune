@@ -1,5 +1,8 @@
 /**
  * Canvas stage + HUD. React does not paint score/combo/fever during play.
+ *
+ * Holds stay on stage until they are cleared or dropped: the head being
+ * judged does not cull the body or tail.
  */
 import type {
   ActiveHold,
@@ -39,6 +42,9 @@ export interface ViewWorld {
   judgeLife: number;
   pulse: number;
   shake: number;
+  lanePulse: [number, number];
+  comboPunch: number;
+  judgeScale: number;
   lastHitError: number | null;
   goodWindow: number;
   songTitle: string;
@@ -54,11 +60,23 @@ export interface ViewWorld {
   practice: boolean;
 }
 
-const INK = '#1c1914';
-const PAPER = '#f4efe6';
-const RULE = 'rgba(28,25,20,0.12)';
-const MUTED = 'rgba(28,25,20,0.45)';
-const WARM = '#c45c26';
+const STAGE = '#141210';
+const CREAM = '#f3e6d8';
+const PEACH = '#ffb693';
+const MUTED = 'rgba(236,229,225,0.42)';
+const INK = 'rgba(236,229,225,0.92)';
+
+export function noteVisible(note: Note, now: number, approach: number): boolean {
+  if (note.judged && !note.holding) return false;
+  const headT = (note.time - now) / approach;
+  if (note.duration > 0) {
+    const tailT = (note.time + note.duration - now) / approach;
+    if (headT > 1.2) return false;
+    if (tailT < -0.15 && !note.holding) return false;
+    return true;
+  }
+  return headT <= 1.15 && headT >= -0.2;
+}
 
 export class GameView {
   canvas: HTMLCanvasElement;
@@ -71,7 +89,8 @@ export class GameView {
   dpr = 1;
   private hitX = 108;
   private laneY = [0, 0];
-  private laneH = 52;
+  private laneH = 56;
+  private noteR = 18;
 
   constructor(canvas: HTMLCanvasElement, world: () => ViewWorld) {
     this.canvas = canvas;
@@ -112,122 +131,183 @@ export class GameView {
       this.canvas.height = Math.floor(h * dpr);
     }
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    this.hitX = Math.round(w * 0.16);
-    const mid = h * 0.52;
-    this.laneH = Math.max(44, Math.min(64, h * 0.09));
-    this.laneY = [mid - this.laneH * 1.15, mid + this.laneH * 1.15];
+    this.hitX = Math.round(Math.max(72, Math.min(128, w * 0.18)));
+    const mid = h * 0.54;
+    this.laneH = Math.max(56, Math.min(78, h * 0.12));
+    this.laneY = [mid - this.laneH * 1.08, mid + this.laneH * 1.08];
+    this.noteR = Math.max(16, Math.min(22, this.laneH * 0.36));
   }
 
   private draw(w: ViewWorld): void {
     this.layout();
-    const { ctx } = this;
-    const shakeX = w.shake ? (Math.random() - 0.5) * 5 * w.shake : 0;
-    const shakeY = w.shake ? (Math.random() - 0.5) * 4 * w.shake : 0;
+    const { ctx, w: W, h: H } = this;
+    const cam = 1 + w.bass * 0.008 + w.pulse * 0.01 + (w.fever.phase === 'flow' ? 0.006 : 0);
+    const shakeX = w.shake ? (Math.random() - 0.5) * 3.2 * w.shake : 0;
+    const shakeY = w.shake ? (Math.random() - 0.5) * 2.4 * w.shake : 0;
     ctx.save();
-    ctx.translate(shakeX, shakeY);
+    ctx.translate(W / 2 + shakeX, H / 2 + shakeY);
+    ctx.scale(cam, cam);
+    ctx.translate(-W / 2, -H / 2);
     this.stage(w);
     this.lanes(w);
     this.notes(w);
     this.fx(w);
-    this.hud(w);
     ctx.restore();
+    this.hud(w);
   }
 
   private stage(w: ViewWorld): void {
     const { ctx, w: W, h: H } = this;
-    ctx.fillStyle = PAPER;
+    ctx.fillStyle = STAGE;
     ctx.fillRect(0, 0, W, H);
 
-    const glow = w.fever.phase === 'flow' ? 0.16 : w.fever.phase === 'fever' ? 0.1 : 0.04;
-    const bass = w.bass * 0.12;
-    const g = ctx.createRadialGradient(this.hitX, H * 0.52, 20, this.hitX + W * 0.2, H * 0.52, W * 0.7);
-    g.addColorStop(0, `rgba(196,92,38,${glow + bass})`);
-    g.addColorStop(1, 'rgba(196,92,38,0)');
-    ctx.fillStyle = g;
+    const fever = w.fever.phase === 'flow' ? 0.22 : w.fever.phase === 'fever' ? 0.14 : 0.05;
+    const wash = ctx.createRadialGradient(this.hitX, H * 0.54, 12, W * 0.42, H * 0.54, W * 0.78);
+    wash.addColorStop(0, `rgba(255,182,147,${fever + w.bass * 0.16 + w.pulse * 0.08})`);
+    wash.addColorStop(0.45, `rgba(255,182,147,${0.03 + w.level * 0.05})`);
+    wash.addColorStop(1, 'rgba(20,18,16,0)');
+    ctx.fillStyle = wash;
     ctx.fillRect(0, 0, W, H);
 
-    ctx.fillStyle = RULE;
-    ctx.fillRect(0, 0, W, 1);
-    ctx.fillRect(0, H - 1, W, 1);
+    if (w.fever.phase === 'flow') {
+      const gold = ctx.createRadialGradient(W * 0.5, H * 0.5, 40, W * 0.5, H * 0.5, W * 0.7);
+      gold.addColorStop(0, 'rgba(255,214,150,0.08)');
+      gold.addColorStop(1, 'rgba(255,214,150,0)');
+      ctx.fillStyle = gold;
+      ctx.fillRect(0, 0, W, H);
+    }
 
     if (w.playing && !w.paused) {
       const progress = Math.max(0, Math.min(1, w.now / Math.max(w.duration, 0.01)));
-      ctx.fillStyle = 'rgba(28,25,20,0.08)';
-      ctx.fillRect(0, H - 3, W, 3);
-      ctx.fillStyle = WARM;
-      ctx.fillRect(0, H - 3, W * progress, 3);
+      ctx.fillStyle = 'rgba(236,229,225,0.08)';
+      ctx.fillRect(0, H - 2, W, 2);
+      ctx.fillStyle = PEACH;
+      ctx.globalAlpha = 0.7;
+      ctx.fillRect(0, H - 2, W * progress, 2);
+      ctx.globalAlpha = 1;
     }
   }
 
   private lanes(w: ViewWorld): void {
     const { ctx, w: W } = this;
+    const holding = [false, false];
+    for (const hold of w.holds) holding[hold.note.lane] = true;
+
     for (let i = 0; i < 2; i++) {
       const y = this.laneY[i];
-      ctx.fillStyle = 'rgba(28,25,20,0.035)';
-      this.roundRect(ctx, 24, y - this.laneH / 2, W - 48, this.laneH, 18);
+      const punch = w.lanePulse[i] ?? 0;
+      ctx.fillStyle = i === 0
+        ? `rgba(255,182,147,${0.055 + w.bass * 0.04 + punch * 0.05})`
+        : `rgba(255,182,147,${0.045 + w.level * 0.04 + punch * 0.05})`;
+      this.roundRect(ctx, 20, y - this.laneH / 2, W - 40, this.laneH, this.laneH / 2);
       ctx.fill();
-      ctx.strokeStyle = RULE;
-      ctx.lineWidth = 1;
+
+      const r = this.noteR + 7 + punch * 5 + (holding[i] ? 2 : 0);
+      const scale = (holding[i] ? 0.92 : 1) * (1 + punch * 0.16);
+      ctx.save();
+      ctx.translate(this.hitX, y);
+      ctx.scale(scale, holding[i] ? scale * 0.94 : scale);
+
+      ctx.beginPath();
+      ctx.arc(0, 0, r + 6, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,182,147,${0.07 + punch * 0.12 + (w.fever.phase === 'idle' ? 0 : 0.06)})`;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,182,147,${0.55 + punch * 0.35})`;
+      ctx.lineWidth = 2.4 + punch * 1.6;
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.moveTo(this.hitX, y - this.laneH / 2 + 8);
-      ctx.lineTo(this.hitX, y + this.laneH / 2 - 8);
-      ctx.strokeStyle = 'rgba(28,25,20,0.22)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      const pulse = 10 + w.pulse * 4 + (i === 0 ? w.bass : w.level) * 6;
-      ctx.beginPath();
-      ctx.arc(this.hitX, y, pulse, 0, Math.PI * 2);
-      ctx.fillStyle = w.fever.phase === 'idle' ? 'rgba(28,25,20,0.08)' : 'rgba(196,92,38,0.18)';
+      ctx.arc(0, 0, this.noteR * 0.42, 0, Math.PI * 2);
+      ctx.fillStyle = holding[i] ? PEACH : `rgba(243,230,216,${0.55 + punch * 0.4})`;
       ctx.fill();
-      ctx.beginPath();
-      ctx.arc(this.hitX, y, 7, 0, Math.PI * 2);
-      ctx.fillStyle = INK;
-      ctx.fill();
+      ctx.restore();
     }
   }
 
   private notes(w: ViewWorld): void {
     const { ctx, w: W } = this;
-    const travel = W - this.hitX - 48;
+    const travel = W - this.hitX - 36;
+    type Drawn = { note: Note; headX: number; tailX: number; y: number; alpha: number; r: number; holding: boolean };
+    const drawn: Drawn[] = [];
+
     for (const note of w.notes) {
-      if (note.judged && !note.holding) continue;
-      const t = (note.time - w.now) / w.approach;
-      if (t > 1.15 || t < -0.2) continue;
-
+      if (!noteVisible(note, w.now, w.approach)) continue;
+      const headT = (note.time - w.now) / w.approach;
+      const tailT = note.duration > 0 ? (note.time + note.duration - w.now) / w.approach : headT;
       let alpha = 1;
-      if (w.hidden && t < 0.38) alpha = Math.max(0, (t - 0.08) / 0.3);
-      if (w.sudden && t > 0.55) alpha = Math.max(0, 1 - (t - 0.55) / 0.25);
+      if (!note.holding) {
+        if (w.hidden && headT < 0.38) alpha = Math.max(0, (headT - 0.08) / 0.3);
+        if (w.sudden && headT > 0.55) alpha = Math.max(0, 1 - (headT - 0.55) / 0.25);
+      }
       if (alpha <= 0) continue;
-
-      const x = this.hitX + t * travel;
-      const y = this.laneY[note.lane];
-      ctx.globalAlpha = alpha;
-
-      if (note.duration > 0) {
-        const endT = (note.time + note.duration - w.now) / w.approach;
-        const x2 = this.hitX + Math.max(endT, 0) * travel;
-        const x1 = note.holding ? this.hitX : x;
-        ctx.fillStyle = note.holding ? 'rgba(196,92,38,0.35)' : 'rgba(28,25,20,0.16)';
-        this.roundRect(ctx, Math.min(x1, x2), y - 7, Math.abs(x2 - x1) + 10, 14, 7);
-        ctx.fill();
-      }
-
-      const r = note.chordGroup != null ? 11 : 9;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fillStyle = note.chordGroup != null ? WARM : INK;
-      ctx.fill();
-      if (note.chordGroup != null) {
-        ctx.beginPath();
-        ctx.arc(x, y, 4, 0, Math.PI * 2);
-        ctx.fillStyle = PAPER;
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
+      const headX = note.holding ? this.hitX : this.hitX + headT * travel;
+      const tailX = this.hitX + Math.max(tailT, note.holding ? 0 : tailT) * travel;
+      const r = this.noteR * (note.chordGroup != null ? 1.08 : 1);
+      drawn.push({ note, headX, tailX, y: this.laneY[note.lane], alpha, r, holding: note.holding });
     }
+
+    for (const d of drawn) {
+      if (d.note.duration <= 0) continue;
+      this.holdBody(w, d);
+    }
+    for (const d of drawn) this.noteHead(d);
+  }
+
+  private holdBody(w: ViewWorld, d: { note: Note; headX: number; tailX: number; y: number; alpha: number; r: number; holding: boolean }): void {
+    const { ctx } = this;
+    const left = Math.min(d.headX, d.tailX);
+    const width = Math.max(Math.abs(d.tailX - d.headX), d.r);
+    const h = d.r * 0.78;
+    const remain = d.note.duration > 0
+      ? Math.max(0, Math.min(1, (d.note.time + d.note.duration - w.now) / d.note.duration))
+      : 1;
+    ctx.globalAlpha = d.alpha;
+    ctx.fillStyle = d.holding ? `rgba(255,182,147,${0.28 + remain * 0.12})` : 'rgba(255,182,147,0.2)';
+    this.roundRect(ctx, left, d.y - h / 2, width + d.r * 0.4, h, h / 2);
+    ctx.fill();
+    ctx.fillStyle = d.holding ? 'rgba(255,230,210,0.45)' : 'rgba(255,230,210,0.22)';
+    this.roundRect(ctx, left, d.y - h * 0.18, width + d.r * 0.2, h * 0.36, h * 0.18);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(d.tailX, d.y, d.r * 0.7, 0, Math.PI * 2);
+    const tail = ctx.createRadialGradient(d.tailX - 2, d.y - 2, 1, d.tailX, d.y, d.r * 0.7);
+    tail.addColorStop(0, 'rgba(255,244,232,0.95)');
+    tail.addColorStop(1, PEACH);
+    ctx.fillStyle = tail;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  private noteHead(d: { note: Note; headX: number; y: number; alpha: number; r: number; holding: boolean }): void {
+    const { ctx } = this;
+    ctx.globalAlpha = d.alpha;
+    ctx.save();
+    ctx.translate(d.headX, d.y);
+    if (d.holding) ctx.scale(0.96, 0.9);
+    ctx.beginPath();
+    ctx.arc(0, 0, d.r + 3, 0, Math.PI * 2);
+    ctx.fillStyle = d.note.chordGroup != null ? 'rgba(255,182,147,0.28)' : 'rgba(243,230,216,0.16)';
+    ctx.fill();
+    const g = ctx.createRadialGradient(-d.r * 0.28, -d.r * 0.32, 1, 0, 0, d.r);
+    g.addColorStop(0, '#fff6ee');
+    g.addColorStop(0.45, CREAM);
+    g.addColorStop(1, d.note.chordGroup != null ? PEACH : '#e7b99a');
+    ctx.beginPath();
+    ctx.arc(0, 0, d.r, 0, Math.PI * 2);
+    ctx.fillStyle = g;
+    ctx.fill();
+    if (d.note.chordGroup != null) {
+      ctx.beginPath();
+      ctx.arc(0, 0, d.r * 0.38, 0, Math.PI * 2);
+      ctx.fillStyle = PEACH;
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
   }
 
   private fx(w: ViewWorld): void {
@@ -236,7 +316,7 @@ export class GameView {
       ctx.beginPath();
       ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
       ctx.strokeStyle = r.color;
-      ctx.globalAlpha = r.life;
+      ctx.globalAlpha = r.life * 0.85;
       ctx.lineWidth = r.width;
       ctx.stroke();
     }
@@ -244,7 +324,9 @@ export class GameView {
     for (const p of w.particles) {
       ctx.globalAlpha = Math.max(0, p.life);
       ctx.fillStyle = p.color;
-      ctx.fillRect(p.x, p.y, p.size, p.size);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * 0.7, 0, Math.PI * 2);
+      ctx.fill();
     }
     ctx.globalAlpha = 1;
   }
@@ -253,130 +335,157 @@ export class GameView {
     const { ctx, w: W, h: H } = this;
     ctx.textBaseline = 'top';
     ctx.fillStyle = MUTED;
-    ctx.font = '500 11px "Poppins", system-ui, sans-serif';
-    ctx.fillText(w.songTitle.toUpperCase(), 28, 18);
-    ctx.fillStyle = INK;
-    ctx.font = '500 12px "Poppins", system-ui, sans-serif';
-    ctx.fillText(w.difficulty, 28, 34);
+    ctx.font = '500 10px "Poppins", system-ui, sans-serif';
+    ctx.fillText(w.difficulty, 22, 16);
     if (w.practice) {
-      ctx.fillStyle = WARM;
-      ctx.fillText('PRACTICE', 28, 52);
+      ctx.fillStyle = PEACH;
+      ctx.fillText('PRACTICE', 22, 32);
     }
 
     ctx.textAlign = 'right';
     ctx.fillStyle = MUTED;
-    ctx.font = '500 11px "Poppins", system-ui, sans-serif';
-    ctx.fillText('SCORE', W - 28, 18);
+    ctx.font = '500 10px "Poppins", system-ui, sans-serif';
+    ctx.fillText('SCORE', W - 22, 16);
     ctx.fillStyle = INK;
-    ctx.font = '600 22px "Poppins", system-ui, sans-serif';
-    ctx.fillText(String(w.score), W - 28, 32);
+    ctx.font = '600 18px "Poppins", system-ui, sans-serif';
+    ctx.fillText(String(w.score), W - 22, 28);
     ctx.font = '500 11px "Poppins", system-ui, sans-serif';
     ctx.fillStyle = MUTED;
-    ctx.fillText(`${w.accuracy.toFixed(1)}%`, W - 28, 58);
+    ctx.fillText(`${w.accuracy.toFixed(1)}%`, W - 22, 50);
     ctx.textAlign = 'left';
 
-    this.feverMeter(w);
-    this.healthBar(w);
+    this.feverEnergy(w);
+    this.healthPip(w);
     this.timingMeter(w);
 
     if (w.combo >= 2 && !w.countdown) {
+      const punch = 1 + w.comboPunch * 0.12;
+      ctx.save();
+      ctx.translate(W / 2, H * 0.16);
+      ctx.scale(punch, punch);
       ctx.textAlign = 'center';
-      ctx.fillStyle = w.fever.phase === 'idle' ? INK : WARM;
-      ctx.font = '600 44px "Poppins", system-ui, sans-serif';
-      ctx.fillText(String(w.combo), W / 2, H * 0.18);
-      ctx.font = '500 11px "Poppins", system-ui, sans-serif';
+      ctx.fillStyle = w.fever.phase === 'idle' ? CREAM : PEACH;
+      ctx.font = '650 48px "Poppins", system-ui, sans-serif';
+      ctx.fillText(String(w.combo), 0, 0);
+      ctx.font = '500 10px "Poppins", system-ui, sans-serif';
       ctx.fillStyle = MUTED;
-      ctx.fillText(w.perfectChain >= 5 ? `PERFECT CHAIN ${w.perfectChain}` : 'COMBO', W / 2, H * 0.18 + 46);
-      ctx.textAlign = 'left';
+      ctx.fillText(w.perfectChain >= 8 ? `CHAIN ${w.perfectChain}` : 'COMBO', 0, 50);
+      ctx.restore();
     }
 
     if (w.judgeLife > 0 && w.judgeFlash) {
       ctx.save();
-      ctx.globalAlpha = Math.min(1, w.judgeLife * 1.4);
+      ctx.globalAlpha = Math.min(1, w.judgeLife * 1.5);
       ctx.textAlign = 'center';
       ctx.fillStyle = w.judgeColor;
-      ctx.font = '600 20px "Poppins", system-ui, sans-serif';
-      ctx.fillText(w.judgeFlash, W / 2, H * 0.72);
+      ctx.translate(W / 2, H * 0.74);
+      ctx.scale(w.judgeScale, w.judgeScale);
+      ctx.font = '600 18px "Poppins", system-ui, sans-serif';
+      ctx.fillText(w.judgeFlash, 0, 0);
       ctx.restore();
     }
 
     if (w.countdown && w.playing) {
       const n = Math.max(0, Math.ceil(w.countdownRemain - 0.2));
       ctx.textAlign = 'center';
-      ctx.fillStyle = INK;
-      ctx.font = '600 72px "Poppins", system-ui, sans-serif';
-      ctx.fillText(n > 0 ? String(n) : 'GO', W / 2, H * 0.36);
-      ctx.font = '500 13px "Poppins", system-ui, sans-serif';
+      ctx.fillStyle = CREAM;
+      ctx.font = '650 68px "Poppins", system-ui, sans-serif';
+      ctx.fillText(n > 0 ? String(n) : 'GO', W / 2, H * 0.34);
+      ctx.font = '500 12px "Poppins", system-ui, sans-serif';
       ctx.fillStyle = MUTED;
-      ctx.fillText(`${w.songTitle}  ·  ${w.difficulty}`, W / 2, H * 0.36 + 80);
+      ctx.fillText(w.songTitle, W / 2, H * 0.34 + 76);
       ctx.textAlign = 'left';
     }
 
     if (w.paused) {
-      ctx.fillStyle = 'rgba(244,239,230,0.72)';
+      ctx.fillStyle = 'rgba(20,18,16,0.62)';
       ctx.fillRect(0, 0, W, H);
       ctx.textAlign = 'center';
-      ctx.fillStyle = INK;
-      ctx.font = '600 28px "Poppins", system-ui, sans-serif';
+      ctx.fillStyle = CREAM;
+      ctx.font = '600 26px "Poppins", system-ui, sans-serif';
       ctx.fillText('Paused', W / 2, H * 0.42);
       ctx.font = '500 13px "Poppins", system-ui, sans-serif';
       ctx.fillStyle = MUTED;
-      ctx.fillText('Esc or tap to resume', W / 2, H * 0.42 + 36);
+      ctx.fillText('Esc or tap to resume', W / 2, H * 0.42 + 34);
       ctx.textAlign = 'left';
     }
 
-    ctx.fillStyle = MUTED;
-    ctx.font = '500 11px "Poppins", system-ui, sans-serif';
-    ctx.fillText(w.section.toUpperCase(), 28, H - 22);
-    if (w.speed !== 1) ctx.fillText(`${w.speed.toFixed(2)}×`, 110, H - 22);
+    ctx.fillStyle = 'rgba(236,229,225,0.28)';
+    ctx.font = '500 10px "Poppins", system-ui, sans-serif';
+    ctx.fillText(w.section.toUpperCase(), 22, H - 20);
+    if (w.speed !== 1) ctx.fillText(`${w.speed.toFixed(2)}×`, 96, H - 20);
   }
 
-  private feverMeter(w: ViewWorld): void {
+  private feverEnergy(w: ViewWorld): void {
     const { ctx, w: W } = this;
-    const x = W / 2 - 70;
-    const y = 22;
-    ctx.fillStyle = 'rgba(28,25,20,0.08)';
-    this.roundRect(ctx, x, y, 140, 8, 4);
+    const width = Math.min(168, W * 0.3);
+    const x = (W - width) / 2;
+    const y = 10;
+    const fill = w.fever.phase === 'idle' ? w.fever.meter : Math.max(0.12, w.fever.timeLeft / 10);
+    ctx.fillStyle = 'rgba(255,182,147,0.12)';
+    this.roundRect(ctx, x, y, width, 3, 1.5);
     ctx.fill();
-    const fill = w.fever.phase === 'idle' ? w.fever.meter : Math.max(0.15, w.fever.timeLeft / 10);
-    ctx.fillStyle = w.fever.phase === 'flow' ? '#e8c36a' : w.fever.phase === 'fever' ? WARM : INK;
-    this.roundRect(ctx, x, y, 140 * Math.min(1, fill), 8, 4);
+    ctx.fillStyle = w.fever.phase === 'flow' ? '#ffd696' : PEACH;
+    ctx.globalAlpha = w.fever.phase === 'idle' ? 0.5 : 0.9;
+    this.roundRect(ctx, x, y, width * Math.min(1, fill), 3, 1.5);
     ctx.fill();
-    ctx.textAlign = 'center';
-    ctx.font = '600 10px "Poppins", system-ui, sans-serif';
-    ctx.fillStyle = w.fever.phase === 'idle' ? MUTED : WARM;
-    ctx.fillText(w.fever.phase === 'flow' ? 'FLOW STATE' : w.fever.phase === 'fever' ? 'FEVER' : 'FEVER', W / 2, y + 12);
-    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
   }
 
-  private healthBar(w: ViewWorld): void {
+  private healthPip(w: ViewWorld): void {
     const { ctx, w: W, h: H } = this;
-    ctx.fillStyle = 'rgba(28,25,20,0.08)';
-    this.roundRect(ctx, W - 148, H - 24, 120, 6, 3);
+    ctx.fillStyle = 'rgba(236,229,225,0.1)';
+    this.roundRect(ctx, W - 8, H * 0.3, 3, H * 0.4, 2);
     ctx.fill();
-    ctx.fillStyle = w.health < 30 ? '#d98980' : INK;
-    this.roundRect(ctx, W - 148, H - 24, 120 * (w.health / 100), 6, 3);
+    const hh = H * 0.4 * (w.health / 100);
+    ctx.fillStyle = w.health < 30 ? '#ffb4ab' : PEACH;
+    this.roundRect(ctx, W - 8, H * 0.3 + H * 0.4 - hh, 3, hh, 2);
     ctx.fill();
   }
 
   private timingMeter(w: ViewWorld): void {
     const { ctx, w: W, h: H } = this;
     const x = W / 2;
-    const y = H * 0.8;
-    const half = 64;
-    ctx.strokeStyle = RULE;
+    const y = H * 0.82;
+    const half = 72;
+    ctx.fillStyle = MUTED;
+    ctx.font = '500 9px "Poppins", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('EARLY', x - half - 22, y - 4);
+    ctx.fillText('LATE', x + half + 18, y - 4);
+    ctx.textAlign = 'left';
+    ctx.strokeStyle = 'rgba(236,229,225,0.18)';
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(x - half, y);
     ctx.lineTo(x + half, y);
     ctx.stroke();
-    ctx.fillStyle = INK;
-    ctx.fillRect(x - 1, y - 6, 2, 12);
+    ctx.fillStyle = CREAM;
+    ctx.beginPath();
+    ctx.arc(x, y, 3.2, 0, Math.PI * 2);
+    ctx.fill();
+    for (const sample of w.timings.slice(-8)) {
+      const t = Math.max(-1, Math.min(1, sample.error / w.goodWindow));
+      ctx.globalAlpha = 0.22;
+      ctx.fillStyle = PEACH;
+      ctx.beginPath();
+      ctx.arc(x + t * half, y, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
     if (w.lastHitError != null) {
       const t = Math.max(-1, Math.min(1, w.lastHitError / w.goodWindow));
-      ctx.fillStyle = WARM;
+      ctx.fillStyle = PEACH;
       ctx.beginPath();
-      ctx.arc(x + t * half, y, 3.5, 0, Math.PI * 2);
+      ctx.arc(x + t * half, y, 4.2, 0, Math.PI * 2);
       ctx.fill();
+      const ms = Math.round(w.lastHitError * 1000);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = MUTED;
+      ctx.font = '500 10px "Poppins", system-ui, sans-serif';
+      const label = ms === 0 ? '0 ms' : `${Math.abs(ms)} ms ${ms < 0 ? 'early' : 'late'}`;
+      ctx.fillText(label, x, y + 10);
+      ctx.textAlign = 'left';
     }
   }
 
@@ -391,5 +500,3 @@ export class GameView {
     ctx.closePath();
   }
 }
-
-

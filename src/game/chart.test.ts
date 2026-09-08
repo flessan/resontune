@@ -126,4 +126,40 @@ describe('chart construction', () => {
     expect(heads.every((n) => n.duration > 0)).toBe(true);
     expect(heads.map((n) => n.lane).sort()).toEqual([0, 1]);
   });
+
+  it('weaves a tap on the other lane during a Normal hold', () => {
+    const notes = buildChart([1, 2.8], {
+      difficulty: 'normal',
+      modifiers: new Set(),
+      sections: [{ kind: 'verse', start: 0, end: 10 }],
+    });
+    const hold = notes.find((n) => n.duration > 0 && n.time === 1);
+    expect(hold).toBeTruthy();
+    const during = notes.filter((n) => n.duration === 0 && n.time > 1 && n.time < 1 + hold!.duration);
+    expect(during.length).toBeGreaterThan(0);
+    expect(during.some((n) => n.lane !== hold!.lane)).toBe(true);
+  });
+
+  it('places a tap between sequential holds', () => {
+    const notes = buildChart([1, 1.85, 2.7], {
+      difficulty: 'normal',
+      modifiers: new Set(),
+      sections: [{ kind: 'verse', start: 0, end: 10 }],
+    });
+    const holds = notes.filter((n) => n.duration > 0).sort((a, b) => a.time - b.time);
+    expect(holds.length).toBeGreaterThanOrEqual(2);
+    const between = notes.filter((n) => n.duration === 0 && n.time > holds[0].time && n.time < holds[1].time);
+    expect(between.length).toBeGreaterThan(0);
+  });
+
+  it('alternates verse holds across lanes on Normal', () => {
+    const notes = buildChart([1, 2.8, 4.6], {
+      difficulty: 'normal',
+      modifiers: new Set(),
+      sections: [{ kind: 'verse', start: 0, end: 10 }],
+    });
+    const holds = notes.filter((n) => n.duration > 0).sort((a, b) => a.time - b.time);
+    expect(holds.length).toBeGreaterThanOrEqual(2);
+    expect(holds[0].lane).not.toBe(holds[1].lane);
+  });
 });

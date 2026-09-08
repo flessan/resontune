@@ -373,7 +373,13 @@ export default function GamePage() {
           onContextMenu={(e) => e.preventDefault()}
         >
           <canvas ref={canvasRef} aria-label="Flow playfield" />
-          <button type="button" className="flow-fs" onClick={fullscreen} aria-label="Fullscreen">
+          <button
+            type="button"
+            className="flow-fs"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={fullscreen}
+            aria-label="Fullscreen"
+          >
             <IconExpand width={16} height={16} />
           </button>
         </div>

@@ -26,14 +26,14 @@ export class GameAudio {
     master.connect(ctx.destination);
 
     const music = ctx.createGain();
-    music.gain.value = 0.85;
+    music.gain.value = 0.9;
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 64;
     analyser.smoothingTimeConstant = 0.72;
     music.connect(analyser).connect(master);
 
     const sfx = ctx.createGain();
-    sfx.gain.value = 0.7;
+    sfx.gain.value = 0.32;
     sfx.connect(master);
 
     this.ctx = ctx;

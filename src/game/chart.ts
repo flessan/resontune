@@ -174,6 +174,42 @@ function laneFor(index: number, easy: boolean, seed: number): 0 | 1 {
   return ((Math.sin(index * 12.9898 + seed) * 43758.5453) % 1 > 0.5 ? 1 : 0) as 0 | 1;
 }
 
+/** Mix a tap into an active hold, or a tap between sequential holds. Easy stays 1:1. */
+function weaveHoldTaps(
+  take: (time: number, lane: 0 | 1, duration: number, group: number | null, section: SectionKind) => void,
+  args: {
+    easy: boolean;
+    classic: boolean;
+    dual: boolean;
+    section: SectionKind;
+    t: number;
+    dur: number;
+    next: number | undefined;
+    other: 0 | 1;
+  },
+): void {
+  const { easy, classic, dual, section, t, dur, next, other } = args;
+  if (easy || classic) return;
+  if (section === 'intro' || section === 'outro' || section === 'break') return;
+
+  if (dual && section === 'drop' && dur >= 1.05) {
+    take(t + 0.12, other, Math.max(0.35, dur - 0.22), null, section);
+    return;
+  }
+
+  const mid = t + dur * (section === 'drop' ? 0.36 : 0.44);
+  const roomMid = next == null || mid < next - 0.2;
+  if (dur >= 0.7 && roomMid) {
+    take(mid, other, 0, null, section);
+    return;
+  }
+
+  const after = t + dur + 0.1;
+  if (next != null && after < next - 0.18 && next - (t + dur) >= 0.28) {
+    take(after, other, 0, null, section);
+  }
+}
+
 export function buildChart(beats: number[], options: ChartOptions): Note[] {
   const { difficulty, modifiers } = options;
   const sections = options.sections ?? inferSections(beats, beats[beats.length - 1] ?? 0);
@@ -184,6 +220,7 @@ export function buildChart(beats: number[], options: ChartOptions): Note[] {
   const notes: Note[] = [];
   let id = 0;
   let chordGroup = 1;
+  let holdAlt = 0;
   const seed = times[0] ?? 0;
 
   const take = (time: number, lane: 0 | 1, duration: number, group: number | null, section: SectionKind) => {
@@ -232,10 +269,22 @@ export function buildChart(beats: number[], options: ChartOptions): Note[] {
     }
 
     if (wantHold) {
-      take(t, lane, holdDurationForGap(gap), null, section);
-      if (dual && section === 'drop' && gap >= 1.2) {
-        take(t + 0.12, other, Math.max(0.35, holdDurationForGap(gap) - 0.2), null, section);
-      }
+      const dur = holdDurationForGap(gap);
+      const holdLane = !easy && (section === 'verse' || section === 'chorus')
+        ? ((holdAlt++ % 2) as 0 | 1)
+        : lane;
+      const holdOther = (1 - holdLane) as 0 | 1;
+      take(t, holdLane, dur, null, section);
+      weaveHoldTaps(take, {
+        easy,
+        classic,
+        dual,
+        section,
+        t,
+        dur,
+        next,
+        other: holdOther,
+      });
       continue;
     }
 

@@ -238,31 +238,32 @@
 }
 .flow-stage {
   position: relative;
-  background: #f4efe6;
+  background: #141210;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .flow-stage canvas {
   display: block;
   width: 100%;
-  height: calc(100dvh - 88px - var(--player-h) - var(--tabbar-h));
+  height: calc(100dvh - 88px - var(--player-h) - var(--tabbar-h) - env(safe-area-inset-bottom, 0px));
   min-height: 320px;
   cursor: pointer;
 }
 .flow-fs {
   position: absolute;
-  right: 12px;
-  bottom: 28px;
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: calc(22px + env(safe-area-inset-bottom, 0px));
   width: 36px;
   height: 36px;
   border: 0;
   border-radius: 18px;
-  background: rgba(28, 25, 20, 0.08);
-  color: #1c1914;
+  background: rgba(236, 229, 225, 0.1);
+  color: #ece5e1;
   cursor: pointer;
 }
-.flow-fs:hover { background: rgba(28, 25, 20, 0.14); }
+.flow-fs:hover { background: rgba(236, 229, 225, 0.18); }
 
 body[data-flow='play'] .footer { display: none; }
 
