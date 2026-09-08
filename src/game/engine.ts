@@ -1,583 +1,649 @@
 /**
- * Flow game engine.
+ * Flow session. The audio clock is the timeline.
  *
- * Clock: `audioContext.currentTime - startTime - offset`. Pause is
- * `AudioContext.suspend()`, so music and notes freeze together. That
- * contract is the original FLOW RHYTHM timing model and is not to be
- * replaced with HTMLMediaElement.currentTime.
+ * gameTime = (ctx.currentTime - startTime) * speed + playOffset - offsetMs/1000
+ * Pause = AudioContext.suspend(). Holds tick from that same clock.
  */
 import { GameAudio } from './audio';
-import { buildNotes, chartEndOf, countHolds, detectBeats, previewBeatTimes } from './chart';
-import { laneFromCode, laneFromPointer } from './input';
-import { loadBest, saveBest } from './persistence';
-import { GameView } from './renderer';
+import { buildChart, describeBeats, describeChart, detectBeats, inferSections, previewBeats, previewSections } from './chart';
+import { feverOnHit, feverOnMiss, feverTick } from './fever';
+import { pickHitTarget } from './judge';
+import { GameView, type ViewWorld } from './renderer';
+import { accuracyPct, healthOnHit, judgeTiming } from './scoring';
 import {
-  accuracyPct,
-  comboColor,
-  gradeFor,
-  healthOnHit,
-  JUDGEMENT_COLORS,
-  judgeTiming,
-} from './scoring';
-import {
-  approachFor,
   COUNTDOWN_LEAD,
   DIFFICULTIES,
   HOLD_CLEAR_SCORE,
   HOLD_DROP_HEALTH,
   HOLD_TICK,
   HOLD_TICK_SCORE,
+  PREVIEW_SONG,
+  approachFor,
+  emptyCounts,
+  emptyFever,
   type ActiveHold,
+  type ChartSection,
   type Difficulty,
   type DifficultyId,
+  type FeverState,
   type GameResult,
   type HitCounts,
+  type HitKind,
+  type HitRing,
   type HudState,
-  type JudgementEvent,
   type ModifierId,
   type Note,
+  type Particle,
+  type PracticeSettings,
   type SongRef,
+  type TimingSample,
 } from './types';
+import { resultFromRun } from './persistence';
 
-export type EngineListener = (hud: HudState, judgement: JudgementEvent | null) => void;
+export type EngineEvent =
+  | { type: 'ready' }
+  | { type: 'started' }
+  | { type: 'paused'; paused: boolean }
+  | { type: 'fever'; phase: FeverState['phase'] }
+  | { type: 'finished'; result: GameResult };
 
-export class GameEngine {
-  readonly view = new GameView();
-  private readonly audio = new GameAudio();
-  private canvas: HTMLCanvasElement | null = null;
-  private ctx: CanvasRenderingContext2D | null = null;
-  private listeners = new Set<EngineListener>();
+export const DEFAULT_PRACTICE: PracticeSettings = {
+  enabled: false,
+  startAt: 0,
+  loop: false,
+  loopStart: 0,
+  loopEnd: 0,
+  speed: 1,
+};
 
-  private difficulty: DifficultyId = 'normal';
-  private modifiers = new Set<ModifierId>();
-  private volume = 0.7;
-  private offsetMs = 0;
+export class FlowEngine {
+  audio = new GameAudio();
+  view: GameView | null = null;
 
-  private song: SongRef = { key: 'preview', name: 'Preview Beat — 120 BPM + holds', kind: 'preview' };
-  private beatTimes: number[] = [];
-  private buffer: AudioBuffer | null = null;
-  private notes: Note[] = [];
-  private chartEnd = 0;
-  private holds = new Map<string, ActiveHold>();
+  song: SongRef = { ...PREVIEW_SONG };
+  buffer: AudioBuffer | null = null;
+  beats: number[] = [];
+  sections: ChartSection[] = [];
+  notes: Note[] = [];
+  holds: ActiveHold[] = [];
+  particles: Particle[] = [];
+  rings: HitRing[] = [];
+  timings: TimingSample[] = [];
 
-  private playing = false;
-  private paused = false;
-  private startTime = 0;
-  private score = 0;
-  private combo = 0;
-  private maxCombo = 0;
-  private earnedPoints = 0;
-  private judgedNotes = 0;
-  private counts: HitCounts = emptyCounts();
-  private health = 100;
-  private result: GameResult | null = null;
-  private status = 'Ready. Start Preview Beat or choose a local audio file.';
-  private judgement: JudgementEvent | null = null;
-  private judgementSeq = 0;
+  difficulty: DifficultyId = 'normal';
+  modifiers = new Set<ModifierId>();
+  offsetMs = 0;
+  practice: PracticeSettings = { ...DEFAULT_PRACTICE };
+  playOffset = 0;
+  speed = 1;
 
-  private raf = 0;
-  private lastTs = 0;
-  private destroyed = false;
-  private wakeLock: WakeLockSentinel | null = null;
-  private reducedMotion = false;
+  startTime = 0;
+  playing = false;
+  paused = false;
+  finished = false;
+  failed = false;
+  auto = false;
+
+  score = 0;
+  combo = 0;
+  maxCombo = 0;
+  perfectChain = 0;
+  perfectChainMax = 0;
+  health = 100;
+  earnedPoints = 0;
+  judgedNotes = 0;
+  counts: HitCounts = emptyCounts();
+  fever: FeverState = emptyFever();
+  lastFeverPhase: FeverState['phase'] = 'idle';
+
+  judgeFlash = '';
+  judgeColor = '#f4e4c1';
+  judgeLife = 0;
+  pulse = 0;
+  shake = 0;
+  lastHitError: number | null = null;
+  best = 0;
+  bestGrade = '—';
+  beatInfo = '';
+  chartInfo = '';
+  status = 'Pick a song.';
+  private holdSeq = 0;
+  private lastFeverTick = 0;
+  private lastLoopCheck = 0;
+
+  onEvent: ((e: EngineEvent) => void) | null = null;
+
+  d(): Difficulty {
+    return DIFFICULTIES[this.difficulty];
+  }
+
+  approach(): number {
+    return approachFor(this.d(), this.modifiers);
+  }
+
+  now(): number {
+    if (!this.playing || !this.audio.ctx) return this.playOffset;
+    return (this.audio.ctx.currentTime - this.startTime) * this.speed + this.playOffset - this.offsetMs / 1000;
+  }
 
   attach(canvas: HTMLCanvasElement): void {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.view.resize(canvas, this.ctx!);
-    this.reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    this.view?.stop();
+    this.view = new GameView(canvas, () => this.world());
+    this.view.start();
   }
 
-  subscribe(fn: EngineListener): () => void {
-    this.listeners.add(fn);
-    return () => this.listeners.delete(fn);
+  detach(): void {
+    this.view?.stop();
+    this.view = null;
   }
 
-  get capturing(): boolean {
-    return this.playing && !this.paused;
+  dispose(): void {
+    this.detach();
+    this.audio.close();
+  }
+
+  async loadPreview(): Promise<void> {
+    await this.audio.ensure();
+    this.song = { ...PREVIEW_SONG };
+    this.buffer = null;
+    this.beats = previewBeats();
+    this.sections = previewSections();
+    this.playOffset = 0;
+    this.rebuild();
+    this.status = 'Preview Beat is ready.';
+    this.onEvent?.({ type: 'ready' });
+  }
+
+  async loadBuffer(song: SongRef, buffer: AudioBuffer): Promise<void> {
+    await this.audio.ensure();
+    this.song = song;
+    this.buffer = buffer;
+    this.beats = detectBeats(buffer);
+    this.sections = inferSections(this.beats, buffer.duration);
+    this.playOffset = 0;
+    this.rebuild();
+    this.status = 'Chart is ready.';
+    this.onEvent?.({ type: 'ready' });
   }
 
   setDifficulty(id: DifficultyId): void {
     this.difficulty = id;
-    this.emit();
+    if (this.beats.length) this.rebuild();
   }
 
-  setModifiers(mods: Iterable<ModifierId>): void {
-    this.modifiers = new Set(mods);
-    if (this.modifiers.has('classic')) this.modifiers.delete('split');
-    if (this.modifiers.has('fast') && this.modifiers.has('slow')) this.modifiers.delete('slow');
-    this.emit();
+  setModifiers(next: Iterable<ModifierId>): void {
+    this.modifiers = new Set(next);
+    this.auto = this.modifiers.has('auto');
+    if (this.beats.length) this.rebuild();
   }
 
-  setVolume(level: number): void {
-    this.volume = level;
-    this.audio.setVolume(level);
+  setPractice(next: PracticeSettings): void {
+    this.practice = { ...next };
+    this.speed = next.enabled ? next.speed : 1;
+  }
+
+  rebuild(): void {
+    this.notes = buildChart(this.beats, { difficulty: this.difficulty, modifiers: this.modifiers, sections: this.sections });
+    const duration = this.buffer?.duration ?? this.song.duration ?? 56;
+    this.beatInfo = describeBeats(this.beats, duration);
+    this.chartInfo = describeChart(this.notes, this.sections);
+    this.resetRun();
+  }
+
+  resetRun(): void {
+    this.holds = [];
+    this.particles = [];
+    this.rings = [];
+    this.timings = [];
+    this.score = 0;
+    this.combo = 0;
+    this.maxCombo = 0;
+    this.perfectChain = 0;
+    this.perfectChainMax = 0;
+    this.health = 100;
+    this.earnedPoints = 0;
+    this.judgedNotes = 0;
+    this.counts = emptyCounts();
+    this.fever = emptyFever();
+    this.lastFeverPhase = 'idle';
+    this.playing = false;
+    this.paused = false;
+    this.finished = false;
+    this.failed = false;
+    this.judgeLife = 0;
+    this.pulse = 0;
+    this.shake = 0;
+    this.lastHitError = null;
+    this.playOffset = this.practice.enabled ? this.practice.startAt : 0;
+    this.speed = this.practice.enabled ? this.practice.speed : 1;
+    for (const n of this.notes) {
+      n.hit = false;
+      n.missed = false;
+      n.judged = false;
+      n.holding = false;
+    }
+  }
+
+  async begin(): Promise<void> {
+    await this.audio.ensure();
+    this.audio.stopPreview();
+    this.resetRun();
+    const lead = COUNTDOWN_LEAD;
+    const when = this.audio.now() + lead;
+    this.startTime = when;
+    this.playing = true;
+    this.paused = false;
+    this.status = 'Ready.';
+    this.lastFeverTick = this.audio.now();
+    if (this.buffer) {
+      this.audio.playBuffer(this.buffer, when, {
+        offset: this.playOffset,
+        rate: this.speed,
+        onEnded: () => {
+          if (this.practice.enabled && this.practice.loop) return;
+          this.finish(false);
+        },
+      });
+    }
+    this.onEvent?.({ type: 'started' });
+  }
+
+  async togglePause(): Promise<void> {
+    if (!this.playing || this.finished) return;
+    if (this.paused) {
+      await this.audio.resume();
+      this.paused = false;
+      this.status = '';
+    } else {
+      await this.audio.suspend();
+      this.paused = true;
+      this.status = 'Paused.';
+    }
+    this.onEvent?.({ type: 'paused', paused: this.paused });
+  }
+
+  async stopSession(): Promise<void> {
+    this.audio.stopMusic();
+    if (this.paused) await this.audio.resume();
+    this.playing = false;
+    this.paused = false;
+    this.finished = false;
+    this.status = 'Stopped.';
+  }
+
+  get capturing(): boolean {
+    return this.playing && !this.paused && !this.finished;
   }
 
   setOffset(ms: number): void {
     this.offsetMs = ms;
   }
 
-  loadPreview(): void {
-    this.stop('Preview beat loaded. Press Start.');
-    this.buffer = null;
-    this.beatTimes = previewBeatTimes();
-    this.song = { key: 'preview', name: 'Preview Beat — 120 BPM + holds', kind: 'preview' };
-    this.status = 'Preview beat loaded. Press Start.';
-    this.showJudgement('PREVIEW', '#719cff', 'info');
-    this.emit();
+  setVolume(volume: number): void {
+    this.audio.setMaster(volume);
   }
 
-  async loadArrayBuffer(data: ArrayBuffer, song: SongRef): Promise<void> {
-    this.stop('Loading song and detecting beats…');
-    this.song = song;
-    this.beatTimes = [];
-    this.buffer = null;
-    this.status = 'Loading song and detecting beats…';
-    this.emit();
-    try {
-      const buffer = await this.audio.decode(data);
-      this.buffer = buffer;
-      this.beatTimes = detectBeats(buffer);
-      this.status = `Ready: ${song.name}`;
-      this.showJudgement('READY', '#68f5d1', 'info');
-      this.emit();
-    } catch (err) {
-      console.warn('[flow] decode failed', err);
-      this.status = 'Could not read that audio file. Try MP3, WAV, OGG, or M4A.';
-      this.showJudgement('ERROR', '#ff667d', 'miss');
-      this.emit();
-      throw err;
-    }
-  }
+  tap(id: string, lane: 0 | 1 | null): void {
+    if (!this.playing || this.paused || this.finished) return;
+    if (this.holds.some((h) => h.inputId === id)) return;
+    const classic = this.modifiers.has('classic');
+    if (classic && this.holds.length) return;
 
-  async start(): Promise<void> {
-    if (this.playing) {
-      this.stop();
+    const now = this.now();
+    const d = this.d();
+    const split = this.modifiers.has('split');
+    const target = pickHitTarget(this.notes, now, d, lane, split);
+    if (!target) return;
+    if (target.early) {
+      this.flash('TOO EARLY', '#b5aaa0');
       return;
     }
-    if (!this.beatTimes.length) this.loadPreview();
 
-    await this.audio.resume();
-    const ac = this.audio.ensure();
-    const D = DIFFICULTIES[this.difficulty];
-    const endTime = this.buffer ? this.buffer.duration : (this.beatTimes[this.beatTimes.length - 1] ?? 0) + 2;
-    this.notes = buildNotes(this.beatTimes, endTime, { difficulty: this.difficulty, modifiers: this.modifiers });
-    this.chartEnd = chartEndOf(this.notes);
-    this.resetScore();
-    this.result = null;
-    this.playing = true;
-    this.paused = false;
-    this.startTime = ac.currentTime + COUNTDOWN_LEAD;
-    this.view.resetFx();
-
-    this.status = this.buffer
-      ? `Playing ${this.song.name} (${D.label}). Tap heads, hold tails.`
-      : `Playing Preview Beat (${D.label}). Tap heads, hold tails.`;
-
-    if (this.buffer) {
-      this.audio.playBuffer(this.buffer, this.startTime, () => {
-        if (this.playing) this.finish(false);
-      });
-    } else {
-      this.audio.startMetronome(this.startTime);
-    }
-
-    void this.requestWakeLock();
-    this.emit();
-  }
-
-  stop(message = 'Game stopped.'): void {
-    if (this.audio.context?.state === 'suspended') void this.audio.resume();
-    this.playing = false;
-    this.paused = false;
-    this.cancelHoldsSilent();
-    this.audio.stopNodes();
-    this.releaseWakeLock();
-    this.status = message;
-    this.result = null;
-    this.emit();
-  }
-
-  async togglePause(): Promise<void> {
-    if (!this.playing) return;
-    if (!this.paused) {
-      this.paused = true;
-      await this.audio.suspend();
-      this.status = 'Paused. Press Esc or tap the stage to resume.';
-    } else {
-      this.paused = false;
-      await this.audio.resume();
-      this.status = this.buffer
-        ? 'Playing custom song. Any input hits one note.'
-        : 'Playing Preview Beat. Any input hits one note.';
-    }
-    this.emit();
-  }
-
-  handleInput(inputId: string, laneHint: 0 | 1 | null = null): void {
-    if (!this.playing || this.paused) return;
-    const now = this.gameTime();
-    if (now < 0) return;
-    if (this.holds.has(inputId)) return;
-    if (this.modifiers.has('classic') && this.holds.size > 0) return;
-
-    const D = this.diff();
-    const note = this.nextNote(laneHint);
-    if (!note) return;
-
+    const note = target.note;
     const difference = now - note.time;
-    const judged = judgeTiming(difference, D);
-
+    const judged = judgeTiming(difference, d);
     if (judged.kind === 'early') {
-      this.showJudgement(judged.label, judged.color, 'early');
+      this.flash(judged.label, judged.color);
       return;
     }
-    if (judged.kind === 'late') {
-      this.registerMiss(note);
-      this.showJudgement(judged.label, judged.color, 'late');
+    if (judged.kind === 'late') return;
+    if (judged.kind !== 'perfect' && judged.kind !== 'great' && judged.kind !== 'good') return;
+
+    this.applyHit(note, judged.kind, judged.points, judged.label, judged.color, difference);
+    if (note.duration > 0) this.beginHold(note, now, id);
+  }
+
+  release(id: string): void {
+    const hold = this.holds.find((h) => h.inputId === id);
+    if (!hold) return;
+    const now = this.now();
+    if (now + 0.04 >= hold.until) this.clearHold(hold, true);
+    else this.clearHold(hold, false);
+  }
+
+  tick(): void {
+    if (!this.playing || this.paused || this.finished) {
+      this.advanceFx(0.016);
       return;
     }
-    if (judged.kind !== 'perfect' && judged.kind !== 'good' && judged.kind !== 'ok') return;
 
-    if (note.duration > 0) {
-      note.holding = true;
-      this.holds.set(inputId, {
-        note,
-        id: inputId,
-        until: note.time + note.duration,
-        nextTick: now + HOLD_TICK,
-      });
-      this.applyHit(judged.points, judged.label, judged.color, judged.kind, note.lane, difference);
+    const now = this.now();
+    const audioNow = this.audio.now();
+    const dt = Math.min(0.05, Math.max(0, audioNow - this.lastFeverTick));
+    this.lastFeverTick = audioNow;
+
+    if (this.auto) this.autoplay(now);
+
+    const prevPhase = this.fever.phase;
+    this.fever = feverTick(this.fever, dt);
+    if (this.fever.phase !== prevPhase) this.onEvent?.({ type: 'fever', phase: this.fever.phase });
+
+    this.missPassed(now);
+    this.tickHolds(now);
+    this.maybeLoop(now);
+    this.advanceFx(dt);
+
+    if (!this.practice.enabled && this.health <= 0 && !this.modifiers.has('nofail')) {
+      this.finish(true);
       return;
     }
 
-    note.hit = true;
-    note.judged = true;
-    this.applyHit(judged.points, judged.label, judged.color, judged.kind, note.lane, difference);
-  }
-
-  handleRelease(inputId: string): void {
-    if (!this.holds.has(inputId)) return;
-    this.endHold(inputId, 'release');
-  }
-
-  pointerLane(clientY: number): 0 | 1 {
-    if (!this.canvas) return 0;
-    const rect = this.canvas.getBoundingClientRect();
-    return laneFromPointer(clientY - rect.top, rect.height);
-  }
-
-  keyLane(code: string): 0 | 1 | null {
-    return laneFromCode(code);
-  }
-
-  startLoop(): void {
-    const tick = (ts: number) => {
-      if (this.destroyed) return;
-      this.raf = requestAnimationFrame(tick);
-      const dt = Math.min(0.05, (ts - this.lastTs) / 1000 || 0);
-      this.lastTs = ts;
-      this.frame(dt, ts / 1000);
-    };
-    this.raf = requestAnimationFrame(tick);
-  }
-
-  destroy(): void {
-    this.destroyed = true;
-    cancelAnimationFrame(this.raf);
-    this.stop();
-    void this.audio.close();
-    this.listeners.clear();
+    if (!this.buffer && now > 56) this.finish(false);
   }
 
   snapshot(): HudState {
-    const end = this.buffer ? this.buffer.duration : (this.beatTimes[this.beatTimes.length - 1] ?? 0) + 2;
-    const noteCount = this.notes.length || this.beatTimes.length;
-    const holds = this.notes.length
-      ? this.notes.filter((n) => n.duration > 0).length
-      : countHolds(this.beatTimes, end);
-    const extra = this.buffer ? ` · ${this.buffer.duration.toFixed(1)}s` : '';
-    const inputRule = this.modifiers.has('split') ? 'split lanes' : '1 input = 1 note';
     return {
+      mode: this.finished ? 'result' : this.paused ? 'paused' : this.playing ? 'play' : 'prep',
+      song: this.song,
       score: this.score,
       combo: this.combo,
       maxCombo: this.maxCombo,
+      perfectChain: this.perfectChain,
       accuracy: accuracyPct(this.earnedPoints, this.judgedNotes),
       health: this.health,
-      best: loadBest(this.song.key, this.difficulty, this.modifiers),
+      best: this.best,
+      bestGrade: this.bestGrade,
       judgedNotes: this.judgedNotes,
       counts: { ...this.counts },
+      fever: { ...this.fever },
       status: this.status,
-      beatInfo: noteCount
-        ? `${noteCount} notes (${holds} hold) · ${inputRule}${extra}`
-        : 'Tap notes + hold notes · 1 input = 1 note',
-      songName: this.song.name,
+      beatInfo: this.beatInfo,
       playing: this.playing,
       paused: this.paused,
-      result: this.result,
+      result: null,
+      noteCount: this.notes.length,
+      holdCount: this.notes.filter((n) => n.duration > 0).length,
+      duration: this.buffer?.duration ?? this.song.duration ?? 56,
     };
   }
 
-  /* ------------------------------- internals ------------------------------ */
-
-  private diff(): Difficulty {
-    return DIFFICULTIES[this.difficulty];
+  buildResult(failed: boolean): GameResult {
+    return resultFromRun({
+      failed,
+      song: this.song,
+      difficulty: this.difficulty,
+      modifiers: [...this.modifiers],
+      speed: this.speed,
+      score: this.score,
+      accuracy: accuracyPct(this.earnedPoints, this.judgedNotes),
+      maxCombo: this.maxCombo,
+      perfectChainMax: this.perfectChainMax,
+      feverPeak: this.fever.peak,
+      feverActivations: this.fever.activations,
+      counts: this.counts,
+      practice: this.practice.enabled,
+      isRecord: false,
+      best: this.best,
+    });
   }
 
-  private gameTime(): number {
-    if (!this.playing || !this.audio.context) return 0;
-    return this.audio.context.currentTime - this.startTime - this.offsetMs / 1000;
+  world(): ViewWorld {
+    this.tick();
+    const bands = this.playing && !this.paused ? this.audio.bands() : { bass: 0, level: 0 };
+    return {
+      now: this.now(),
+      notes: this.notes,
+      holds: this.holds,
+      particles: this.particles,
+      rings: this.rings,
+      timings: this.timings,
+      approach: this.approach(),
+      hidden: this.modifiers.has('hidden'),
+      sudden: this.modifiers.has('sudden'),
+      score: this.score,
+      combo: this.combo,
+      maxCombo: this.maxCombo,
+      perfectChain: this.perfectChain,
+      health: this.health,
+      accuracy: accuracyPct(this.earnedPoints, this.judgedNotes),
+      fever: this.fever,
+      best: this.best,
+      playing: this.playing,
+      paused: this.paused,
+      finished: this.finished,
+      countdown: this.playing && !!this.audio.ctx && this.audio.now() < this.startTime,
+      countdownRemain: this.audio.ctx && this.playing ? Math.max(0, this.startTime - this.audio.now()) : 0,
+      judgeFlash: this.judgeFlash,
+      judgeColor: this.judgeColor,
+      judgeLife: this.judgeLife,
+      pulse: this.pulse,
+      shake: this.shake,
+      lastHitError: this.lastHitError,
+      goodWindow: this.d().good,
+      songTitle: this.song.title,
+      songArtist: this.song.artist,
+      difficulty: this.d().label,
+      status: this.status,
+      duration: this.buffer?.duration ?? this.song.duration ?? 56,
+      playOffset: this.playOffset,
+      speed: this.speed,
+      bass: bands.bass,
+      level: bands.level,
+      section: this.currentSection(),
+      practice: this.practice.enabled,
+    };
   }
 
-  private nextNote(laneHint: 0 | 1 | null): Note | undefined {
-    if (this.modifiers.has('split') && laneHint != null) {
-      return this.notes.find((n) => !n.judged && !n.holding && n.lane === laneHint);
-    }
-    return this.notes.find((n) => !n.judged && !n.holding);
+  private currentSection() {
+    const t = this.now();
+    for (const s of this.sections) if (t >= s.start && t < s.end) return s.kind;
+    return this.sections[this.sections.length - 1]?.kind ?? 'verse';
   }
 
-  private applyHit(points: number, label: string, color: string, kind: 'perfect' | 'good' | 'ok', lane: 0 | 1, error: number): void {
-    const D = this.diff();
-    this.score += Math.round(points * D.scoreMul);
+  private applyHit(note: Note, kind: 'perfect' | 'great' | 'good', points: number, label: string, color: string, error: number): void {
+    note.hit = true;
+    note.judged = true;
+    this.judgedNotes += 1;
+    this.earnedPoints += points;
+    this.counts[kind] += 1;
+    const mul = this.fever.multiplier;
+    this.score += Math.round(points * this.d().scoreMul * mul);
     this.combo += 1;
     this.maxCombo = Math.max(this.maxCombo, this.combo);
-    this.earnedPoints += points;
-    this.judgedNotes += 1;
-    this.counts[kind] += 1;
+    if (kind === 'perfect') {
+      this.perfectChain += 1;
+      this.perfectChainMax = Math.max(this.perfectChainMax, this.perfectChain);
+    } else {
+      this.perfectChain = 0;
+    }
     this.health = healthOnHit(kind, this.health);
-
-    const fx = this.view.hitX();
-    const fy = this.view.laneY(lane);
-    this.view.spawnParticles(fx, fy, color, kind === 'perfect' ? 16 : 10, kind === 'perfect' ? 1.25 : 0.9);
-    this.view.spawnRing(fx, fy, color);
-    this.view.pulseLane(lane);
-    this.view.pushSample(error, kind);
-    this.audio.playHit(kind);
-    vib(kind === 'perfect' ? 14 : 9);
-
-    this.showJudgement(label, color, kind);
-    if (this.combo > 0 && this.combo % 25 === 0) this.celebrate(this.combo);
-    this.emit();
+    const prev = this.fever.phase;
+    this.fever = feverOnHit(this.fever, kind);
+    if (this.fever.phase !== prev) {
+      this.onEvent?.({ type: 'fever', phase: this.fever.phase });
+      if (this.fever.phase === 'fever' || this.fever.phase === 'flow') this.audio.hit('fever');
+    }
+    this.lastHitError = error;
+    this.timings.push({ error, kind });
+    if (this.timings.length > 40) this.timings.shift();
+    this.flash(
+      this.fever.phase !== prev && (this.fever.phase === 'fever' || this.fever.phase === 'flow')
+        ? (this.fever.phase === 'flow' ? 'FLOW STATE' : 'FEVER')
+        : label,
+      this.fever.phase !== prev && this.fever.phase !== 'idle' ? (this.fever.phase === 'flow' ? '#ffe7b0' : '#f0c36b') : color,
+    );
+    this.pulse = 1;
+    const chord = note.chordGroup != null;
+    this.audio.hit(chord && kind === 'perfect' ? 'chord' : kind);
+    this.burst(note.lane, color, kind === 'perfect' ? 10 : 6);
   }
 
-  private registerMiss(note: Note): void {
-    if (!note || note.judged || note.holding) return;
-    const D = this.diff();
+  private missNote(note: Note): void {
+    if (note.judged) return;
     note.missed = true;
     note.judged = true;
-    this.combo = 0;
     this.judgedNotes += 1;
     this.counts.miss += 1;
-    this.health = Math.max(0, this.health - D.healthMiss);
-    this.view.addShake(5, 0.22);
-    this.view.flash('255,102,125', 0.08);
-    this.audio.playHit('miss');
-    vib(45);
-    this.showJudgement('MISS', JUDGEMENT_COLORS.miss, 'miss');
-    this.emit();
+    this.combo = 0;
+    this.perfectChain = 0;
+    this.health = Math.max(0, this.health - this.d().healthMiss);
+    this.fever = feverOnMiss(this.fever);
+    this.flash('MISS', '#d98980');
+    this.shake = 1;
+    this.audio.hit('miss');
   }
 
-  private updateHolds(now: number): void {
-    if (this.paused) return;
-    const D = this.diff();
-    for (const [id, h] of [...this.holds]) {
-      while (h.nextTick < h.until && now >= h.nextTick) {
-        h.nextTick += HOLD_TICK;
-        this.score += Math.round(HOLD_TICK_SCORE * D.scoreMul);
-        this.combo += 1;
-        this.maxCombo = Math.max(this.maxCombo, this.combo);
-        this.view.spawnParticles(this.view.hitX(), this.view.laneY(h.note.lane), this.view.laneColor(h.note.lane), 2, 0.5);
+  private missPassed(now: number): void {
+    const late = this.d().miss;
+    for (const note of this.notes) {
+      if (note.judged || note.holding) continue;
+      if (now - note.time > late) this.missNote(note);
+    }
+  }
+
+  private beginHold(note: Note, now: number, inputId: string): void {
+    note.holding = true;
+    this.holds.push({
+      note,
+      id: `h${this.holdSeq++}`,
+      inputId,
+      until: note.time + note.duration,
+      nextTick: now + HOLD_TICK,
+    });
+  }
+
+  private tickHolds(now: number): void {
+    for (const hold of [...this.holds]) {
+      if (now >= hold.until) {
+        this.clearHold(hold, true);
+        continue;
       }
-      if (now >= h.until) this.endHold(id, 'complete');
+      if (now >= hold.nextTick) {
+        this.score += HOLD_TICK_SCORE;
+        hold.nextTick += HOLD_TICK;
+      }
     }
   }
 
-  private endHold(inputId: string, reason: 'complete' | 'release'): void {
-    const h = this.holds.get(inputId);
-    if (!h) return;
-    this.holds.delete(inputId);
-    const note = h.note;
-    const now = this.gameTime();
-    const D = this.diff();
-
-    if (reason === 'complete' || now >= h.until - 0.1) {
-      note.judged = true;
-      note.hit = true;
-      note.holding = false;
-      this.score += Math.round(HOLD_CLEAR_SCORE * D.scoreMul);
-      this.view.spawnRing(this.view.hitX(), this.view.laneY(note.lane), '#68f5d1');
-      this.view.spawnParticles(this.view.hitX(), this.view.laneY(note.lane), '#68f5d1', 12, 1.1);
-      this.showJudgement('CLEAR', '#68f5d1', 'clear');
-      this.audio.playTail(true);
-      vib(15);
+  private clearHold(hold: ActiveHold, success: boolean): void {
+    this.holds = this.holds.filter((h) => h.id !== hold.id);
+    hold.note.holding = false;
+    if (success) {
+      this.score += HOLD_CLEAR_SCORE;
+      this.flash('CLEAR', '#f4e4c1');
+      this.audio.hit('clear');
+      this.burst(hold.note.lane, '#f4e4c1', 8);
     } else {
-      note.judged = true;
-      note.missed = true;
-      note.holding = false;
-      this.combo = 0;
       this.counts.drop += 1;
+      this.combo = 0;
+      this.perfectChain = 0;
       this.health = Math.max(0, this.health - HOLD_DROP_HEALTH);
-      this.showJudgement('DROP', '#ff667d', 'drop');
-      this.audio.playTail(false);
-      this.view.addShake(6, 0.25);
-      this.view.flash('255,102,125', 0.1);
-      vib([40, 30, 40]);
+      this.fever = feverOnMiss(this.fever);
+      this.flash('DROP', '#d98980');
+      this.audio.hit('drop');
     }
-    this.emit();
-  }
-
-  private cancelHoldsSilent(): void {
-    for (const h of this.holds.values()) h.note.judged = true;
-    this.holds.clear();
   }
 
   private autoplay(now: number): void {
-    if (!this.modifiers.has('auto') || this.paused) return;
     for (const note of this.notes) {
       if (note.judged || note.holding) continue;
-      if (now + 0.012 < note.time) break;
-      this.handleInput(`auto:${note.id}`, note.lane);
-      if (note.duration > 0) {
-        /* release is driven by endHold(complete) via the clock */
+      if (now >= note.time) {
+        this.applyHit(note, 'perfect', 300, 'PERFECT', '#f4e4c1', 0);
+        if (note.duration > 0) this.beginHold(note, now, 'auto');
       }
     }
+  }
+
+  private maybeLoop(now: number): void {
+    if (!this.practice.enabled || !this.practice.loop || !this.buffer) return;
+    const end = this.practice.loopEnd || this.buffer.duration;
+    if (now < end) return;
+    if (now - this.lastLoopCheck < 0.05) return;
+    this.lastLoopCheck = now;
+    const start = this.practice.loopStart;
+    this.playOffset = start;
+    this.startTime = this.audio.now();
+    this.audio.playBuffer(this.buffer, this.startTime, {
+      offset: start,
+      rate: this.speed,
+      onEnded: () => {
+        if (this.practice.loop) return;
+        this.finish(false);
+      },
+    });
+    for (const n of this.notes) {
+      if (n.time >= start) {
+        n.hit = false;
+        n.missed = false;
+        n.judged = false;
+        n.holding = false;
+      }
+    }
+    this.holds = [];
   }
 
   private finish(failed: boolean): void {
-    if (!this.playing) return;
+    if (this.finished) return;
+    this.finished = true;
+    this.failed = failed;
     this.playing = false;
-    this.cancelHoldsSilent();
-    this.audio.stopNodes();
-    this.releaseWakeLock();
+    this.audio.stopMusic();
+    this.status = failed ? 'Dropped.' : 'Cleared.';
+    this.onEvent?.({ type: 'finished', result: this.buildResult(failed) });
+  }
 
-    const accuracy = accuracyPct(this.earnedPoints, this.judgedNotes);
-    const prevBest = loadBest(this.song.key, this.difficulty, this.modifiers);
-    const isRecord = !failed && this.judgedNotes > 0 && this.score > prevBest;
-    if (isRecord) {
-      saveBest(this.song.key, this.difficulty, this.modifiers, {
-        score: this.score,
-        accuracy,
-        grade: gradeFor(accuracy, failed).text,
-        maxCombo: this.maxCombo,
-        at: Date.now(),
+  private flash(text: string, color: string): void {
+    this.judgeFlash = text;
+    this.judgeColor = color;
+    this.judgeLife = 1;
+  }
+
+  private burst(lane: 0 | 1, color: string, n: number): void {
+    const view = this.view;
+    if (!view) return;
+    const { x, y } = view.receptor(lane);
+    this.rings.push({ x, y, r: 16, life: 1, color, width: 3 });
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const s = 40 + Math.random() * 90;
+      this.particles.push({
+        x,
+        y,
+        vx: Math.cos(a) * s,
+        vy: Math.sin(a) * s,
+        life: 1,
+        size: 1.4 + Math.random() * 2.2,
+        color,
       });
     }
-
-    const grade = gradeFor(accuracy, failed);
-    this.result = {
-      failed,
-      song: this.song.name,
-      songKey: this.song.key,
-      difficulty: this.difficulty,
-      modifiers: [...this.modifiers],
-      score: this.score,
-      accuracy,
-      maxCombo: this.maxCombo,
-      counts: { ...this.counts },
-      grade,
-      isRecord,
-      best: Math.max(loadBest(this.song.key, this.difficulty, this.modifiers), this.score),
-    };
-    this.status = failed
-      ? `Game over — health depleted. Final score: ${this.score.toLocaleString()}`
-      : `Song complete! Final score: ${this.score.toLocaleString()}`;
-    this.showJudgement(failed ? 'FAILED' : 'FINISHED', failed ? '#ff667d' : '#68f5d1', failed ? 'miss' : 'clear');
-    this.view.addShake(failed ? 10 : 4, failed ? 0.5 : 0.25);
-    this.audio.playFinish(failed);
-    vib(failed ? [80, 60, 80] : [30, 40, 30]);
-    this.emit();
   }
 
-  private resetScore(): void {
-    this.score = 0;
-    this.combo = 0;
-    this.maxCombo = 0;
-    this.earnedPoints = 0;
-    this.judgedNotes = 0;
-    this.counts = emptyCounts();
-    this.health = 100;
-    this.holds.clear();
-  }
-
-  private celebrate(combo: number): void {
-    this.showJudgement(`${combo} COMBO`, '#ff75c5', 'info');
-    this.view.spawnParticles(this.view.hitX(), this.view.laneY(0), '#ff75c5', 12, 1.1);
-    this.view.spawnParticles(this.view.hitX(), this.view.laneY(1), '#719cff', 12, 1.1);
-    this.view.flash('255,117,197', 0.12);
-    this.view.addShake(3, 0.2);
-  }
-
-  private showJudgement(text: string, color: string, kind: JudgementEvent['kind']): void {
-    this.judgementSeq += 1;
-    this.judgement = { id: this.judgementSeq, text, color, kind };
-  }
-
-  private emit(): void {
-    const snap = this.snapshot();
-    for (const fn of this.listeners) fn(snap, this.judgement);
-  }
-
-  private frame(dt: number, pulseNow: number): void {
-    if (!this.canvas || !this.ctx) return;
-    this.view.resize(this.canvas, this.ctx);
-    const now = this.playing ? this.gameTime() : 0;
-    const D = this.diff();
-    const approach = approachFor(D, this.modifiers);
-
-    if (this.playing && !this.paused) {
-      this.updateHolds(now);
-      this.autoplay(now);
-      for (const note of this.notes) {
-        if (note.judged || note.holding) continue;
-        if (now - note.time > D.miss) this.registerMiss(note);
-      }
-      if (this.health <= 0 && !this.modifiers.has('nofail')) {
-        this.finish(true);
-      } else if (!this.buffer && this.notes.length > 0 && now > this.chartEnd + 0.6) {
-        if (this.notes.every((n) => n.judged)) this.finish(false);
-      }
+  private advanceFx(dt: number): void {
+    this.judgeLife = Math.max(0, this.judgeLife - dt * 1.6);
+    this.pulse = Math.max(0, this.pulse - dt * 4);
+    this.shake = Math.max(0, this.shake - dt * 5);
+    for (const p of this.particles) {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx *= 0.9;
+      p.vy *= 0.9;
+      p.life -= dt * 1.8;
     }
-
-    this.view.draw(this.ctx, {
-      notes: this.notes,
-      holds: [...this.holds.values()],
-      playing: this.playing,
-      paused: this.paused,
-      now,
-      approach,
-      missWindow: D.miss,
-      difficulty: D,
-      modifiers: this.modifiers,
-      health: this.health,
-      chartEnd: this.chartEnd,
-      songDuration: this.buffer ? this.buffer.duration : Math.max(this.chartEnd, 60),
-      counts: this.counts,
-      judgedNotes: this.judgedNotes,
-      combo: this.combo,
-      freq: this.audio.pullFrequency(),
-      reducedMotion: this.reducedMotion,
-    }, dt, pulseNow);
-  }
-
-  private async requestWakeLock(): Promise<void> {
-    try {
-      if ('wakeLock' in navigator) this.wakeLock = await navigator.wakeLock.request('screen');
-    } catch { /* denied */ }
-  }
-
-  private releaseWakeLock(): void {
-    try { void this.wakeLock?.release(); } catch { /* */ }
-    this.wakeLock = null;
+    this.particles = this.particles.filter((p) => p.life > 0);
+    for (const r of this.rings) {
+      r.r += dt * 90;
+      r.life -= dt * 2.2;
+    }
+    this.rings = this.rings.filter((r) => r.life > 0);
   }
 }
-
-function emptyCounts(): HitCounts {
-  return { perfect: 0, good: 0, ok: 0, miss: 0, drop: 0 };
-}
-
-function vib(pattern: number | number[]): void {
-  try { navigator.vibrate?.(pattern); } catch { /* unsupported */ }
-}
-
-export { comboColor };

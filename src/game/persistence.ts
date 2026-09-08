@@ -1,91 +1,157 @@
-/**
- * Local high scores and Flow preferences. Stored in this browser only —
- * same privacy posture as the local library.
- */
-import type { DifficultyId, ModifierId } from './types';
-import { modifierKey } from './types';
+import type { DifficultyId, GameResult, Grade, HitCounts, ModifierId, SongRef } from './types';
+import { CHART_VERSION, emptyCounts, modifierKey } from './types';
+import { gradeFor } from './scoring';
 
 const KEY = 'resontune-flow';
 
-export interface FlowPrefs {
-  volume: number;
-  offset: number;
-  difficulty: DifficultyId;
-  modifiers: ModifierId[];
-}
-
-export interface FlowScore {
+export interface SavedBest {
   score: number;
   accuracy: number;
   grade: string;
   maxCombo: number;
+  perfectChain: number;
+  feverPeak: string;
   at: number;
+  chartVersion: number;
 }
 
-interface Store {
-  prefs: FlowPrefs;
-  scores: Record<string, FlowScore>;
+export interface FlowSave {
+  best: Record<string, SavedBest>;
+  offsetMs: number;
+  lastDifficulty: DifficultyId;
+  lastModifiers: ModifierId[];
+  lastSpeed: number;
 }
 
-const DEFAULT_PREFS: FlowPrefs = {
-  volume: 0.7,
-  offset: 0,
-  difficulty: 'normal',
-  modifiers: [],
+const empty: FlowSave = {
+  best: {},
+  offsetMs: 0,
+  lastDifficulty: 'normal',
+  lastModifiers: [],
+  lastSpeed: 1,
 };
 
-function load(): Store {
+export function loadSave(): FlowSave {
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return { prefs: { ...DEFAULT_PREFS }, scores: {} };
-    const parsed = JSON.parse(raw) as Partial<Store>;
+    if (!raw) return { ...empty, best: {} };
+    const parsed = JSON.parse(raw) as Partial<FlowSave>;
     return {
-      prefs: { ...DEFAULT_PREFS, ...(parsed.prefs ?? {}) },
-      scores: parsed.scores ?? {},
+      best: parsed.best ?? {},
+      offsetMs: typeof parsed.offsetMs === 'number' ? parsed.offsetMs : 0,
+      lastDifficulty: parsed.lastDifficulty ?? 'normal',
+      lastModifiers: parsed.lastModifiers ?? [],
+      lastSpeed: typeof parsed.lastSpeed === 'number' ? parsed.lastSpeed : 1,
     };
   } catch {
-    return { prefs: { ...DEFAULT_PREFS }, scores: {} };
+    return { ...empty, best: {} };
   }
 }
 
-function save(store: Store): void {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(store));
-  } catch {
-    /* quota / private mode */
-  }
+export function writeSave(save: FlowSave): void {
+  localStorage.setItem(KEY, JSON.stringify(save));
 }
 
-export function loadPrefs(): FlowPrefs {
-  return load().prefs;
+export function scoreKey(
+  songKey: string,
+  difficulty: DifficultyId,
+  modifiers: Iterable<ModifierId>,
+  chartVersion = CHART_VERSION,
+): string {
+  return `${songKey}|${difficulty}|${modifierKey(modifiers)}|v${chartVersion}`;
 }
 
-export function savePrefs(prefs: FlowPrefs): void {
-  const store = load();
-  store.prefs = prefs;
-  save(store);
-}
-
-export function scoreKey(songKey: string, difficulty: DifficultyId, modifiers: Iterable<ModifierId>): string {
-  return `${songKey}|${difficulty}|${modifierKey(modifiers)}`;
+export function readBest(save: FlowSave, key: string): SavedBest | null {
+  return save.best[key] ?? null;
 }
 
 export function loadBest(songKey: string, difficulty: DifficultyId, modifiers: Iterable<ModifierId>): number {
-  const row = load().scores[scoreKey(songKey, difficulty, modifiers)];
-  return row?.score ?? 0;
+  return readBest(loadSave(), scoreKey(songKey, difficulty, modifiers))?.score ?? 0;
 }
 
 export function saveBest(
   songKey: string,
   difficulty: DifficultyId,
   modifiers: Iterable<ModifierId>,
-  entry: FlowScore,
+  entry: { score: number; accuracy: number; grade: string; maxCombo: number; at: number; perfectChain?: number; feverPeak?: string },
 ): boolean {
-  const store = load();
+  const save = loadSave();
   const key = scoreKey(songKey, difficulty, modifiers);
-  const prev = store.scores[key]?.score ?? 0;
-  if (entry.score <= prev) return false;
-  store.scores[key] = entry;
-  save(store);
-  return true;
+  const fake = resultFromRun({
+    failed: false,
+    song: { key: songKey, title: songKey, artist: '', kind: 'preview' },
+    difficulty,
+    modifiers: [...modifiers],
+    speed: 1,
+    score: entry.score,
+    accuracy: entry.accuracy,
+    maxCombo: entry.maxCombo,
+    perfectChainMax: entry.perfectChain ?? 0,
+    feverPeak: (entry.feverPeak as GameResult['feverPeak']) || 'idle',
+    feverActivations: 0,
+    counts: emptyCounts(),
+    practice: false,
+    isRecord: false,
+    best: 0,
+  });
+  const next = recordBest(save, key, fake);
+  if (next.isRecord) writeSave(next.save);
+  return next.isRecord;
 }
+
+export function recordBest(save: FlowSave, key: string, result: GameResult): { save: FlowSave; isRecord: boolean } {
+  const prev = save.best[key];
+  const isRecord = !prev || result.score > prev.score;
+  if (!isRecord) return { save, isRecord: false };
+  return {
+    isRecord: true,
+    save: {
+      ...save,
+      best: {
+        ...save.best,
+        [key]: {
+          score: result.score,
+          accuracy: result.accuracy,
+          grade: result.grade.text,
+          maxCombo: result.maxCombo,
+          perfectChain: result.perfectChainMax,
+          feverPeak: result.feverPeak,
+          at: Date.now(),
+          chartVersion: CHART_VERSION,
+        },
+      },
+    },
+  };
+}
+
+export function bestLine(best: SavedBest | null): { score: number; grade: string } {
+  if (!best) return { score: 0, grade: '—' };
+  return { score: best.score, grade: best.grade };
+}
+
+export function resultFromRun(args: {
+  failed: boolean;
+  song: SongRef;
+  difficulty: DifficultyId;
+  modifiers: ModifierId[];
+  speed: number;
+  score: number;
+  accuracy: number;
+  maxCombo: number;
+  perfectChainMax: number;
+  feverPeak: GameResult['feverPeak'];
+  feverActivations: number;
+  counts: HitCounts;
+  practice: boolean;
+  isRecord: boolean;
+  best: number;
+}): GameResult {
+  return {
+    ...args,
+    grade: gradeFor(args.accuracy, args.failed),
+    counts: { ...args.counts },
+  };
+}
+
+export { emptyCounts, gradeFor };
+export type { Grade };

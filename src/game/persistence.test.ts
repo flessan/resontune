@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { CHART_VERSION } from './types';
 import { loadBest, saveBest, scoreKey } from './persistence';
 
 afterEach(() => {
@@ -6,9 +7,9 @@ afterEach(() => {
 });
 
 describe('Flow high scores', () => {
-  it('keys scores by song, difficulty and modifiers', () => {
-    expect(scoreKey('preview', 'normal', [])).toBe('preview|normal|none');
-    expect(scoreKey('preview', 'hard', ['dual', 'split'])).toBe('preview|hard|dual+split');
+  it('keys scores by song, difficulty, modifiers and chart version', () => {
+    expect(scoreKey('preview', 'normal', [])).toBe(`preview|normal|none|v${CHART_VERSION}`);
+    expect(scoreKey('preview', 'hard', ['dual', 'split'])).toBe(`preview|hard|dual+split|v${CHART_VERSION}`);
   });
 
   it('only replaces a best when the new score is higher', () => {

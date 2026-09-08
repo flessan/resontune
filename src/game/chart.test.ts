@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildChart,
   buildNotes,
   chartEndOf,
   countHolds,
@@ -7,6 +8,7 @@ import {
   detectBeats,
   holdDurationForGap,
   previewBeatTimes,
+  previewSections,
 } from './chart';
 import { HOLD_MIN_GAP } from './types';
 
@@ -52,7 +54,6 @@ describe('beat detection', () => {
     const sampleRate = 44100;
     const duration = 12;
     const samples = new Float32Array(sampleRate * duration);
-    // Click every second starting at t=1 — need ≥8 peaks or the detector falls back.
     for (let t = 1; t <= 10; t++) {
       const i = Math.floor(t * sampleRate);
       for (let k = 0; k < 800; k++) samples[i + k] = 1;
@@ -86,10 +87,10 @@ describe('chart construction', () => {
 
   it('densifies Hard without eating hold-worthy gaps', () => {
     const times = [1, 1.5, 3.2];
-    const dense = densifyBeats(times, 5, 'hard');
+    const dense = densifyBeats(times, 'hard');
     expect(dense.some((t) => t > 1 && t < 1.5)).toBe(true);
     expect(dense.filter((t) => t > 1.5 && t < 3.2)).toHaveLength(0);
-    expect(densifyBeats(times, 5, 'normal')).toEqual(times);
+    expect(densifyBeats(times, 'normal')).toEqual(times);
   });
 
   it('adds overlapping holds and chords only with Dual', () => {
@@ -98,5 +99,31 @@ describe('chart construction', () => {
     const base = buildNotes(times, end, { difficulty: 'hard', modifiers: new Set() });
     const dual = buildNotes(times, end, { difficulty: 'hard', modifiers: new Set(['dual']) });
     expect(dual.length).toBeGreaterThanOrEqual(base.length);
+  });
+
+  it('phrases Preview Beat and puts real chords on chorus/drop', () => {
+    const times = previewBeatTimes();
+    const sections = previewSections();
+    const easy = buildChart(times, { difficulty: 'easy', modifiers: new Set(), sections });
+    const hard = buildChart(times, { difficulty: 'hard', modifiers: new Set(), sections });
+    expect(easy.every((n) => n.chordGroup == null)).toBe(true);
+    expect(hard.some((n) => n.chordGroup != null && n.section === 'chorus')).toBe(true);
+    const group = hard.find((n) => n.chordGroup != null)!.chordGroup;
+    const pair = hard.filter((n) => n.chordGroup === group);
+    expect(pair).toHaveLength(2);
+    expect(new Set(pair.map((n) => n.lane)).size).toBe(2);
+    expect(pair[0].time).toBe(pair[1].time);
+  });
+
+  it('can occupy both lanes with a dual hold', () => {
+    const notes = buildChart([1, 2.2], {
+      difficulty: 'normal',
+      modifiers: new Set(['classic']),
+      sections: [{ kind: 'chorus', start: 0, end: 8 }],
+    });
+    const heads = notes.filter((n) => n.time === 1);
+    expect(heads).toHaveLength(2);
+    expect(heads.every((n) => n.duration > 0)).toBe(true);
+    expect(heads.map((n) => n.lane).sort()).toEqual([0, 1]);
   });
 });

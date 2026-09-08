@@ -49,7 +49,8 @@ export function Layout() {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable) return;
-      /* Flow owns Space and the arrow keys while that destination is open. */
+      /* Flow owns the keyboard while a session is on the playfield. */
+      if (document.body.dataset.flow === 'play' || document.body.dataset.flow === 'paused') return;
       if (location.pathname === '/game' && (e.code === 'Space' || e.key === 'ArrowRight' || e.key === 'ArrowLeft')) return;
       if (e.code === 'Space') {
         e.preventDefault();

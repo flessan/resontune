@@ -75,13 +75,16 @@ lock.
 
 ## Flow
 
-`/game` is ResonTune's rhythm-game destination. The original FLOW RHYTHM
-engine (`game.html`) is the gameplay source of truth: a dedicated
-`AudioContext` clocks notes, holds and music together (pause = `suspend()`),
-any input hits the next note, and wide gaps become holds. The React page is
-chrome — local-library song picking, modifiers, results — not an iframe of
-the standalone HTML. The streaming player is paused for the duration of a
-run so the two graphs never fight.
+`/game` is ResonTune's rhythm-game destination (select → prep → play →
+result). The original FLOW RHYTHM clock still governs play: a dedicated
+`AudioContext` times notes, holds and music together (pause = `suspend()`),
+and wide gaps become holds. Charts are phrased (intro / verse / build /
+chorus / break / drop / outro) with true dual-lane chords. Hit feedback is
+an 808/kick at judgement time; Fever / FLOW STATE multiply score. Play HUD
+is canvas-only. Track pages deep-link with `/game?track=:slug`. Scores stay
+in `localStorage` (`resontune-flow`); local files are never uploaded. The
+streaming player is paused for the duration of a run so the two graphs
+never fight.
 
 ## The player
 
