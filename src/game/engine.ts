@@ -510,10 +510,10 @@ export class FlowEngine {
       const sfx = note.duration > 0 ? 'hold' : chord ? 'chord' : kind;
       this.audio.hit(sfx, undefined, { fuller });
     }
-    this.burst(note.lane, color, kind === 'perfect' ? 14 : 7);
-    if (chord) this.burst((1 - note.lane) as 0 | 1, color, 5);
+    this.burst(note.lane, color, kind === 'perfect' ? 8 : 4);
+    if (chord) this.burst((1 - note.lane) as 0 | 1, color, 3);
     if (this.combo === 10 || this.combo === 25 || this.combo === 50 || this.combo === 100) {
-      this.burst(note.lane, '#ffe7c2', 14);
+      this.burst(note.lane, '#ffe7c2', 8);
       this.pulse = 1;
     }
   }
@@ -529,7 +529,7 @@ export class FlowEngine {
     this.health = Math.max(0, this.health - this.d().healthMiss);
     this.fever = feverOnMiss(this.fever);
     this.flash('MISS', '#ffb4ab');
-    this.shake = 0.55;
+    this.shake = 0.28;
     this.audio.hit('miss');
   }
 
@@ -561,7 +561,7 @@ export class FlowEngine {
       if (now >= hold.nextTick) {
         this.score += HOLD_TICK_SCORE;
         const ticks = Math.round((now - hold.note.time) / HOLD_TICK);
-        if (ticks % 3 === 0) this.audio.hit('tick');
+        if (ticks % 4 === 0) this.audio.hit('tick');
         hold.nextTick += HOLD_TICK;
       }
     }
@@ -575,7 +575,7 @@ export class FlowEngine {
       this.flash('CLEAR', '#ffe7c2');
       this.audio.hit('clear', undefined, { fuller: this.fever.phase !== 'idle' });
       this.lanePulse[hold.note.lane] = 0.85;
-      this.burst(hold.note.lane, '#ffe7c2', 10);
+      this.burst(hold.note.lane, '#ffe7c2', 6);
     } else {
       this.counts.drop += 1;
       this.combo = 0;

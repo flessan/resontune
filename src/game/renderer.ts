@@ -336,8 +336,9 @@ export class GameView {
       const top = Math.min(a.y, b.y);
       const bot = Math.max(a.y, b.y);
       ctx.globalAlpha = Math.min(a.alpha, b.alpha) * 0.7;
+      const dualHold = pair.every((p) => p.note.duration > 0);
       ctx.strokeStyle = PEACH;
-      ctx.lineWidth = 4;
+      ctx.lineWidth = dualHold ? 6 : 4;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(x, top);

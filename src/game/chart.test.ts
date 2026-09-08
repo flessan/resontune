@@ -208,7 +208,7 @@ describe('chart construction', () => {
     const holds = notes.filter((n) => n.duration > 0).sort((a, b) => a.time - b.time);
     expect(holds.length).toBeGreaterThanOrEqual(2);
     expect(holds[0].time).toBe(1);
-    expect(holds[1].time).toBeCloseTo(1.14);
+    expect(holds[1].time).toBeCloseTo(1.25);
     expect(holds[0].lane).not.toBe(holds[1].lane);
   });
 
@@ -270,5 +270,76 @@ describe('chart construction', () => {
     });
     expect(notes).toHaveLength(2);
     expect(notes.every((n) => n.chordGroup == null)).toBe(true);
+  });
+});
+
+describe('phrase feel', () => {
+  const times = previewBeatTimes();
+  const sections = previewSections();
+
+  it('gives intro breathing room and chorus more intensity', () => {
+    const normal = buildChart(times, { difficulty: 'normal', modifiers: new Set(), sections });
+    const intro = normal.filter((n) => n.section === 'intro');
+    const verse = normal.filter((n) => n.section === 'verse');
+    const chorus = normal.filter((n) => n.section === 'chorus');
+    const introSpan = 8;
+    const verseSpan = 12;
+    const chorusSpan = 12;
+    expect(intro.length / introSpan).toBeLessThan(verse.length / verseSpan);
+    expect(chorus.filter((n) => n.chordGroup != null).length).toBeGreaterThan(0);
+    expect(chorus.length).toBeGreaterThan(intro.length);
+  });
+
+  it('keeps inside-hold taps inside their parent hold', () => {
+    const notes = buildChart(times, { difficulty: 'normal', modifiers: new Set(), sections });
+    const holds = notes.filter((n) => n.duration > 0);
+    for (const hold of holds) {
+      const inside = notes.filter(
+        (n) => n !== hold && n.duration === 0 && n.time > hold.time && n.time < hold.time + hold.duration,
+      );
+      for (const tap of inside) {
+        expect(tap.time).toBeGreaterThan(hold.time + 0.18);
+        expect(tap.time).toBeLessThan(hold.time + hold.duration - 0.15);
+      }
+    }
+  });
+
+  it('does not spam dual holds or back-to-back chords on Hard', () => {
+    const hard = buildChart(times, { difficulty: 'hard', modifiers: new Set(), sections });
+    const dualHolds = new Set(
+      hard
+        .filter((n) => n.duration > 0 && n.chordGroup != null)
+        .filter((n) => hard.filter((o) => o.chordGroup === n.chordGroup && o.duration > 0).length === 2)
+        .map((n) => n.chordGroup),
+    );
+    expect(dualHolds.size).toBeGreaterThan(0);
+    expect(dualHolds.size).toBeLessThanOrEqual(3);
+    const chordTimes = [...new Set(hard.filter((n) => n.chordGroup != null && n.duration === 0).map((n) => n.time))].sort(
+      (a, b) => a - b,
+    );
+    const tight = chordTimes.filter((t, i) => i > 0 && t - chordTimes[i - 1] < 0.7);
+    expect(tight.length).toBe(0);
+  });
+
+  it('varies hold lengths on Normal instead of cloning every tail', () => {
+    const notes = buildChart(times, { difficulty: 'normal', modifiers: new Set(), sections });
+    const durs = [...new Set(notes.filter((n) => n.duration > 0).map((n) => n.duration.toFixed(2)))];
+    expect(durs.length).toBeGreaterThan(1);
+  });
+
+  it('bounces Normal lanes instead of pinning everything to lane 0', () => {
+    const notes = buildChart(times, { difficulty: 'normal', modifiers: new Set(), sections });
+    const taps = notes.filter((n) => n.duration === 0 && n.chordGroup == null);
+    const lane0 = taps.filter((n) => n.lane === 0).length;
+    const lane1 = taps.filter((n) => n.lane === 1).length;
+    expect(Math.min(lane0, lane1) / Math.max(lane0, lane1)).toBeGreaterThan(0.35);
+  });
+
+  it('treats chords as accents, not a stream', () => {
+    const normal = buildChart(times, { difficulty: 'normal', modifiers: new Set(), sections });
+    const groups = new Set(normal.filter((n) => n.chordGroup != null).map((n) => n.chordGroup));
+    const taps = normal.filter((n) => n.duration === 0 && n.chordGroup == null).length;
+    expect(groups.size).toBeGreaterThan(0);
+    expect(groups.size).toBeLessThan(taps / 3);
   });
 });

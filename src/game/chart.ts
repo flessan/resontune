@@ -169,15 +169,42 @@ export function holdDurationForGap(gap: number): number {
   return Math.max(0.4, Math.min(gap - 0.45, 1.4));
 }
 
-function laneFor(index: number, easy: boolean, seed: number): 0 | 1 {
+/** Bounce L-R, with a same-lane double every few phrases. Not a random hash. */
+function laneFor(index: number, easy: boolean, _seed: number): 0 | 1 {
   if (easy) return (index % 2) as 0 | 1;
-  return ((Math.sin(index * 12.9898 + seed) * 43758.5453) % 1 > 0.5 ? 1 : 0) as 0 | 1;
+  const phrase = Math.floor(index / 4);
+  const pos = index % 4;
+  const start = (phrase % 2) as 0 | 1;
+  if (pos === 3 && phrase % 3 === 2) return start;
+  return ((start + pos) % 2) as 0 | 1;
+}
+
+function chartPulse(times: number[]): number {
+  const gaps: number[] = [];
+  for (let i = 1; i < times.length; i++) {
+    const g = times[i] - times[i - 1];
+    if (g >= 0.22 && g < HOLD_MIN_GAP) gaps.push(g);
+  }
+  if (!gaps.length) return 0.5;
+  gaps.sort((a, b) => a - b);
+  return gaps[Math.floor(gaps.length / 2)];
+}
+
+/** Short / medium / long from the same gap math. Easy keeps the raw duration. */
+function flavoredHold(gap: number, flavor: number): number {
+  const base = holdDurationForGap(gap);
+  if (!base) return 0;
+  const cycle = flavor % 3;
+  if (cycle === 2) return Math.max(0.4, Math.min(base, 0.55));
+  if (cycle === 0) return Math.max(0.4, Math.min(base, 0.95));
+  return base;
 }
 
 /** Intentional rests — intro/break leave space instead of filling every beat. */
 function shouldRest(section: SectionKind, difficulty: ChartOptions['difficulty'], i: number): boolean {
   if (section === 'break' && i % 2 === 1) return true;
   if (section === 'intro' && difficulty !== 'hard' && i % 3 === 2) return true;
+  if (section === 'intro' && difficulty === 'hard' && i % 2 === 1) return true;
   return false;
 }
 
@@ -192,19 +219,18 @@ function placeBurst(
     i: number;
     lane: 0 | 1;
     other: 0 | 1;
+    pulse: number;
   },
 ): void {
-  const { easy, hard, section, t, gap, i, lane, other } = args;
-  if (easy || gap < 0.32 || gap >= HOLD_MIN_GAP) return;
-  if (section === 'build' && i % 3 === 1) {
-    take(t + Math.min(0.16, gap * 0.38), other, 0, null, section);
-    if (hard && gap > 0.5) take(t + gap * 0.62, lane, 0, null, section);
+  const { easy, hard, section, t, gap, i, lane, other, pulse } = args;
+  if (easy || gap < 0.4 || gap >= HOLD_MIN_GAP) return;
+  const eighth = Math.min(pulse * 0.5, gap * 0.5);
+  if (section === 'build' && i % 4 === 1) {
+    take(t + eighth, other, 0, null, section);
+    if (hard && gap > 0.7) take(t + pulse, lane, 0, null, section);
   }
-  if (section === 'drop' && hard && i % 2 === 0 && gap > 0.3) {
-    take(t + gap * 0.33, other, 0, null, section);
-  }
-  if (section === 'chorus' && hard && i % 5 === 2 && gap > 0.36) {
-    take(t + gap * 0.45, other, 0, null, section);
+  if (section === 'drop' && hard && i % 8 === 2 && gap > 0.4) {
+    take(t + eighth, other, 0, null, section);
   }
 }
 
@@ -221,27 +247,31 @@ function weaveHoldTaps(
     dur: number;
     next: number | undefined;
     other: 0 | 1;
+    pulse: number;
   },
 ): void {
-  const { easy, classic, dual, hard, section, t, dur, next, other } = args;
+  const { easy, classic, dual, hard, section, t, dur, next, other, pulse } = args;
   if (easy || classic) return;
   if (section === 'intro' || section === 'outro' || section === 'break') return;
 
-  if (dual && section === 'drop' && dur >= 1.05) {
-    take(t + 0.14, other, Math.max(0.4, dur - 0.28), null, section);
+  const beat = pulse || 0.5;
+  if (dual && section === 'drop' && dur >= 0.85) {
+    const off = Math.max(0.25, beat * 0.5);
+    take(t + off, other, Math.max(0.4, dur - off), null, section);
     return;
   }
 
-  const mid = t + dur * (section === 'drop' ? 0.36 : 0.44);
-  const roomMid = next == null || mid < next - 0.22;
-  if (dur >= 0.7 && roomMid) {
-    take(mid, other, 0, null, section);
-    if (hard && dur >= 1 && section === 'chorus') {
-      const late = t + dur * 0.68;
-      if (next == null || late < next - 0.22) take(late, other, 0, null, section);
-    }
-    return;
+  const inside: number[] = [];
+  if (dur >= 0.7) inside.push(t + beat);
+  if (hard && dur >= 0.9 && section === 'chorus') inside.push(t + beat * 2);
+  let placed = 0;
+  for (const at of inside) {
+    if (at <= t + 0.2 || at >= t + dur - 0.18) continue;
+    if (next != null && at >= next - 0.2) continue;
+    take(at, other, 0, null, section);
+    placed += 1;
   }
+  if (placed) return;
 
   const after = t + dur + 0.14;
   if (next != null && after < next - 0.2 && next - (t + dur) >= 0.32) {
@@ -256,10 +286,14 @@ export function buildChart(beats: number[], options: ChartOptions): Note[] {
   const dual = modifiers.has('dual');
   const classic = modifiers.has('classic');
   const times = densifyBeats(beats, difficulty);
+  const pulse = chartPulse(times);
   const notes: Note[] = [];
   let id = 0;
   let chordGroup = 1;
   let holdAlt = 0;
+  let holdFlavor = 0;
+  let lastDual = -99;
+  const isolatedAt: Record<string, number> = { verse: 0, outro: 0 };
   const seed = times[0] ?? 0;
 
   const take = (time: number, lane: 0 | 1, duration: number, group: number | null, section: SectionKind) => {
@@ -282,6 +316,7 @@ export function buildChart(beats: number[], options: ChartOptions): Note[] {
   for (let i = 0; i < times.length; i++) {
     const t = times[i];
     const next = times[i + 1];
+    const nextNext = times[i + 2];
     const gap = next != null ? next - t : 1.2;
     const section = sectionAt(sections, t);
     const lane = laneFor(i, easy, seed);
@@ -289,6 +324,7 @@ export function buildChart(beats: number[], options: ChartOptions): Note[] {
 
     if (gap < HOLD_MIN_GAP && shouldRest(section, difficulty, i)) continue;
 
+    const chained = next != null && nextNext != null && nextNext - next >= HOLD_MIN_GAP;
     const wantHold =
       gap >= HOLD_MIN_GAP &&
       (classic ||
@@ -296,29 +332,44 @@ export function buildChart(beats: number[], options: ChartOptions): Note[] {
         section === 'chorus' ||
         section === 'outro' ||
         (section === 'drop' && (hard || dual)));
+
+    if (
+      wantHold &&
+      !chained &&
+      !easy &&
+      !classic &&
+      (section === 'verse' || section === 'outro') &&
+      isolatedAt[section]++ % 2 === 1
+    ) {
+      take(t, lane, 0, null, section);
+      continue;
+    }
+
     const wantChord =
       !easy &&
       gap < HOLD_MIN_GAP &&
-      (section === 'chorus' || section === 'drop' || (dual && section !== 'intro' && section !== 'outro')) &&
-      i % (dual ? 2 : 4) === 0;
+      (section === 'chorus' || section === 'drop') &&
+      i % (hard ? 8 : 4) === 0;
 
     const wantDualHold =
       !easy &&
       wantHold &&
       gap >= 1.05 &&
       (classic || (hard && (section === 'chorus' || section === 'drop'))) &&
-      (classic || i % 3 === 0);
+      (classic || i % 3 === 0) &&
+      (classic || t - lastDual >= 4);
 
     if (wantDualHold) {
       const dur = holdDurationForGap(gap);
       const group = chordGroup++;
+      lastDual = t;
       take(t, 0, dur, group, section);
       take(t, 1, dur, group, section);
       continue;
     }
 
     if (wantHold) {
-      const dur = holdDurationForGap(gap);
+      const dur = easy || classic ? holdDurationForGap(gap) : flavoredHold(gap, holdFlavor++);
       const holdLane = !easy && (section === 'verse' || section === 'chorus')
         ? ((holdAlt++ % 2) as 0 | 1)
         : lane;
@@ -337,6 +388,7 @@ export function buildChart(beats: number[], options: ChartOptions): Note[] {
         dur,
         next,
         other: holdOther,
+        pulse,
       });
       continue;
     }
@@ -349,7 +401,7 @@ export function buildChart(beats: number[], options: ChartOptions): Note[] {
     }
 
     take(t, lane, 0, null, section);
-    placeBurst(take, { easy, hard, section, t, gap, i, lane, other });
+    placeBurst(take, { easy, hard, section, t, gap, i, lane, other, pulse });
   }
 
   notes.sort((a, b) => a.time - b.time || a.lane - b.lane);

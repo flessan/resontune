@@ -105,7 +105,7 @@ describe('multi-input holds', () => {
     engine.dispose();
   });
 
-  it('plays a tick every third hold tick', () => {
+  it('plays a tick every fourth hold tick', () => {
     const engine = new FlowEngine();
     const kinds: string[] = [];
     engine.audio.hit = (kind) => {
@@ -114,7 +114,7 @@ describe('multi-input holds', () => {
     live(engine, 0);
     engine.notes = [note({ id: 0, time: 0, lane: 0, duration: 1.2 })];
     engine.tap('k:KeyD', null);
-    live(engine, 0.36);
+    live(engine, 0.48);
     engine.tick();
     expect(kinds).toContain('tick');
     engine.dispose();

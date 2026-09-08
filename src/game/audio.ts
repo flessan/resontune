@@ -132,23 +132,23 @@ export class GameAudio {
     if (!this.ctx || !this.sfxGain) return;
     const at = when ?? this.ctx.currentTime;
     playKick(this.ctx, this.sfxGain, kind, at, opts);
-    if (kind === 'perfect' || kind === 'chord' || kind === 'clear' || kind === 'fever') {
+    if (kind === 'chord' || kind === 'clear' || kind === 'fever') {
       this.duck(at);
     }
   }
 
-  /** Brief music dip so a strong hit can cut through. Rate-limited. */
+  /** Brief music dip on accents only. Never pumps every Perfect. */
   duck(when?: number): void {
     if (!this.ctx || !this.musicGain) return;
     const now = when ?? this.ctx.currentTime;
-    if (now - this.lastDuck < 0.18) return;
+    if (now - this.lastDuck < 0.28) return;
     this.lastDuck = now;
     const g = this.musicGain.gain;
     const base = this.musicLevel;
     g.cancelScheduledValues(now);
     g.setValueAtTime(base, now);
-    g.linearRampToValueAtTime(base * 0.78, now + 0.012);
-    g.linearRampToValueAtTime(base, now + 0.09);
+    g.linearRampToValueAtTime(base * 0.86, now + 0.01);
+    g.linearRampToValueAtTime(base, now + 0.07);
   }
 
   async suspend(): Promise<void> {
