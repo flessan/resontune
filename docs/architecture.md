@@ -19,6 +19,7 @@ client from `dist/` - one deployable unit.
 ```
 src/
   player/       playback engine + state + player UIs
+  game/         Flow rhythm game (timing, chart, canvas stage)
   visualizer/   analysis-driven render engine + modes/
   providers/    playback resolution (server /api/play + local object URLs)
   contextmenu/  contextual action model (right-click, ⋮, action sheet)
@@ -71,6 +72,16 @@ Mobile specifics worth knowing:
 rather than pixels: the navigation destinations, the header search action,
 `has-player`, accessible names in the mini player, and the drawer's scroll
 lock.
+
+## Flow
+
+`/game` is ResonTune's rhythm-game destination. The original FLOW RHYTHM
+engine (`game.html`) is the gameplay source of truth: a dedicated
+`AudioContext` clocks notes, holds and music together (pause = `suspend()`),
+any input hits the next note, and wide gaps become holds. The React page is
+chrome — local-library song picking, modifiers, results — not an iframe of
+the standalone HTML. The streaming player is paused for the duration of a
+run so the two graphs never fight.
 
 ## The player
 

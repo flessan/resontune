@@ -145,6 +145,15 @@ export default function About() {
           <Link to="/contribute" className="btn small">How to contribute</Link>
         </section>
         <section className="about-card">
+          <h3>Flow</h3>
+          <p>
+            A horizontal rhythm game built into ResonTune. Play the Preview
+            Beat, or chart any file from your local library. Timing, holds and
+            scoring come from FLOW RHYTHM; the chrome is ResonTune.
+          </p>
+          <Link to="/game" className="btn small">Play Flow</Link>
+        </section>
+        <section className="about-card">
           <h3>Support</h3>
           <p>
             ResonTune has no subscriptions and no ads, so infrastructure -

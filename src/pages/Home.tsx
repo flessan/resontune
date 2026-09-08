@@ -99,7 +99,8 @@ export default function Home() {
           <h3>No music yet</h3>
           <p>
             ResonTune is ready for its first releases.<br />
-            Explore <Link to="/library">locally stored music</Link>, or{' '}
+            Explore <Link to="/library">locally stored music</Link>, play{' '}
+            <Link to="/game">Flow</Link>, or{' '}
             <Link to="/submit">release music</Link> through the community.
           </p>
         </div>
@@ -220,6 +221,15 @@ export default function Home() {
           </div>
         </>
       )}
+
+      <div className="section-head">
+        <h2 className="section-title">Flow</h2>
+        <Link to="/game" className="section-link">Play</Link>
+      </div>
+      <p className="page-sub" style={{ marginTop: 0 }}>
+        Turn any song on this device into a rhythm game. Notes stay on your
+        machine — the same local library, never uploaded.
+      </p>
     </div>
   );
 }

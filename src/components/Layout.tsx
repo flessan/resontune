@@ -10,7 +10,7 @@ import { engine } from '@/player/engine';
 import {
   IconHome, IconSearch, IconLibrary, IconMic, IconDisc, IconMenu, IconClose,
   IconSubmit, IconUser, IconSettings, IconShield, IconWave, IconGitHub,
-  IconPlaylist, IconHeart, IconQueue,
+  IconPlaylist, IconHeart, IconQueue, IconFlow,
 } from './Icons';
 import { ContextMenuRoot } from '@/contextmenu/ContextMenuRoot';
 import { DialogHost } from './DialogHost';
@@ -49,6 +49,8 @@ export function Layout() {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable) return;
+      /* Flow owns Space and the arrow keys while that destination is open. */
+      if (location.pathname === '/game' && (e.code === 'Space' || e.key === 'ArrowRight' || e.key === 'ArrowLeft')) return;
       if (e.code === 'Space') {
         e.preventDefault();
         engine.ensureAnalysis();
@@ -64,7 +66,7 @@ export function Layout() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [location.pathname]);
 
   /* scroll to top + close drawer on navigation */
   useEffect(() => {
@@ -117,6 +119,7 @@ export function Layout() {
       <NavLink to="/originals" className={nav} title="Originals"><IconDisc width={18} height={18} /><span>Originals</span></NavLink>
       <NavLink to="/community" className={nav} title="Community"><IconMic width={18} height={18} /><span>Community</span></NavLink>
       <NavLink to="/radio" className={nav} title="Radio"><IconWave width={18} height={18} /><span>Radio</span></NavLink>
+      <NavLink to="/game" className={nav} title="Flow"><IconFlow width={18} height={18} /><span>Flow</span></NavLink>
       <NavLink
         to="/playlists"
         title="Library"

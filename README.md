@@ -45,6 +45,9 @@ mechanisms. No DRM bypass, no scraping, no proxying protected streams.
 The player is persistent across navigation, has compact / expanded /
 immersive modes, media-key support (Media Session API), queue + position
 persistence, and a real Web-Audio-powered visualizer engine with eight modes.
+**Flow** (`/game`) is a built-in horizontal rhythm game: play the Preview Beat
+or chart any local file. Timing is locked to a dedicated audio clock; music
+never leaves the device.
 The visualizer is on by default: pressing play lights up a subtle **Minimal
 Spectrum** right in the compact player bar, the expanded player adds a larger
 spectrum with quick mode/sensitivity controls, and the immersive view is the

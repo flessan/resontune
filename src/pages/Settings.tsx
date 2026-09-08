@@ -409,6 +409,8 @@ export default function Settings() {
           <tr><td><span className="kbd">Shift</span> + <span className="kbd">←</span></td><td>Previous track</td></tr>
           <tr><td><span className="kbd">←</span> / <span className="kbd">→</span> on seek bar</td><td>Seek ±5s</td></tr>
           <tr><td><span className="kbd">Esc</span></td><td>Close expanded / immersive player</td></tr>
+          <tr><td><span className="kbd">Esc</span> in Flow</td><td>Pause / resume the rhythm game</td></tr>
+          <tr><td>Any key in Flow</td><td>Hit the next note</td></tr>
         </tbody>
       </table>
 
