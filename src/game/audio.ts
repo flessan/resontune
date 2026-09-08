@@ -1,8 +1,14 @@
 /**
  * Dedicated Flow AudioContext. Music never goes through the streaming
  * ResonTune player. Pause = ctx.suspend(). Clock = ctx.currentTime.
+ *
+ * MUSIC → musicGain → master
+ * SFX   → sfxGain   → master
  */
 import { playKick, type KickKind } from './hitsound';
+
+export const DEFAULT_MUSIC = 0.9;
+export const DEFAULT_SFX = 0.55;
 
 export class GameAudio {
   ctx: AudioContext | null = null;
@@ -10,10 +16,13 @@ export class GameAudio {
   musicGain: GainNode | null = null;
   sfxGain: GainNode | null = null;
   analyser: AnalyserNode | null = null;
+  musicLevel = DEFAULT_MUSIC;
+  sfxLevel = DEFAULT_SFX;
   private source: AudioBufferSourceNode | null = null;
   private previewSource: AudioBufferSourceNode | null = null;
   private freq = new Uint8Array(32);
   private onEnded: (() => void) | null = null;
+  private lastDuck = 0;
 
   async ensure(): Promise<AudioContext> {
     if (this.ctx && this.ctx.state !== 'closed') {
@@ -26,14 +35,14 @@ export class GameAudio {
     master.connect(ctx.destination);
 
     const music = ctx.createGain();
-    music.gain.value = 0.9;
+    music.gain.value = this.musicLevel;
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 64;
     analyser.smoothingTimeConstant = 0.72;
     music.connect(analyser).connect(master);
 
     const sfx = ctx.createGain();
-    sfx.gain.value = 0.32;
+    sfx.gain.value = this.sfxLevel;
     sfx.connect(master);
 
     this.ctx = ctx;
@@ -119,9 +128,27 @@ export class GameAudio {
     this.source = null;
   }
 
-  hit(kind: KickKind, when?: number): void {
+  hit(kind: KickKind, when?: number, opts: { fuller?: boolean } = {}): void {
     if (!this.ctx || !this.sfxGain) return;
-    playKick(this.ctx, this.sfxGain, kind, when ?? this.ctx.currentTime);
+    const at = when ?? this.ctx.currentTime;
+    playKick(this.ctx, this.sfxGain, kind, at, opts);
+    if (kind === 'perfect' || kind === 'chord' || kind === 'clear' || kind === 'fever') {
+      this.duck(at);
+    }
+  }
+
+  /** Brief music dip so a strong hit can cut through. Rate-limited. */
+  duck(when?: number): void {
+    if (!this.ctx || !this.musicGain) return;
+    const now = when ?? this.ctx.currentTime;
+    if (now - this.lastDuck < 0.18) return;
+    this.lastDuck = now;
+    const g = this.musicGain.gain;
+    const base = this.musicLevel;
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(base, now);
+    g.linearRampToValueAtTime(base * 0.78, now + 0.012);
+    g.linearRampToValueAtTime(base, now + 0.09);
   }
 
   async suspend(): Promise<void> {
@@ -134,6 +161,20 @@ export class GameAudio {
 
   setMaster(volume: number): void {
     if (this.master) this.master.gain.value = volume;
+  }
+
+  setMusic(volume: number): void {
+    this.musicLevel = Math.max(0, Math.min(1, volume));
+    if (this.musicGain && this.ctx) {
+      const now = this.ctx.currentTime;
+      this.musicGain.gain.cancelScheduledValues(now);
+      this.musicGain.gain.setValueAtTime(this.musicLevel, now);
+    }
+  }
+
+  setSfx(volume: number): void {
+    this.sfxLevel = Math.max(0, Math.min(1, volume));
+    if (this.sfxGain) this.sfxGain.gain.value = this.sfxLevel;
   }
 
   close(): void {

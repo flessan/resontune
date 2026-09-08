@@ -21,6 +21,8 @@ export interface FlowSave {
   lastDifficulty: DifficultyId;
   lastModifiers: ModifierId[];
   lastSpeed: number;
+  musicVolume: number;
+  sfxVolume: number;
 }
 
 const empty: FlowSave = {
@@ -29,6 +31,8 @@ const empty: FlowSave = {
   lastDifficulty: 'normal',
   lastModifiers: [],
   lastSpeed: 1,
+  musicVolume: 0.9,
+  sfxVolume: 0.55,
 };
 
 export function loadSave(): FlowSave {
@@ -42,6 +46,8 @@ export function loadSave(): FlowSave {
       lastDifficulty: parsed.lastDifficulty ?? 'normal',
       lastModifiers: parsed.lastModifiers ?? [],
       lastSpeed: typeof parsed.lastSpeed === 'number' ? parsed.lastSpeed : 1,
+      musicVolume: typeof parsed.musicVolume === 'number' ? parsed.musicVolume : 0.9,
+      sfxVolume: typeof parsed.sfxVolume === 'number' ? parsed.sfxVolume : 0.55,
     };
   } catch {
     return { ...empty, best: {} };

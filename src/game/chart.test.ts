@@ -162,4 +162,113 @@ describe('chart construction', () => {
     expect(holds.length).toBeGreaterThanOrEqual(2);
     expect(holds[0].lane).not.toBe(holds[1].lane);
   });
+
+  it('keeps Normal chorus holds on one lane unless Dual or Classic is on', () => {
+    const notes = buildChart([1, 2.2], {
+      difficulty: 'normal',
+      modifiers: new Set(),
+      sections: [{ kind: 'chorus', start: 0, end: 8 }],
+    });
+    expect(notes.filter((n) => n.time === 1 && n.duration > 0)).toHaveLength(1);
+  });
+
+  it('places simultaneous dual holds on Hard chorus', () => {
+    const notes = buildChart([1, 2.2], {
+      difficulty: 'hard',
+      modifiers: new Set(),
+      sections: [{ kind: 'chorus', start: 0, end: 8 }],
+    });
+    const heads = notes.filter((n) => n.time === 1 && n.duration > 0);
+    expect(heads).toHaveLength(2);
+    expect(heads.map((n) => n.lane).sort()).toEqual([0, 1]);
+  });
+
+  it('pairs a Hard chorus hold with a same-time tap', () => {
+    const notes = buildChart([1, 1.3, 1.6, 1.9, 2.2, 3.4], {
+      difficulty: 'hard',
+      modifiers: new Set(),
+      sections: [{ kind: 'chorus', start: 0, end: 10 }],
+    });
+    const at = notes.filter((n) => n.time === 3.4);
+    const hold = at.find((n) => n.duration > 0);
+    const tap = at.find((n) => n.duration === 0);
+    expect(hold).toBeTruthy();
+    expect(tap).toBeTruthy();
+    expect(hold!.lane).not.toBe(tap!.lane);
+    expect(hold!.chordGroup).not.toBeNull();
+    expect(hold!.chordGroup).toBe(tap!.chordGroup);
+  });
+
+  it('staggers a second Dual drop hold on the other lane', () => {
+    const notes = buildChart([1, 2.8], {
+      difficulty: 'normal',
+      modifiers: new Set(['dual']),
+      sections: [{ kind: 'drop', start: 0, end: 10 }],
+    });
+    const holds = notes.filter((n) => n.duration > 0).sort((a, b) => a.time - b.time);
+    expect(holds.length).toBeGreaterThanOrEqual(2);
+    expect(holds[0].time).toBe(1);
+    expect(holds[1].time).toBeCloseTo(1.14);
+    expect(holds[0].lane).not.toBe(holds[1].lane);
+  });
+
+  it('adds a second tap inside a Hard chorus hold', () => {
+    const notes = buildChart([1, 1.3, 3.2], {
+      difficulty: 'hard',
+      modifiers: new Set(),
+      sections: [{ kind: 'chorus', start: 0, end: 10 }],
+    });
+    const hold = notes.find((n) => n.duration > 0 && n.time === 1.3);
+    expect(hold).toBeTruthy();
+    const inside = notes.filter((n) => n.duration === 0 && n.time > 1.3 && n.time < 1.3 + hold!.duration);
+    expect(inside.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('leaves rests in intro and break instead of filling every beat', () => {
+    const times = [1, 1.4, 1.8, 2.2];
+    const intro = buildChart(times, {
+      difficulty: 'normal',
+      modifiers: new Set(),
+      sections: [{ kind: 'intro', start: 0, end: 10 }],
+    });
+    expect(intro.some((n) => n.time === 1.8)).toBe(false);
+    expect(intro.some((n) => n.time === 1)).toBe(true);
+    const hardIntro = buildChart(times, {
+      difficulty: 'hard',
+      modifiers: new Set(),
+      sections: [{ kind: 'intro', start: 0, end: 10 }],
+    });
+    expect(hardIntro.some((n) => n.time === 1.8)).toBe(true);
+    const brk = buildChart(times, {
+      difficulty: 'normal',
+      modifiers: new Set(),
+      sections: [{ kind: 'break', start: 0, end: 10 }],
+    });
+    expect(brk.some((n) => n.time === 1.4)).toBe(false);
+  });
+
+  it('adds a phrase burst during the build', () => {
+    const notes = buildChart([1, 1.5, 2, 2.5], {
+      difficulty: 'normal',
+      modifiers: new Set(),
+      sections: [{ kind: 'build', start: 0, end: 10 }],
+    });
+    expect(notes.some((n) => n.time > 1.5 && n.time < 2)).toBe(true);
+    const easy = buildChart([1, 1.5, 2, 2.5], {
+      difficulty: 'easy',
+      modifiers: new Set(),
+      sections: [{ kind: 'build', start: 0, end: 10 }],
+    });
+    expect(easy).toHaveLength(4);
+  });
+
+  it('does not weave taps into Easy holds', () => {
+    const notes = buildChart([1, 2.8], {
+      difficulty: 'easy',
+      modifiers: new Set(),
+      sections: [{ kind: 'verse', start: 0, end: 10 }],
+    });
+    expect(notes).toHaveLength(2);
+    expect(notes.every((n) => n.chordGroup == null)).toBe(true);
+  });
 });

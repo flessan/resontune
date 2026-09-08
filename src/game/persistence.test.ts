@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { CHART_VERSION } from './types';
-import { loadBest, saveBest, scoreKey } from './persistence';
+import { loadBest, loadSave, saveBest, scoreKey } from './persistence';
 
 afterEach(() => {
   localStorage.removeItem('resontune-flow');
@@ -20,5 +20,11 @@ describe('Flow high scores', () => {
     expect(loadBest('preview', 'normal', mods)).toBe(1200);
     expect(saveBest('preview', 'normal', mods, { score: 1500, accuracy: 99, grade: 'SS', maxCombo: 20, at: 3 })).toBe(true);
     expect(loadBest('preview', 'normal', mods)).toBe(1500);
+  });
+
+  it('defaults independent music and sfx volumes', () => {
+    const save = loadSave();
+    expect(save.musicVolume).toBe(0.9);
+    expect(save.sfxVolume).toBe(0.55);
   });
 });

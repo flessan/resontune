@@ -112,6 +112,8 @@ export class FlowEngine {
   private holdSeq = 0;
   private lastFeverTick = 0;
   private lastLoopCheck = 0;
+  private lastChordGroup: number | null = null;
+  private lastChordAt = 0;
 
   onEvent: ((e: EngineEvent) => void) | null = null;
 
@@ -219,6 +221,8 @@ export class FlowEngine {
     this.comboPunch = 0;
     this.judgeScale = 1;
     this.lastHitError = null;
+    this.lastChordGroup = null;
+    this.lastChordAt = 0;
     this.playOffset = this.practice.enabled ? this.practice.startAt : 0;
     this.speed = this.practice.enabled ? this.practice.speed : 1;
     for (const n of this.notes) {
@@ -484,19 +488,28 @@ export class FlowEngine {
     this.lastHitError = error;
     this.timings.push({ error, kind });
     if (this.timings.length > 40) this.timings.shift();
-    this.flash(label, color);
+    const chord = note.chordGroup != null;
+    const audioNow = this.audio.now();
+    const chordPair = chord && this.lastChordGroup === note.chordGroup && audioNow - this.lastChordAt < 0.08;
+    if (chord) {
+      this.lastChordGroup = note.chordGroup;
+      this.lastChordAt = audioNow;
+    }
+    this.flash(chordPair ? 'CHORD' : label, color);
     this.pulse = kind === 'perfect' ? 1 : 0.62;
     const punch = kind === 'perfect' ? 1 : kind === 'great' ? 0.72 : 0.48;
     this.lanePulse[note.lane] = punch;
-    const chord = note.chordGroup != null;
     if (chord) {
       this.lanePulse[0] = Math.max(this.lanePulse[0], punch * 0.85);
       this.lanePulse[1] = Math.max(this.lanePulse[1], punch * 0.85);
     }
     this.comboPunch = kind === 'perfect' ? 1 : 0.55;
     this.judgeScale = kind === 'perfect' ? 1.2 : kind === 'great' ? 1 : 0.9;
-    const sfx = note.duration > 0 ? 'hold' : chord && kind === 'perfect' ? 'chord' : kind;
-    this.audio.hit(sfx);
+    if (!chordPair) {
+      const fuller = this.fever.phase !== 'idle';
+      const sfx = note.duration > 0 ? 'hold' : chord ? 'chord' : kind;
+      this.audio.hit(sfx, undefined, { fuller });
+    }
     this.burst(note.lane, color, kind === 'perfect' ? 14 : 7);
     if (chord) this.burst((1 - note.lane) as 0 | 1, color, 5);
     if (this.combo === 10 || this.combo === 25 || this.combo === 50 || this.combo === 100) {
@@ -547,6 +560,8 @@ export class FlowEngine {
       }
       if (now >= hold.nextTick) {
         this.score += HOLD_TICK_SCORE;
+        const ticks = Math.round((now - hold.note.time) / HOLD_TICK);
+        if (ticks % 3 === 0) this.audio.hit('tick');
         hold.nextTick += HOLD_TICK;
       }
     }
@@ -558,7 +573,7 @@ export class FlowEngine {
     if (success) {
       this.score += HOLD_CLEAR_SCORE;
       this.flash('CLEAR', '#ffe7c2');
-      this.audio.hit('clear');
+      this.audio.hit('clear', undefined, { fuller: this.fever.phase !== 'idle' });
       this.lanePulse[hold.note.lane] = 0.85;
       this.burst(hold.note.lane, '#ffe7c2', 10);
     } else {
@@ -577,7 +592,7 @@ export class FlowEngine {
       if (note.judged || note.holding) continue;
       if (now >= note.time) {
         this.applyHit(note, 'perfect', 300, 'PERFECT', '#ffe7c2', 0);
-        if (note.duration > 0) this.beginHold(note, now, 'auto');
+        if (note.duration > 0) this.beginHold(note, now, `auto:${note.id}`);
       }
     }
   }

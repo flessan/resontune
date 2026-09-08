@@ -124,6 +124,8 @@ export function PrepScreen(props: {
   difficulty: DifficultyId;
   modifiers: Set<ModifierId>;
   offset: number;
+  musicVolume: number;
+  sfxVolume: number;
   practice: PracticeSettings;
   best: number;
   bestGrade: string;
@@ -131,6 +133,8 @@ export function PrepScreen(props: {
   onDifficulty: (id: DifficultyId) => void;
   onToggleMod: (id: ModifierId) => void;
   onOffset: (ms: number) => void;
+  onMusic: (volume: number) => void;
+  onSfx: (volume: number) => void;
   onPractice: (next: PracticeSettings) => void;
   onPlay: () => void;
   onPreviewAudio: () => void;
@@ -204,6 +208,31 @@ export function PrepScreen(props: {
           onChange={(e) => props.onOffset(Number(e.target.value))}
         />
         <span className="val">{props.offset > 0 ? '+' : ''}{props.offset}ms</span>
+      </label>
+
+      <label className="flow-slider">
+        Music
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={5}
+          value={Math.round(props.musicVolume * 100)}
+          onChange={(e) => props.onMusic(Number(e.target.value) / 100)}
+        />
+        <span className="val">{Math.round(props.musicVolume * 100)}</span>
+      </label>
+      <label className="flow-slider">
+        Hits
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={5}
+          value={Math.round(props.sfxVolume * 100)}
+          onChange={(e) => props.onSfx(Number(e.target.value) / 100)}
+        />
+        <span className="val">{Math.round(props.sfxVolume * 100)}</span>
       </label>
 
       <details className="flow-mods" open={practice.enabled}>

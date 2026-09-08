@@ -36,6 +36,8 @@ export default function GamePage() {
   const [difficulty, setDifficulty] = useState<DifficultyId>('normal');
   const [modifiers, setModifiers] = useState<Set<ModifierId>>(new Set());
   const [offset, setOffset] = useState(0);
+  const [musicVolume, setMusicVolume] = useState(0.9);
+  const [sfxVolume, setSfxVolume] = useState(0.55);
   const [practice, setPractice] = useState<PracticeSettings>({ ...DEFAULT_PRACTICE });
   const [best, setBest] = useState(0);
   const [bestGrade, setBestGrade] = useState('—');
@@ -53,9 +55,13 @@ export default function GamePage() {
     engine.setDifficulty(save.lastDifficulty);
     engine.setModifiers(save.lastModifiers);
     engine.setOffset(save.offsetMs);
+    engine.audio.setMusic(save.musicVolume);
+    engine.audio.setSfx(save.sfxVolume);
     setDifficulty(save.lastDifficulty);
     setModifiers(new Set(save.lastModifiers));
     setOffset(save.offsetMs);
+    setMusicVolume(save.musicVolume);
+    setSfxVolume(save.sfxVolume);
     engine.onEvent = (event) => {
       if (event.type === 'ready') {
         setSong({ ...engine.song });
@@ -99,13 +105,21 @@ export default function GamePage() {
     return () => { delete document.body.dataset.flow; };
   }, [mode]);
 
-  const persistPrefs = (patch: { difficulty?: DifficultyId; modifiers?: ModifierId[]; offsetMs?: number }) => {
+  const persistPrefs = (patch: {
+    difficulty?: DifficultyId;
+    modifiers?: ModifierId[];
+    offsetMs?: number;
+    musicVolume?: number;
+    sfxVolume?: number;
+  }) => {
     const save = loadSave();
     writeSave({
       ...save,
       lastDifficulty: patch.difficulty ?? difficulty,
       lastModifiers: patch.modifiers ?? [...modifiers],
       offsetMs: patch.offsetMs ?? offset,
+      musicVolume: patch.musicVolume ?? musicVolume,
+      sfxVolume: patch.sfxVolume ?? sfxVolume,
     });
   };
 
@@ -252,6 +266,18 @@ export default function GamePage() {
     persistPrefs({ offsetMs: ms });
   };
 
+  const onMusic = (volume: number) => {
+    setMusicVolume(volume);
+    engineRef.current?.audio.setMusic(volume);
+    persistPrefs({ musicVolume: volume });
+  };
+
+  const onSfx = (volume: number) => {
+    setSfxVolume(volume);
+    engineRef.current?.audio.setSfx(volume);
+    persistPrefs({ sfxVolume: volume });
+  };
+
   const onPractice = (next: PracticeSettings) => {
     setPractice(next);
     engineRef.current?.setPractice(next);
@@ -270,6 +296,8 @@ export default function GamePage() {
     engine.setModifiers(modifiers);
     engine.setOffset(offset);
     engine.setPractice(practice);
+    engine.audio.setMusic(musicVolume);
+    engine.audio.setSfx(sfxVolume);
     refreshBest(engine);
     setMode('play');
   };
@@ -416,6 +444,8 @@ export default function GamePage() {
         difficulty={difficulty}
         modifiers={modifiers}
         offset={offset}
+        musicVolume={musicVolume}
+        sfxVolume={sfxVolume}
         practice={practice}
         best={best}
         bestGrade={bestGrade}
@@ -423,6 +453,8 @@ export default function GamePage() {
         onDifficulty={onDifficulty}
         onToggleMod={onToggleMod}
         onOffset={onOffset}
+        onMusic={onMusic}
+        onSfx={onSfx}
         onPractice={onPractice}
         onPlay={startPlay}
         onPreviewAudio={() => {

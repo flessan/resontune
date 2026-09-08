@@ -76,4 +76,47 @@ describe('multi-input holds', () => {
     expect(engine.holds).toHaveLength(1);
     engine.dispose();
   });
+
+  it('flashes CHORD when the partner of a chord lands', () => {
+    const engine = new FlowEngine();
+    live(engine, 0);
+    engine.notes = [
+      note({ id: 0, time: 0, lane: 0, chordGroup: 1 }),
+      note({ id: 1, time: 0, lane: 1, chordGroup: 1 }),
+    ];
+    engine.tap('k:KeyD', null);
+    expect(engine.judgeFlash).toBe('PERFECT');
+    engine.tap('k:KeyK', null);
+    expect(engine.judgeFlash).toBe('CHORD');
+    engine.dispose();
+  });
+
+  it('gives autoplay holds unique input ids', () => {
+    const engine = new FlowEngine();
+    engine.auto = true;
+    live(engine, 0);
+    engine.notes = [
+      note({ id: 0, time: 0, lane: 0, duration: 1.2 }),
+      note({ id: 1, time: 0, lane: 1, duration: 1.2 }),
+    ];
+    engine.tick();
+    expect(engine.holds).toHaveLength(2);
+    expect(engine.holds[0].inputId).not.toBe(engine.holds[1].inputId);
+    engine.dispose();
+  });
+
+  it('plays a tick every third hold tick', () => {
+    const engine = new FlowEngine();
+    const kinds: string[] = [];
+    engine.audio.hit = (kind) => {
+      kinds.push(kind);
+    };
+    live(engine, 0);
+    engine.notes = [note({ id: 0, time: 0, lane: 0, duration: 1.2 })];
+    engine.tap('k:KeyD', null);
+    live(engine, 0.36);
+    engine.tick();
+    expect(kinds).toContain('tick');
+    engine.dispose();
+  });
 });

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
-import { SelectScreen, ResultScreen } from './screens';
+import { SelectScreen, ResultScreen, PrepScreen } from './screens';
 import { PREVIEW_SONG, emptyCounts, type GameResult } from './types';
 
 describe('Flow session screens', () => {
@@ -54,5 +54,37 @@ describe('Flow session screens', () => {
     expect(screen.getByRole('button', { name: 'Return to Flow' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Return to Track' }).getAttribute('href')).toBe('/track/demo');
     expect(screen.getByText('New personal best')).toBeTruthy();
+  });
+
+  it('exposes independent Music and Hits volume sliders', () => {
+    render(
+      <MemoryRouter>
+        <PrepScreen
+          song={PREVIEW_SONG}
+          chartInfo="12 notes"
+          beatInfo="8 beats"
+          difficulty="normal"
+          modifiers={new Set()}
+          offset={0}
+          musicVolume={0.9}
+          sfxVolume={0.55}
+          practice={{ enabled: false, startAt: 0, loop: false, loopStart: 0, loopEnd: 0, speed: 1 }}
+          best={0}
+          bestGrade="—"
+          duration={56}
+          onDifficulty={() => {}}
+          onToggleMod={() => {}}
+          onOffset={() => {}}
+          onMusic={() => {}}
+          onSfx={() => {}}
+          onPractice={() => {}}
+          onPlay={() => {}}
+          onPreviewAudio={() => {}}
+          onBack={() => {}}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('Music')).toBeTruthy();
+    expect(screen.getByText('Hits')).toBeTruthy();
   });
 });
