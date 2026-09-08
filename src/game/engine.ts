@@ -486,13 +486,19 @@ export class FlowEngine {
     if (this.timings.length > 40) this.timings.shift();
     this.flash(label, color);
     this.pulse = kind === 'perfect' ? 1 : 0.62;
-    this.lanePulse[note.lane] = kind === 'perfect' ? 1 : kind === 'great' ? 0.72 : 0.48;
-    this.comboPunch = kind === 'perfect' ? 1 : 0.55;
-    this.judgeScale = kind === 'perfect' ? 1.16 : kind === 'great' ? 1 : 0.9;
+    const punch = kind === 'perfect' ? 1 : kind === 'great' ? 0.72 : 0.48;
+    this.lanePulse[note.lane] = punch;
     const chord = note.chordGroup != null;
+    if (chord) {
+      this.lanePulse[0] = Math.max(this.lanePulse[0], punch * 0.85);
+      this.lanePulse[1] = Math.max(this.lanePulse[1], punch * 0.85);
+    }
+    this.comboPunch = kind === 'perfect' ? 1 : 0.55;
+    this.judgeScale = kind === 'perfect' ? 1.2 : kind === 'great' ? 1 : 0.9;
     const sfx = note.duration > 0 ? 'hold' : chord && kind === 'perfect' ? 'chord' : kind;
     this.audio.hit(sfx);
-    this.burst(note.lane, color, kind === 'perfect' ? 12 : 7);
+    this.burst(note.lane, color, kind === 'perfect' ? 14 : 7);
+    if (chord) this.burst((1 - note.lane) as 0 | 1, color, 5);
     if (this.combo === 10 || this.combo === 25 || this.combo === 50 || this.combo === 100) {
       this.burst(note.lane, '#ffe7c2', 14);
       this.pulse = 1;
