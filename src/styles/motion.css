@@ -187,6 +187,26 @@ html[data-vt='player-collapse'] .player-sheet {
   transition: opacity var(--dur-standard) var(--ease-standard);
 }
 
+/* ---- interaction feedback: one restrained press language -------- */
+.btn, .icon-btn, .nav-link, .tile, .track-row, .context-menu-trigger {
+  transition-property: transform, background-color, color, box-shadow, opacity;
+  transition-duration: var(--dur-micro);
+  transition-timing-function: var(--ease-standard);
+}
+.btn:active:not(:disabled), .icon-btn:active:not(:disabled),
+.nav-link:active, .tile:active, .track-row:active { transform: scale(0.985); }
+.btn:focus-visible, .icon-btn:focus-visible, .nav-link:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Menus originate from their trigger rather than using the dialog motion. */
+.context-menu, [role='menu'] {
+  transform-origin: var(--menu-origin-x, 50%) var(--menu-origin-y, 0%);
+  animation: menu-in var(--dur-quick) var(--ease-enter) both;
+}
+@keyframes menu-in { from { opacity: 0; transform: translateY(-4px) scale(.98); } }
+
 /* ---- dialogs: exit as well as enter ---------------------------- */
 
 .dialog-backdrop.closing {
@@ -239,7 +259,9 @@ html[data-vt='player-collapse'] .player-sheet {
   }
 
   .drawer,
-  .drawer-backdrop {
+  .drawer-backdrop,
+  .btn, .icon-btn, .nav-link, .tile, .track-row {
     transition-duration: 0.01ms !important;
   }
+  .context-menu, [role='menu'] { animation: none !important; }
 }

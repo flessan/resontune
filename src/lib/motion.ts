@@ -31,6 +31,25 @@ export type SharedKind =
 
 export type NavKind = 'forward' | 'back' | 'fade';
 
+/** Small, framework-agnostic state vocabulary shared by overlays and sheets. */
+export type MotionPhase = 'closed' | 'opening' | 'open' | 'closing';
+export type SurfaceKind = 'drawer' | 'sheet' | 'modal' | 'menu';
+
+/** Pure transition reducer: keeping this separate from React makes exit cleanup testable. */
+export function nextMotionPhase(phase: MotionPhase, open: boolean): MotionPhase {
+  if (open) return phase === 'open' || phase === 'opening' ? phase : 'opening';
+  return phase === 'closed' || phase === 'closing' ? phase : 'closing';
+}
+
+/** Surface-specific geometry; CSS consumes these names instead of guessing from DOM nesting. */
+export function surfaceMotion(kind: SurfaceKind, phase: MotionPhase): string {
+  return `motion-${kind} ${phase}`;
+}
+
+export function motionDuration(reduced = prefersReducedMotion()): number {
+  return reduced ? 1 : DUR.standard;
+}
+
 const DETAIL_PREFIXES = [
   '/track/',
   '/artist/',

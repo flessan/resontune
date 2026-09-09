@@ -9,12 +9,30 @@ import {
   shouldViewTransition,
   vtName,
   withViewTransition,
+  nextMotionPhase,
+  surfaceMotion,
+  motionDuration,
 } from './motion';
 
 afterEach(() => {
   resetMotionForTests('/');
   Object.defineProperty(document, 'startViewTransition', { configurable: true, value: undefined });
   vi.unstubAllGlobals();
+});
+
+describe('surface motion state', () => {
+  it('moves overlays through explicit enter and exit phases', () => {
+    expect(nextMotionPhase('closed', true)).toBe('opening');
+    expect(nextMotionPhase('opening', true)).toBe('opening');
+    expect(nextMotionPhase('open', false)).toBe('closing');
+    expect(nextMotionPhase('closing', false)).toBe('closing');
+    expect(surfaceMotion('drawer', 'opening')).toBe('motion-drawer opening');
+  });
+
+  it('keeps reduced motion immediate without changing state semantics', () => {
+    expect(motionDuration(true)).toBe(1);
+    expect(motionDuration(false)).toBe(260);
+  });
 });
 
 describe('routeDepth', () => {
