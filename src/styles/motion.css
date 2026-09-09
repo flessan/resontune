@@ -46,6 +46,30 @@ html:active-view-transition .profile-head {
 }
 
 /* ---- route kinds (stamped as html[data-vt]) ------------------- */
+/* CSS fallback for browsers without View Transition API. The route still
+   navigates immediately; only the already-mounted page stage is decorated.
+   This is intentionally spatial, not a generic cross-fade. */
+html[data-vt='forward']:not(:active-view-transition) .page-stage {
+  animation: rt-fallback-forward var(--dur-standard) var(--ease-emphasized) both;
+}
+html[data-vt='back']:not(:active-view-transition) .page-stage {
+  animation: rt-fallback-back var(--dur-standard) var(--ease-emphasized) both;
+}
+html[data-vt='fade']:not(:active-view-transition) .page-stage {
+  animation: rt-fallback-sibling var(--dur-quick) var(--ease-enter) both;
+}
+@keyframes rt-fallback-forward {
+  from { opacity: .72; transform: translateX(var(--dist-page)); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rt-fallback-back {
+  from { opacity: .72; transform: translateX(calc(-1 * var(--dist-page))); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rt-fallback-sibling {
+  from { opacity: .78; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
 
 ::view-transition-group(rt-page) {
   animation-duration: var(--dur-primary);
