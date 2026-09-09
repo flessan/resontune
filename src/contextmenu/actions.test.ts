@@ -48,12 +48,11 @@ describe('track actions', () => {
     expect(list).toContain('go-artist');
   });
 
-  it('offers no playback actions for a track with no playable source', () => {
+  it('offers playback actions when source metadata is absent from a catalog payload', () => {
     const list = ids({ type: 'track', track: makeTrack({ sources: [] }) });
-    expect(list).not.toContain('play');
-    expect(list).not.toContain('play-next');
-    expect(list).not.toContain('add-queue');
-    // …but it can still be shared and navigated to.
+    expect(list).toContain('play');
+    expect(list).toContain('play-next');
+    expect(list).toContain('add-queue');
     expect(list).toContain('copy-link');
   });
 

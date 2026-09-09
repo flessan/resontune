@@ -52,7 +52,7 @@ export const TrackRow = memo(function TrackRow({ track, index, context, showArt 
     const items = list.map(trackToQueueItem).filter(Boolean) as NonNullable<ReturnType<typeof trackToQueueItem>>[];
     const start = items.findIndex((i) => i.id === track.id);
     if (start === -1 || !items.length) {
-      toast('This track has no playable source.');
+      toast('This track could not be added to the queue.');
       return;
     }
     void playQueue(items, start);
