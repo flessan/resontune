@@ -6,6 +6,7 @@ import {
   listModes,
   paintVisualizer,
   resolveModeId,
+  resolveModeIdSafe,
   smoothBins,
   DEFAULT_SETTINGS,
 } from './engine';
@@ -31,24 +32,33 @@ function frame(level = 0.6): AnalysisFrame {
 }
 
 describe('visualizer styles', () => {
-  it('registers Off plus the named listening-room styles', () => {
+  it('registers exactly the named listening-room styles', () => {
     expect(listModes().map((m) => m.id)).toEqual([...STYLE_IDS]);
-    expect(findMode('off')?.name).toBe('Off');
     expect(resolveModeId('minimal')).toBe('bars');
     expect(resolveModeId('waveform')).toBe('wave');
   });
 
-  it('Off is a real no-op style', () => {
-    const calls: string[] = [];
-    const ctx = {
-      save() { calls.push('save'); },
-      restore() { calls.push('restore'); },
-      beginPath() { calls.push('draw'); },
-      fill() { calls.push('draw'); },
-      stroke() { calls.push('draw'); },
-    } as unknown as CanvasRenderingContext2D;
-    paintVisualizer(ctx, 200, 100, frame(), findMode('off')!, DEFAULT_SETTINGS);
-    expect(calls.filter((c) => c === 'draw')).toHaveLength(0);
+  it('every style is a distinct renderer, not a shared function', () => {
+    const renders = listModes().map((m) => m.render);
+    expect(new Set(renders).size).toBe(renders.length);
+  });
+
+  it('legacy and unknown style ids land on a real style', () => {
+    expect(resolveModeIdSafe('off')).toBe('bars');       // "Off" is a switch now
+    expect(resolveModeIdSafe('album')).toBe('hifi');
+    expect(resolveModeIdSafe('procedural')).toBe('hyperspace');
+    expect(resolveModeIdSafe('definitely-not-a-style')).toBe('bars');
+    expect(resolveModeIdSafe(null)).toBe('bars');
+    for (const id of STYLE_IDS) expect(resolveModeIdSafe(id)).toBe(id);
+  });
+
+  it('Waterfall is fully removed: not listed, not findable, sanitized when persisted', () => {
+    expect([...STYLE_IDS]).not.toContain('waterfall');
+    expect(listModes().some((m) => m.id === 'waterfall')).toBe(false);
+    expect(listModes().some((m) => /waterfall/i.test(m.name) || /waterfall/i.test(m.description))).toBe(false);
+    // an old persisted selection lands on a safe fallback, not a dead mode
+    expect(resolveModeIdSafe('waterfall')).toBe('bars');
+    expect(findMode('waterfall')?.id).toBe('bars');
   });
 
   it('intensity presets change how strongly bins are drawn', () => {
@@ -85,5 +95,37 @@ describe('visualizer styles', () => {
     paintVisualizer(ctx, 400, 200, frame(), findMode('wave')!, DEFAULT_SETTINGS);
     expect(ops).toContain('stroke');
     expect(ops.filter((o) => o === 'line').length).toBeGreaterThan(10);
+  });
+
+  it('draws in the theme colors it is given, for every style', () => {
+    for (const id of STYLE_IDS) {
+      const colors: string[] = [];
+      const ctx = {
+        save() {}, restore() {}, beginPath() {}, closePath() {}, moveTo() {}, lineTo() {},
+        stroke() {}, fill() {}, arc() {}, fillRect() {}, roundRect() {}, fillText() {},
+      } as unknown as CanvasRenderingContext2D;
+      for (const prop of ['strokeStyle', 'fillStyle'] as const) {
+        Object.defineProperty(ctx, prop, {
+          set(v: string) { colors.push(String(v)); },
+          get() { return ''; },
+        });
+      }
+      for (const prop of ['lineWidth', 'globalAlpha'] as const) {
+        Object.defineProperty(ctx, prop, { set() {}, get() { return 1; } });
+      }
+      for (const prop of ['font', 'textAlign'] as const) {
+        Object.defineProperty(ctx, prop, { set() {}, get() { return ''; } });
+      }
+      paintVisualizer(ctx, 400, 200, frame(), findMode(id)!, { ...DEFAULT_SETTINGS, smoothing: 0 }, {
+        accent: '#c0392b',      // theme primary: red
+        secondary: '#f5eeda',   // theme secondary: cream
+        paper: '#8a8a8a',
+      });
+      const joined = colors.join(' ');
+      // red primary motion: rgba(192,57,43,…)
+      expect(joined, `style "${id}" should draw with the theme primary`).toContain('192,57,43');
+      // cream secondary voice: rgba(245,238,218,…)
+      expect(joined, `style "${id}" should draw with the theme secondary`).toContain('245,238,218');
+    }
   });
 });

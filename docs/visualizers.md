@@ -9,10 +9,23 @@ restrained. No neon, no fake 3D, no crypto aesthetics.
 HTMLAudioElement ─► MediaElementSource ─► AnalyserNode ─► AnalysisFrame
                                                      │
                      VisualizerRunner (rAF loop) ◄───┘
-                              │  normalized frame + settings + accent + artwork
+                              │  normalized frame + theme palette + artwork
                               ▼
                       VisualizerMode.render(vc)
 ```
+
+The **style** determines geometry and motion; the **theme** determines the
+color language. A style receives three theme voices and nothing else:
+
+- `accent`  - the theme primary (main motion)
+- `secondary` - the theme secondary (companion elements)
+- `paper`   - quiet structural ink (grids, idle bars, translucent layers)
+
+They are read from the live CSS tokens by `readThemeVizPalette()`
+(`src/theme/theme.ts`), so a custom palette recolors every style instantly
+with no per-style configuration. On built-in themes the accent quietly
+follows the playing artwork (`--player-tint`); under a custom theme the
+user's primary *is* the identity and artwork extraction stands down.
 
 `AnalysisFrame` (from `src/player/engine.ts`):
 
@@ -43,18 +56,21 @@ or destination. It is on by default - press play and the interface reacts:
   via CSS mask, settles on pause). No box, no reserved area.
 - **Expanded player** - a full-width ambient canvas layered on the sheet
   surface itself, fading upward behind the controls; the artwork carries a
-  barely-perceptible bass-responsive scale. Mode + Sensitivity / Intensity /
-  Speed live in a contextual popover off the playback controls.
-- **Immersive player** - the full-screen experience with all settings.
+  barely-perceptible bass-responsive scale. Style selection lives in a
+  contextual popover off the playback controls.
+- **Immersive player** - the full-screen experience.
 
-`minimal` is the first-run default mode; the user's choice persists in
+`bars` is the first-run default style; the user's choice persists in
 localStorage and applies across expanded and immersive views.
 
 ## User settings
 
-`sensitivity · intensity · speed · opacity · smoothing · scale · background`
-- editable in Settings, in the expanded player's visualizer popover, and
-live inside the immersive player; persisted in localStorage.
+Deliberately two: **style** and **on/off**. The engine's internal
+parameters (sensitivity, smoothing, intensity, …) exist in
+`VisualizerSettings` but are not exposed as UI - the user expresses
+themselves through the theme and the style, not through DSP knobs.
+Both preferences persist in `resontune-settings` alongside the theme
+and custom palette.
 
 ## Writing a mode
 
@@ -69,7 +85,7 @@ registerMode({
   id: 'mymode',
   name: 'My Mode',
   description: 'One honest sentence.',
-  render({ ctx, w, h, t, frame, settings, accent, paper }) {
+  render({ ctx, w, h, t, frame, settings, accent, secondary, paper }) {
     const bins = smoothBins(frame, settings, buf, 48);
     // draw with ctx - respect settings.intensity/scale, use accent + paper
   },
@@ -82,12 +98,21 @@ in Settings and the immersive player's mode picker.
 Guidelines:
 
 - Consume `settings` - at least intensity, scale and sensitivity.
-- Use the `accent` color (extracted live from the playing artwork) and
-  `paper` neutral; avoid hardcoding your own palette.
+- Speak only in the theme voices: `accent` (primary motion), `secondary`
+  (companion elements) and `paper` (quiet ink); never hardcode a palette.
 - Reuse buffers; never allocate per frame.
 - `reducedMotion` is available if your mode has self-driven movement.
 
-## Built-in modes
+## Built-in styles
 
-Waveform · Circular Spectrum · Organic · Geometric · Minimal Spectrum ·
-Album Reactive · Typography · Procedural.
+Wave · Bars · Scope · Corona · Ribbon · Hi-Fi · Vectorscope · Hyperspace ·
+Outrun. Each is a distinct geometry, not the same waveform re-filtered.
+Legacy stored ids (including the retired Waterfall) map onto this set via
+`resolveModeIdSafe`.
+
+Every style shares a small dynamics tracker (`Dyn` in `styles.ts`) that
+turns raw analysis into musical gestures: a VU-eased level (fast attack,
+slow release), a bass-onset "kick" envelope with a drum-like decay, and a
+drive value that gives self-driven motion momentum. Transients punch,
+sustains breathe, quiet passages settle - and pause freezes everything
+because dt comes from the mode clock, not wall time.

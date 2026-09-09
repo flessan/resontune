@@ -41,6 +41,8 @@ vi.mock('@/visualizer/engine', async (importOriginal) => {
       setPaused() {}
       setPaper() {}
       setAccent() {}
+      setSecondary() {}
+      setPalette() {}
       setArtwork() {}
     },
   };

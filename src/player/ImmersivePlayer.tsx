@@ -1,14 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePlayer } from './store';
 import { engine } from './engine';
 import { useSettings } from '@/stores/settings';
-import { VisualizerRunner, listModes, type VizLevel } from '@/visualizer/engine';
+import { VisualizerRunner, listModes } from '@/visualizer/engine';
 import '@/visualizer/modes';
 import { extractAccent, loadImage } from '@/lib/artworkColor';
+import { isCustomThemeActive, readThemeVizPalette } from '@/theme/theme';
 import { SeekBar } from './SeekBar';
 import { api } from '@/lib/api';
 import { OriginalBadge, SourceChip } from '@/components/Provenance';
 import type { Track } from '@/lib/types';
+import { useLyrics } from '@/lyrics/useLyrics';
+import { LyricsView } from '@/lyrics/LyricsView';
 import {
   IconPlay, IconPause, IconPrev, IconNext, IconClose, IconSettings, IconMic,
 } from '@/components/Icons';
@@ -23,8 +26,10 @@ export function ImmersivePlayer() {
   const { toggle, next, prev, setView } = usePlayer.getState();
   const modeId = useSettings((s) => s.visualizerMode);
   const vSettings = useSettings((s) => s.visualizer);
-  const visualizerLevel = useSettings((s) => s.visualizerLevel);
-  const { setVisualizerMode, setVisualizerLevel } = useSettings.getState();
+  const visualizerEnabled = useSettings((s) => s.visualizerEnabled);
+  const theme = useSettings((s) => s.theme);
+  const customPalette = useSettings((s) => s.customPalette);
+  const { setVisualizerMode, setVisualizerEnabled } = useSettings.getState();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runnerRef = useRef<VisualizerRunner | null>(null);
@@ -34,7 +39,7 @@ export function ImmersivePlayer() {
   const [detail, setDetail] = useState<Track | null>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /* track detail for provenance + lyrics */
+  /* track detail for provenance */
   useEffect(() => {
     setDetail(null);
     setShowLyrics(false);
@@ -45,12 +50,26 @@ export function ImmersivePlayer() {
     }
   }, [item?.queueId, item?.origin, item?.trackSlug]);
 
+  /* Lyrics via the client-side LRCLIB resolver (local edits win). */
+  const lyricsRef = useMemo(
+    () => (item ? {
+      origin: item.origin,
+      id: item.id,
+      title: item.title,
+      artistName: item.artistName,
+      albumTitle: item.albumTitle ?? null,
+      duration: item.duration ?? null,
+    } : null),
+    [item?.origin, item?.id, item?.title, item?.artistName, item?.albumTitle, item?.duration],
+  );
+  const lyr = useLyrics(lyricsRef);
+
   const modes = listModes();
   const mode = modes.find((m) => m.id === modeId) ?? modes[0];
 
-  /* build runner */
+  /* build runner (rebuilds when the canvas mounts/unmounts with the toggle) */
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!visualizerEnabled || !canvasRef.current) return;
     engine.ensureAnalysis();
     const runner = new VisualizerRunner(
       canvasRef.current,
@@ -58,23 +77,33 @@ export function ImmersivePlayer() {
       vSettings,
       () => engine.readFrame(),
     );
+    runner.setPalette(readThemeVizPalette());
     runnerRef.current = runner;
     runner.start();
-    return () => runner.destroy();
+    return () => { runner.destroy(); runnerRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [visualizerEnabled]);
 
   useEffect(() => { runnerRef.current?.setMode(mode); }, [mode]);
   useEffect(() => { runnerRef.current?.setSettings(vSettings); }, [vSettings]);
   useEffect(() => { runnerRef.current?.setPaused(!playing); }, [playing]);
 
+  /* The theme is the visualizer's identity - follow it live. */
+  useEffect(() => {
+    runnerRef.current?.setPalette(readThemeVizPalette());
+  }, [theme, customPalette, visualizerEnabled]);
+
   /* artwork accent + album image */
   useEffect(() => {
     if (!item) return;
     if (item.artworkUrl) {
-      void extractAccent(item.artworkUrl).then((hex) => {
-        if (hex) runnerRef.current?.setAccent(hex);
-      });
+      // Built-in themes let the record color the motion; a custom theme
+      // keeps the user's primary as the identity.
+      if (!isCustomThemeActive()) {
+        void extractAccent(item.artworkUrl).then((hex) => {
+          if (hex && !isCustomThemeActive()) runnerRef.current?.setAccent(hex);
+        });
+      }
       void loadImage(item.artworkUrl)
         .then((img) => runnerRef.current?.setArtwork(img))
         .catch(() => runnerRef.current?.setArtwork(null));
@@ -114,20 +143,25 @@ export function ImmersivePlayer() {
 
   return (
     <div className="immersive">
-      <canvas ref={canvasRef} aria-label="Audio visualizer" role="img" />
+      {visualizerEnabled && <canvas ref={canvasRef} aria-label="Audio visualizer" role="img" />}
       <div className={`imm-ui ${uiVisible ? '' : 'hidden'}`}>
         <div className="imm-top">
           <button className="icon-btn" onClick={() => setView('expanded')} aria-label="Exit visualizer">
             <IconClose />
           </button>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <label className="visually-hidden" htmlFor="vis-mode">Visualizer mode</label>
+            <label className="visually-hidden" htmlFor="vis-mode">Visualizer style</label>
             <select
               id="vis-mode"
               className="imm-select"
-              value={mode.id}
-              onChange={(e) => setVisualizerMode(e.target.value)}
+              value={visualizerEnabled ? mode.id : 'off'}
+              onChange={(e) => {
+                if (e.target.value === 'off') { setVisualizerEnabled(false); return; }
+                setVisualizerEnabled(true);
+                setVisualizerMode(e.target.value);
+              }}
             >
+              <option value="off">Off</option>
               {modes.map((m) => (
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}
@@ -135,7 +169,7 @@ export function ImmersivePlayer() {
             <button
               className="icon-btn"
               onClick={() => setShowSettings((v) => !v)}
-              aria-label="Visualizer settings"
+              aria-label="About this style"
               aria-expanded={showSettings}
             >
               <IconSettings />
@@ -151,29 +185,15 @@ export function ImmersivePlayer() {
               borderRadius: 10, padding: 18, backdropFilter: 'blur(8px)',
             }}
             role="group"
-            aria-label="Visualizer settings"
+            aria-label="About this style"
           >
-            <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600 }}>{mode.name}</p>
-            <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(239,234,224,0.55)' }}>{mode.description}</p>
-            <p style={{ margin: '0 0 8px', fontSize: 11.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(239,234,224,0.55)' }}>Intensity</p>
-            <div className="pill-row" role="radiogroup" aria-label="Intensity">
-              {([
-                ['minimal', 'Minimal'],
-                ['ambient', 'Ambient'],
-                ['full', 'Full'],
-              ] as [VizLevel, string][]).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="radio"
-                  aria-checked={visualizerLevel === id}
-                  className={`pill ${visualizerLevel === id ? 'active' : ''}`}
-                  onClick={() => setVisualizerLevel(id)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600 }}>{visualizerEnabled ? mode.name : 'Off'}</p>
+            <p style={{ margin: '0 0 10px', fontSize: 12, color: 'rgba(239,234,224,0.55)' }}>
+              {visualizerEnabled ? mode.description : 'The stage stays still; the music plays on.'}
+            </p>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(239,234,224,0.55)' }}>
+              Colors follow your theme - change it in Settings and the stage follows.
+            </p>
           </div>
         )}
 
@@ -202,7 +222,7 @@ export function ImmersivePlayer() {
             <SeekBar compact />
           </div>
           <div className="imm-controls">
-            {detail?.lyrics?.body && (
+            {lyr.lyrics && (
               <button
                 className={`icon-btn ${showLyrics ? 'active' : ''}`}
                 onClick={() => setShowLyrics((v) => !v)}
@@ -220,9 +240,17 @@ export function ImmersivePlayer() {
           </div>
         </div>
 
-        {showLyrics && detail?.lyrics?.body && (
+        {/* Lyrics take reading priority; the visualizer stays behind them
+            as an ambient layer. Same DOM lyrics component as everywhere. */}
+        {showLyrics && lyr.lyrics && (
           <div className="imm-lyrics" role="region" aria-label="Lyrics">
-            {detail.lyrics.body}
+            <LyricsView
+              lyrics={lyr.lyrics}
+              isLocalEdit={lyr.isLocalEdit}
+              followPlayback
+              onSeek={(s) => usePlayer.getState().seekTo(s)}
+              compact
+            />
           </div>
         )}
       </div>

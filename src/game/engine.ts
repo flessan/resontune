@@ -499,7 +499,7 @@ export class FlowEngine {
       section: this.currentSection(),
       practice: this.practice.enabled,
       vizFrame,
-      vizMode: viz.visualizerMode,
+      vizMode: viz.visualizerEnabled ? viz.visualizerMode : 'off',
       vizSettings: viz.visualizer,
       vizClock: this.vizClock,
     };

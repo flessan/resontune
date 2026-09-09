@@ -6,9 +6,10 @@ import { api } from '@/lib/api';
 import { clearAccountScopedCaches, deleteIdentity, type IdentityDeletion } from '@/lib/authClient';
 import { dialogs } from '@/stores/dialogs';
 import { toast } from '@/stores/toast';
-import { listModes, type VizLevel } from '@/visualizer/engine';
+import { listModes } from '@/visualizer/engine';
 import '@/visualizer/modes';
 import { usePlayer } from '@/player/store';
+import { ThemeEditor } from '@/theme/ThemeEditor';
 import { IconSun, IconMoon, IconSettings as IconSys, IconWave } from '@/components/Icons';
 
 /** Admin-only: edit the public support links without redeploying. */
@@ -317,22 +318,29 @@ function AccountDataSection() {
 export default function Settings() {
   const user = useAuth((s) => s.user);
   const theme = useSettings((s) => s.theme);
+  const customPalette = useSettings((s) => s.customPalette);
   const visualizerMode = useSettings((s) => s.visualizerMode);
-  const visualizerLevel = useSettings((s) => s.visualizerLevel);
-  const { setTheme, setVisualizerMode, setVisualizerLevel } = useSettings.getState();
+  const visualizerEnabled = useSettings((s) => s.visualizerEnabled);
+  const { setTheme, setVisualizerMode, setVisualizerEnabled } = useSettings.getState();
   const modes = listModes();
 
   return (
     <div className="page">
       <h1 className="page-title">Settings</h1>
-      <p className="page-sub">Appearance, player and visualizer preferences. Stored locally in this browser.</p>
+      <p className="page-sub">Make ResonTune yours. Preferences are stored locally in this browser.</p>
 
-      <div className="section-head"><h2 className="section-title">Appearance</h2></div>
+      <div className="section-head"><h2 className="section-title">Theme</h2></div>
       <div className="pill-row" role="radiogroup" aria-label="Theme">
         {([
           ['light', 'Light', <IconSun key="l" width={14} height={14} />],
           ['dark', 'Dark', <IconMoon key="d" width={14} height={14} />],
           ['system', 'System', <IconSys key="s" width={14} height={14} />],
+          ['custom', 'Yours', (
+            <span key="c" className="theme-preset-dots" aria-hidden="true">
+              <i style={{ background: customPalette.primary }} />
+              <i style={{ background: customPalette.secondary }} />
+            </span>
+          )],
         ] as [Theme, string, React.ReactNode][]).map(([value, label, icon]) => (
           <button
             key={value}
@@ -347,39 +355,38 @@ export default function Settings() {
         ))}
       </div>
 
+      {theme === 'custom' && (
+        <>
+          <p style={{ color: 'var(--ink-muted)', fontSize: 13.5, margin: '14px 0 10px' }}>
+            Pick your colors - the whole app follows, and the visualizer plays in them.
+          </p>
+          <ThemeEditor />
+        </>
+      )}
+
       <div className="section-head"><h2 className="section-title">Visualizer</h2></div>
       <p style={{ color: 'var(--ink-muted)', fontSize: 13.5, marginTop: 0 }}>
-        Style and intensity for the expanded and immersive player. Off is a real style.
-        Flow uses the same engine behind the notes.
+        How the music moves in the player. Colors always follow your theme.
       </p>
-      <div className="pill-row" role="radiogroup" aria-label="Visualizer style" style={{ marginBottom: 14 }}>
+      <div className="pill-row" role="radiogroup" aria-label="Visualizer style" style={{ marginBottom: 22 }}>
+        <button
+          role="radio"
+          aria-checked={!visualizerEnabled}
+          className={`pill ${!visualizerEnabled ? 'active' : ''}`}
+          onClick={() => setVisualizerEnabled(false)}
+        >
+          Off
+        </button>
         {modes.map((m) => (
           <button
             key={m.id}
             role="radio"
-            aria-checked={visualizerMode === m.id}
-            className={`pill ${visualizerMode === m.id ? 'active' : ''}`}
-            onClick={() => setVisualizerMode(m.id)}
+            aria-checked={visualizerEnabled && visualizerMode === m.id}
+            className={`pill ${visualizerEnabled && visualizerMode === m.id ? 'active' : ''}`}
+            onClick={() => { setVisualizerEnabled(true); setVisualizerMode(m.id); }}
             title={m.description}
           >
             {m.name}
-          </button>
-        ))}
-      </div>
-      <div className="pill-row" role="radiogroup" aria-label="Visualizer intensity" style={{ marginBottom: 22 }}>
-        {([
-          ['minimal', 'Minimal'],
-          ['ambient', 'Ambient'],
-          ['full', 'Full'],
-        ] as [VizLevel, string][]).map(([id, label]) => (
-          <button
-            key={id}
-            role="radio"
-            aria-checked={visualizerLevel === id}
-            className={`pill ${visualizerLevel === id ? 'active' : ''}`}
-            onClick={() => setVisualizerLevel(id)}
-          >
-            {label}
           </button>
         ))}
       </div>

@@ -57,7 +57,22 @@ const MODE_ALIAS: Record<string, string> = {
   albumReactive: 'hifi',
   typography: 'wave',
   procedural: 'hyperspace',
+  // Waterfall was removed; persisted selections land on Bars.
+  waterfall: 'bars',
+  // "Off" used to be a style; it is the visualizerEnabled switch now.
+  off: 'bars',
 };
+
+/** The canonical style set (mirrors styles.ts, which registers them). */
+const CANONICAL_STYLES = new Set([
+  'wave', 'bars', 'scope', 'corona', 'ribbon', 'hifi', 'vectorscope', 'hyperspace', 'outrun',
+]);
+
+/** Like resolveModeId, but unknown/legacy ids land on a real style. */
+export function resolveModeIdSafe(id: string | null | undefined): string {
+  const resolved = resolveModeId(id);
+  return CANONICAL_STYLES.has(resolved) ? resolved : 'bars';
+}
 
 export function resolveModeId(id: string | null | undefined): string {
   if (!id) return 'bars';
@@ -72,8 +87,12 @@ export interface VisualizerContext {
   t: number;                 // seconds since mode start (speed-scaled)
   frame: AnalysisFrame;
   settings: VisualizerSettings;
-  accent: string;            // current accent color (from artwork)
-  paper: string;             // light neutral
+  /** Theme primary - the main motion (line, ring, loud bars). */
+  accent: string;
+  /** Theme secondary - companion elements, sparse highlights. */
+  secondary: string;
+  /** Quiet structural ink - grids, idle bars, translucent layers. */
+  paper: string;
   artwork: HTMLImageElement | null;
   reducedMotion: boolean;
 }
@@ -109,7 +128,7 @@ export function paintVisualizer(
   frame: AnalysisFrame,
   mode: VisualizerMode,
   settings: VisualizerSettings,
-  opts: { accent?: string; paper?: string; t?: number; artwork?: HTMLImageElement | null; reducedMotion?: boolean } = {},
+  opts: { accent?: string; secondary?: string; paper?: string; t?: number; artwork?: HTMLImageElement | null; reducedMotion?: boolean } = {},
 ): void {
   ctx.save();
   ctx.globalAlpha = settings.opacity;
@@ -122,6 +141,7 @@ export function paintVisualizer(
     frame,
     settings,
     accent: opts.accent ?? '#ffb693',
+    secondary: opts.secondary ?? opts.paper ?? '#e7bead',
     paper: opts.paper ?? '#f3e6d8',
     artwork: opts.artwork ?? null,
     reducedMotion: opts.reducedMotion ?? false,
@@ -158,6 +178,7 @@ export class VisualizerRunner {
   private rafId: number | null = null;
   private startTime = performance.now();
   private accent = '#d97f4e';
+  private secondary = '#e7bead';
   private paper = '#efeae0';
   private artwork: HTMLImageElement | null = null;
   private reducedMotion: boolean;
@@ -208,10 +229,22 @@ export class VisualizerRunner {
     this.accent = color;
   }
 
+  /** Theme secondary voice - companion lines and sparse highlights. */
+  setSecondary(color: string) {
+    this.secondary = color;
+  }
+
   /** Base drawing color ("paper"). Defaults to warm off-white for dark
       surfaces; light surfaces should pass their ink color instead. */
   setPaper(color: string) {
     this.paper = color;
+  }
+
+  /** Adopt a whole theme voice at once (accent / secondary / ink). */
+  setPalette(p: { accent: string; secondary: string; ink: string }) {
+    this.accent = p.accent;
+    this.secondary = p.secondary;
+    this.paper = p.ink;
   }
 
   setArtwork(img: HTMLImageElement | null) {
@@ -290,6 +323,7 @@ export class VisualizerRunner {
       frame,
       settings: this.effectiveSettings(),
       accent: this.accent,
+      secondary: this.secondary,
       paper: this.paper,
       artwork: this.artwork,
       reducedMotion: this.reducedMotion,

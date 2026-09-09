@@ -4,6 +4,7 @@
  * ResonTune palette range (warm, ink-friendly). Applied as --player-tint so
  * the player surfaces quietly follow the playing record.
  */
+import { isCustomThemeActive } from '@/theme/theme';
 
 const cache = new Map<string, string>();
 
@@ -41,9 +42,13 @@ export async function extractAccent(src: string): Promise<string | null> {
  * Material-You dynamic color: the playing artwork influences tonal PLAYER
  * surfaces (via --player-tint) - it never recolors the application. The
  * app's own primary/navigation/typography identity stays stable.
+ *
+ * When a custom theme is active the user's primary IS the player tint, so
+ * the artwork accent stands down entirely.
  */
 export function applyAccent(hex: string | null): void {
   const root = document.documentElement;
+  if (isCustomThemeActive()) return;
   if (!hex) {
     root.style.removeProperty('--player-tint');
     return;

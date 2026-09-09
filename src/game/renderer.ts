@@ -7,6 +7,7 @@
 import type { AnalysisFrame } from '@/player/engine';
 import { findMode, paintVisualizer, type VisualizerSettings } from '@/visualizer/engine';
 import '@/visualizer/modes';
+import { readThemeVizPalette } from '@/theme/theme';
 import type {
   ActiveHold,
   FeverState,
@@ -226,6 +227,11 @@ export class GameView {
     ctx.fillRect(0, 0, W, H);
   }
 
+  /** Theme voice for the ambient layer - re-read at most once a second so
+      a live palette edit follows without a getComputedStyle per frame. */
+  private vizPalette = readThemeVizPalette();
+  private vizPaletteAt = 0;
+
   private visualizer(w: ViewWorld): void {
     if (w.vizMode === 'off' || !w.vizFrame) return;
     const mode = findMode(w.vizMode);
@@ -238,10 +244,19 @@ export class GameView {
       opacity: Math.min(0.42, w.vizSettings.opacity * 0.55),
       scale: w.vizSettings.scale * 0.92,
     };
+    // Flow's stage borrows the shared theme voice for the ambient layer
+    // behind the notes; gameplay chrome keeps its own fixed palette.
+    const now = performance.now();
+    if (now - this.vizPaletteAt > 1000) {
+      this.vizPalette = readThemeVizPalette();
+      this.vizPaletteAt = now;
+    }
+    const viz = this.vizPalette;
     ctx.save();
     paintVisualizer(ctx, W, H, w.vizFrame, mode, settings, {
-      accent: PEACH,
-      paper: CREAM,
+      accent: viz.accent,
+      secondary: viz.secondary,
+      paper: viz.ink,
       t: w.paused ? 0 : w.vizClock,
     });
     ctx.restore();

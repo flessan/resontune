@@ -1955,7 +1955,9 @@ textarea.input { resize: vertical; }
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: #0c0b09;
+  /* The stage keeps the hue of the active theme but stays cinema-dark;
+     custom themes publish --viz-stage from the user's background. */
+  background: var(--viz-stage, #0c0b09);
   color: #efeae0;
 }
 .immersive canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -3305,3 +3307,221 @@ h1.page-title, .detail-title, .profile-name, .ps-track-title, .section-title {
    their own focus rings. */
 .main:focus,
 .main:focus-visible { outline: none; }
+
+/* ------------------------------------------------------------------ *
+ * Custom theme editor. Six named colors, a live preview, and preset
+ * pills - a personal expression surface, not a control panel. The native
+ * color input is visually replaced by the swatch it fills, so the row
+ * reads "Background [color]" exactly as the user thinks of it.
+ * ------------------------------------------------------------------ */
+.theme-editor { max-width: 760px; }
+.theme-editor-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 340px) minmax(240px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 700px) {
+  .theme-editor-grid { grid-template-columns: 1fr; }
+}
+
+.theme-colors { display: flex; flex-direction: column; }
+.theme-color-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 0;
+  cursor: pointer;
+}
+.theme-color-row + .theme-color-row { border-top: 1px solid var(--outline-variant); }
+.theme-color-meta { display: grid; gap: 1px; min-width: 0; }
+.theme-color-name { font-size: 13.5px; font-weight: 500; color: var(--on-surface); }
+.theme-color-hint { font-size: 11.5px; color: var(--on-surface-muted); }
+
+.theme-swatch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 30px;
+  border-radius: var(--shape-sm);
+  border: 1px solid var(--outline-strong);
+  overflow: hidden;
+}
+/* the input itself stays full-size and clickable, just invisible - the
+   swatch shows the color, the input provides the picker + focus ring */
+.theme-swatch input[type='color'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  cursor: pointer;
+}
+.theme-swatch:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Preview: the chosen palette shown as a miniature player - context,
+   not abstraction. Colors come from the palette itself, deliberately
+   not from the applied tokens, so it also previews while inactive. */
+.theme-preview {
+  border-radius: var(--shape-md);
+  border: 1px solid var(--outline-variant);
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+.theme-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--shape-sm);
+}
+.theme-preview-art { width: 40px; height: 40px; border-radius: 6px; flex: 0 0 auto; opacity: 0.9; }
+.theme-preview-title { font-size: 13px; font-weight: 600; line-height: 1.3; }
+.theme-preview-sub { font-size: 11.5px; margin-bottom: 7px; }
+.theme-preview-track { height: 4px; border-radius: 999px; overflow: hidden; }
+.theme-preview-fill { height: 100%; border-radius: 999px; }
+.theme-preview-play {
+  width: 32px; height: 32px; border-radius: 999px;
+  display: grid; place-items: center; flex: 0 0 auto;
+}
+.theme-preview-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 34px;
+  padding: 0 4px;
+}
+.theme-preview-bars span { flex: 1; border-radius: 2px 2px 0 0; min-height: 3px; }
+
+.theme-presets-label {
+  margin: 14px 0 8px;
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--on-surface-muted);
+}
+.theme-preset-pill { gap: 8px; }
+.theme-preset-dots { display: inline-flex; gap: 3px; align-items: center; }
+.theme-preset-dots i {
+  width: 10px; height: 10px; border-radius: 999px; display: inline-block;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+}
+
+.theme-warnings {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--shape-sm);
+  background: var(--surface-container);
+  font-size: 12.5px;
+  color: var(--on-surface-variant);
+}
+.theme-warnings p { margin: 0; }
+.theme-warnings p + p { margin-top: 4px; }
+
+/* ------------------------------------------------------------------ *
+ * Lyrics. One DOM component everywhere (track page, expanded player,
+ * immersive). Themed through the same tokens as the rest of the app;
+ * the active synced line speaks in the primary - no glow, no karaoke
+ * effects, just weight and color.
+ * ------------------------------------------------------------------ */
+.lyr { max-width: 640px; }
+.lyr.compact { max-width: none; }
+
+.lyr-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.lyr-kind {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--on-surface-muted);
+}
+.lyr-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: var(--shape-full);
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+}
+.lyr-spacer { flex: 1; }
+
+.lyr-synced {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lyr .lyrics-body { padding-bottom: 12px; }
+.lyr-line {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  padding: 6px 10px;
+  margin: 0 -10px;
+  border-radius: var(--shape-sm);
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--on-surface-muted);
+  transition: color var(--dur-quick) var(--ease-standard),
+              background var(--dur-quick) var(--ease-standard);
+}
+button.lyr-line { cursor: pointer; }
+button.lyr-line:hover { background: var(--state-hover); color: var(--on-surface); }
+.lyr-line.static { cursor: default; }
+.lyr-synced li.active .lyr-line {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.lyr-credit {
+  margin: 14px 0 0;
+  font-size: 11.5px;
+  color: var(--on-surface-faint);
+}
+
+.lyr-editor { display: grid; gap: 10px; }
+.lyr-edit-hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--on-surface-muted);
+}
+.lyr-edit-area {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.7;
+  resize: vertical;
+  min-height: 200px;
+}
+.lyr-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.lyr-edit-note { font-size: 12px; color: var(--on-surface-faint); }
+
+/* Immersive lyrics reuse the same component inside the dark stage panel;
+   left-align for reading, keep the panel's own scroll. */
+.imm-lyrics { text-align: left; }
+.imm-lyrics .lyr-line { font-size: clamp(15px, 2vw, 19px); }
+
+@media (max-width: 860px) {
+  .lyr-line { font-size: 14.5px; padding: 7px 10px; }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from '@/components/AppLink';
 import { DUR, PLAYER_ART, PLAYER_TITLE, prefersReducedMotion, shouldViewTransition, withViewTransition } from '@/lib/motion';
 import { usePlayer } from './store';
@@ -9,9 +9,12 @@ import { api } from '@/lib/api';
 import { Artwork } from '@/components/Artwork';
 import { SourceChip, provenanceLabel } from '@/components/Provenance';
 import { useSettings } from '@/stores/settings';
-import { VisualizerRunner, listModes, type VizLevel } from '@/visualizer/engine';
+import { VisualizerRunner, listModes } from '@/visualizer/engine';
 import '@/visualizer/modes';
 import { extractAccent, loadImage } from '@/lib/artworkColor';
+import { isCustomThemeActive, readThemeVizPalette } from '@/theme/theme';
+import { useLyrics } from '@/lyrics/useLyrics';
+import { LyricsView } from '@/lyrics/LyricsView';
 import type { Track } from '@/lib/types';
 import { formatDuration } from '@/lib/format';
 import {
@@ -26,11 +29,13 @@ type Tab = 'queue' | 'lyrics' | 'about';
  * full-width canvas that lives on the sheet surface itself, behind the
  * controls, fading upward so the music's motion feels like part of the
  * room rather than a component. Same engine and mode registry as the
- * immersive view; settings persist through the settings store.
+ * immersive view; the color language comes from the active theme.
  */
 function AmbientVisualizer({ item }: { item: { artworkUrl: string | null; title: string; artistName: string; queueId: string } }) {
   const modeId = useSettings((s) => s.visualizerMode);
   const vSettings = useSettings((s) => s.visualizer);
+  const theme = useSettings((s) => s.theme);
+  const customPalette = useSettings((s) => s.customPalette);
   const playing = usePlayer((s) => s.playing);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runnerRef = useRef<VisualizerRunner | null>(null);
@@ -42,10 +47,7 @@ function AmbientVisualizer({ item }: { item: { artworkUrl: string | null; title:
     if (!canvasRef.current) return;
     engine.ensureAnalysis();
     const runner = new VisualizerRunner(canvasRef.current, mode, vSettings, () => engine.readFrame());
-    // Draw with the theme's outline tone so the layer sits naturally on the
-    // sheet (plain hex - canvas-safe, unlike the color-mix() aliases).
-    const ink = getComputedStyle(document.documentElement).getPropertyValue('--outline').trim();
-    if (ink) runner.setPaper(ink);
+    runner.setPalette(readThemeVizPalette());
     runnerRef.current = runner;
     runner.start();
     return () => runner.destroy();
@@ -56,9 +58,19 @@ function AmbientVisualizer({ item }: { item: { artworkUrl: string | null; title:
   useEffect(() => { runnerRef.current?.setSettings(vSettings); }, [vSettings]);
   useEffect(() => { runnerRef.current?.setPaused(!playing); }, [playing]);
 
+  /* The theme is the visualizer's identity: re-read the derived tokens
+     whenever the theme or the custom palette changes. */
+  useEffect(() => {
+    runnerRef.current?.setPalette(readThemeVizPalette());
+  }, [theme, customPalette]);
+
   useEffect(() => {
     if (item.artworkUrl) {
-      void extractAccent(item.artworkUrl).then((hex) => { if (hex) runnerRef.current?.setAccent(hex); });
+      // On built-in themes the accent quietly follows the record; a custom
+      // theme is the user's identity, so their primary wins.
+      if (!isCustomThemeActive()) {
+        void extractAccent(item.artworkUrl).then((hex) => { if (hex && !isCustomThemeActive()) runnerRef.current?.setAccent(hex); });
+      }
       void loadImage(item.artworkUrl)
         .then((img) => runnerRef.current?.setArtwork(img))
         .catch(() => runnerRef.current?.setArtwork(null));
@@ -72,13 +84,13 @@ function AmbientVisualizer({ item }: { item: { artworkUrl: string | null; title:
 
 /**
  * Contextual visualizer control - a small popover off the player controls.
- * Mode + the three quick dials. The visualizer itself never gets a box;
- * only its settings do, and only while open.
+ * Style + on/off only: the user picks a look, the theme picks the colors,
+ * and the engine handles everything technical.
  */
 function VisualizerControl() {
   const modeId = useSettings((s) => s.visualizerMode);
-  const level = useSettings((s) => s.visualizerLevel);
-  const { setVisualizerMode, setVisualizerLevel } = useSettings.getState();
+  const enabled = useSettings((s) => s.visualizerEnabled);
+  const { setVisualizerMode, setVisualizerEnabled } = useSettings.getState();
   const [open, setOpen] = useState(false);
   const modes = listModes();
 
@@ -93,33 +105,28 @@ function VisualizerControl() {
         <IconWave width={17} height={17} />
       </button>
       {open && (
-        <div className="ps-vis-pop" role="group" aria-label="Visualizer settings">
-          <label className="visually-hidden" htmlFor="ps-vis-mode">Visualizer style</label>
-          <select
-            id="ps-vis-mode"
-            className="ps-vis-select"
-            value={modeId}
-            onChange={(e) => setVisualizerMode(e.target.value)}
-          >
+        <div className="ps-vis-pop" role="group" aria-label="Visualizer">
+          <div className="pill-row" role="radiogroup" aria-label="Visualizer style">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={!enabled}
+              className={`pill ${!enabled ? 'active' : ''}`}
+              onClick={() => setVisualizerEnabled(false)}
+            >
+              Off
+            </button>
             {modes.map((m) => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
-          <div className="pill-row" role="radiogroup" aria-label="Intensity" style={{ marginTop: 8 }}>
-            {([
-              ['minimal', 'Min'],
-              ['ambient', 'Amb'],
-              ['full', 'Full'],
-            ] as [VizLevel, string][]).map(([id, label]) => (
               <button
-                key={id}
+                key={m.id}
                 type="button"
                 role="radio"
-                aria-checked={level === id}
-                className={`pill ${level === id ? 'active' : ''}`}
-                onClick={() => setVisualizerLevel(id)}
+                aria-checked={enabled && modeId === m.id}
+                className={`pill ${enabled && modeId === m.id ? 'active' : ''}`}
+                title={m.description}
+                onClick={() => { setVisualizerEnabled(true); setVisualizerMode(m.id); }}
               >
-                {label}
+                {m.name}
               </button>
             ))}
           </div>
@@ -130,6 +137,7 @@ function VisualizerControl() {
 }
 
 export function ExpandedPlayer() {
+  const visualizerEnabled = useSettings((s) => s.visualizerEnabled);
   const item = usePlayer((s) => s.queue[s.index] ?? null);
   const queue = usePlayer((s) => s.queue);
   const index = usePlayer((s) => s.index);
@@ -141,6 +149,21 @@ export function ExpandedPlayer() {
 
   const [tab, setTab] = useState<Tab>('queue');
   const [removing, setRemoving] = useState<string | null>(null);
+
+  // Lyrics: LRCLIB (or a personal local edit) via the client-side
+  // resolver - never the ResonTune database. Follows the queue item.
+  const lyricsRef = useMemo(
+    () => (item ? {
+      origin: item.origin,
+      id: item.id,
+      title: item.title,
+      artistName: item.artistName,
+      albumTitle: item.albumTitle ?? null,
+      duration: item.duration ?? null,
+    } : null),
+    [item?.origin, item?.id, item?.title, item?.artistName, item?.albumTitle, item?.duration],
+  );
+  const lyr = useLyrics(lyricsRef);
 
   /* Soft-collapse a queue row, then actually remove it. */
   const removeQueued = (queueId: string) => {
@@ -211,8 +234,6 @@ export function ExpandedPlayer() {
 
   if (!item) return null;
 
-  const lyrics = detail?.lyrics?.body;
-
   return (
     <div className={`player-sheet ${closing ? 'closing' : ''}`} role="dialog" aria-modal="true" aria-label="Now playing">
       <div className="ps-backdrop" aria-hidden>
@@ -221,7 +242,7 @@ export function ExpandedPlayer() {
 
       {/* Ambient audio-reactive layer: spans the lower half of the sheet,
           fades upward, sits behind everything interactive. */}
-      <AmbientVisualizer item={item} />
+      {visualizerEnabled && <AmbientVisualizer item={item} />}
 
       <div className="ps-topbar">
         <button className="icon-btn" onClick={close} aria-label="Close expanded player">
@@ -289,12 +310,20 @@ export function ExpandedPlayer() {
             )}
 
             {tab === 'lyrics' && (
-              lyrics ? (
-                <div className="lyrics-body">{lyrics}</div>
+              lyr.lyrics ? (
+                <LyricsView
+                  lyrics={lyr.lyrics}
+                  isLocalEdit={lyr.isLocalEdit}
+                  followPlayback
+                  onSeek={(s) => usePlayer.getState().seekTo(s)}
+                  onSave={lyr.save}
+                  onReset={lyr.reset}
+                  compact
+                />
               ) : (
                 <div className="empty" style={{ marginTop: 12 }}>
-                  <h3>No lyrics</h3>
-                  <p>{item.origin === 'local' ? 'Lyrics aren\u2019t available for local files yet.' : 'This track has no lyrics on file.'}</p>
+                  <h3>{lyr.loading ? 'Looking for lyrics\u2026' : 'No lyrics'}</h3>
+                  {!lyr.loading && <p>No lyrics were found for this track on LRCLIB.</p>}
                 </div>
               )
             )}

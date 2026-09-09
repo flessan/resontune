@@ -167,8 +167,12 @@ export default function Privacy() {
           </li>
           <li>
             <strong>localStorage</strong> - <code>resontune-settings</code>{' '}
-            (theme, visualizer preferences) and{' '}
-            <code>rt-nav-collapsed</code> (whether the sidebar is collapsed).
+            (theme, custom palette, visualizer preferences),{' '}
+            <code>resontune-lyrics-overrides</code> (lyrics you edited - kept
+            only on this device, never uploaded),{' '}
+            <code>resontune-lyrics-cache</code> (a small cache of lyrics
+            fetched from LRCLIB) and <code>rt-nav-collapsed</code> (whether
+            the sidebar is collapsed).
           </li>
           <li>
             <strong>Cache Storage</strong> - the service worker keeps the app
@@ -213,6 +217,15 @@ export default function Privacy() {
             ResonTune Originals and hosted community releases - are served by
             the deployment itself instead, in which case it is the operator's
             own server and CDN logs that see the request.
+          </li>
+          <li>
+            <strong>LRCLIB</strong> (lrclib.net) - lyrics. When you open a
+            track's lyrics, your browser asks LRCLIB directly for that song
+            using its title, artist, album and duration, so LRCLIB sees those
+            plus your IP address and user agent. Reads only: ResonTune never
+            submits anything to LRCLIB, and lyrics you edit yourself stay in
+            this browser's localStorage - they are not sent to LRCLIB, the
+            ResonTune server or anywhere else.
           </li>
           <li>
             <strong>The hosting provider</strong> of the deployment you are

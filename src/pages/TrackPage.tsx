@@ -21,6 +21,8 @@ import { api } from '@/lib/api';
 import { ContextMenuButton } from '@/contextmenu/ContextMenuButton';
 import { useContextTarget } from '@/contextmenu/useContextTarget';
 import type { ContextTarget } from '@/contextmenu/types';
+import { useLyrics } from '@/lyrics/useLyrics';
+import { LyricsView } from '@/lyrics/LyricsView';
 
 interface Data {
   track: Track;
@@ -38,6 +40,20 @@ export default function TrackPage() {
   const loaded = data?.track ?? null;
   const target = useMemo<ContextTarget | null>(() => (loaded ? { type: 'track', track: loaded } : null), [loaded]);
   const headProps = useContextTarget(target);
+  // Lyrics come from LRCLIB (or a local personal edit) - never from the
+  // ResonTune database. Resolution is async and does not block the page.
+  const lyricsRef = useMemo(
+    () => (loaded ? {
+      origin: 'remote' as const,
+      id: loaded.id,
+      title: loaded.title,
+      artistName: loaded.artist.name,
+      albumTitle: loaded.album?.title ?? null,
+      duration: loaded.duration ?? null,
+    } : null),
+    [loaded],
+  );
+  const lyr = useLyrics(lyricsRef);
 
   if (loading) return <div className="loading-page"><span className="spin" /></div>;
   if (error || !data) {
@@ -144,10 +160,17 @@ export default function TrackPage() {
 
       {track.description && <Blurb text={track.description} />}
 
-      {track.lyrics?.body && (
+      {lyr.lyrics && (
         <>
-          <div className="section-head"><h2 className="section-title">Lyrics & notes</h2></div>
-          <div className="lyrics-body" style={{ fontSize: 14 }}>{track.lyrics.body}</div>
+          <div className="section-head"><h2 className="section-title">Lyrics</h2></div>
+          <LyricsView
+            lyrics={lyr.lyrics}
+            isLocalEdit={lyr.isLocalEdit}
+            followPlayback={isCurrent}
+            onSeek={isCurrent ? (s) => usePlayer.getState().seekTo(s) : undefined}
+            onSave={lyr.save}
+            onReset={lyr.reset}
+          />
         </>
       )}
 

@@ -70,7 +70,9 @@ holds no name, email, handle or content.
 
 | Store | Key | Contents |
 | --- | --- | --- |
-| localStorage | `resontune-settings` | theme, visualizer mode and parameters |
+| localStorage | `resontune-settings` | theme, custom palette, visualizer style and on/off |
+| localStorage | `resontune-lyrics-overrides` | the user's personal lyric edits, keyed per track; never transmitted anywhere |
+| localStorage | `resontune-lyrics-cache` | a small, bounded cache of lyrics fetched from LRCLIB (40 entries max) |
 | localStorage | `rt-nav-collapsed` | sidebar collapsed flag |
 | IndexedDB | `resontune-local` → `tracks`, `blobs`, `artwork`, `playlists` | music files the user added from their device, plus extracted tags/art |
 | IndexedDB | `resontune-local` → `kv` | queue snapshot, playback position, volume/rate/shuffle/repeat |
@@ -97,6 +99,7 @@ in the catalog.
 | Neon Auth | authentication | email, credentials, provider identities, sessions; issues the JWT this API verifies |
 | ImgBB | avatar hosting only | the image bytes of a profile photo, uploaded server-side with `IMGBB_API_KEY`; the URL comes back and is stored |
 | External media hosts | serve catalog audio/artwork for linked releases | the listener's IP and user agent, because the browser fetches media directly from them |
+| LRCLIB (lrclib.net) | read-only lyrics lookup, requested directly by the browser | the track's title, artist, album and duration plus the listener's IP/user agent; nothing is ever written back, and personal lyric edits stay in localStorage and are never sent to LRCLIB or to ResonTune |
 | The deployment itself | serves audio for ResonTune Originals / hosted community releases (`track_sources.object_key` → `/media/audio` or `AUDIO_CDN_BASE`) | ordinary web-server request logs, at the operator's configuration |
 | Hosting provider | runs the server | request logs, at the operator's configuration |
 

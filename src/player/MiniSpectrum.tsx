@@ -11,16 +11,19 @@
 import { useEffect, useRef } from 'react';
 import { engine } from './engine';
 import { usePlayer } from './store';
+import { useSettings } from '@/stores/settings';
 
 const BARS = 20;
 
 export function MiniSpectrum({ bars = BARS, className }: { bars?: number; className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const playing = usePlayer((s) => s.playing);
+  const enabled = useSettings((s) => s.visualizerEnabled);
   const playingRef = useRef(playing);
   playingRef.current = playing;
 
   useEffect(() => {
+    if (!enabled) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { alpha: true });
@@ -118,7 +121,9 @@ export function MiniSpectrum({ bars = BARS, className }: { bars?: number; classN
       if (raf != null) cancelAnimationFrame(raf);
       obs.disconnect();
     };
-  }, [bars]);
+  }, [bars, enabled]);
+
+  if (!enabled) return null;
 
   return (
     <canvas
