@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
+import { Link } from '@/components/AppLink';
 import { api } from '@/lib/api';
 import type { Track, Artist, Album, Playlist } from '@/lib/types';
 import { TrackRow } from '@/components/TrackRow';

@@ -35,7 +35,11 @@ export async function resolveRemotePlayback(trackId: string): Promise<Resolution
     console.warn('[player] playback resolution failed', err);
     let reason = 'This track is temporarily unavailable. Try again in a moment.';
     if (err instanceof ApiError) {
-      if (err.status === 404) reason = 'This track is no longer available.';
+      if (err.status === 404) {
+        reason = /no playable source/i.test(err.message)
+          ? 'No playable source is available for this track.'
+          : 'This track is no longer available.';
+      }
       else if (err.status === 410) reason = 'This track was removed at the rights holder’s request.';
       else if (err.status === 403) reason = 'This track can’t be played from this source.';
       else if (err.status >= 400 && err.status < 500 && err.message) reason = err.message;
@@ -48,11 +52,10 @@ export async function resolveRemotePlayback(trackId: string): Promise<Resolution
 
 /* ------------------------------ queue building ---------------------------- */
 
-export function trackToQueueItem(track: Track): QueueItem | null {
-  const playable = (track.sources ?? []).some(
-    (s) => s.availability !== 'unavailable',
-  );
-  if (!playable) return null;
+export function trackToQueueItem(track: Track): QueueItem {
+  // `sources` is optional metadata on list responses. An empty array means
+  // the endpoint did not hydrate playback sources, not that playback was
+  // checked and rejected. `/api/play/:id` is the authoritative resolver.
   return {
     queueId: crypto.randomUUID(),
     origin: 'remote',

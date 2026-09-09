@@ -1,14 +1,22 @@
 import { create } from 'zustand';
-import { DEFAULT_SETTINGS, type VisualizerSettings } from '@/visualizer/engine';
+import {
+  DEFAULT_SETTINGS,
+  LEVEL_PRESETS,
+  resolveModeId,
+  type VizLevel,
+  type VisualizerSettings,
+} from '@/visualizer/engine';
 
 export type Theme = 'light' | 'dark' | 'system';
 
 interface SettingsState {
   theme: Theme;
   visualizerMode: string;
+  visualizerLevel: VizLevel;
   visualizer: VisualizerSettings;
   setTheme: (t: Theme) => void;
   setVisualizerMode: (id: string) => void;
+  setVisualizerLevel: (level: VizLevel) => void;
   updateVisualizer: (patch: Partial<VisualizerSettings>) => void;
 }
 
@@ -30,14 +38,16 @@ function applyTheme(theme: Theme) {
 }
 
 const saved = load();
+const savedLevel = (saved.visualizerLevel as VizLevel) ?? 'ambient';
+const levelPatch = LEVEL_PRESETS[savedLevel] ?? LEVEL_PRESETS.ambient;
 
 export const useSettings = create<SettingsState>((set, get) => ({
   // Dark-first: ResonTune's primary experience is the dark theme.
   // Light and System remain first-class options in Settings.
   theme: (saved.theme as Theme) ?? 'dark',
-  // Minimal Spectrum is the first-run default - calm, not flashy.
-  visualizerMode: saved.visualizerMode ?? 'minimal',
-  visualizer: { ...DEFAULT_SETTINGS, ...(saved.visualizer ?? {}) },
+  visualizerMode: resolveModeId(saved.visualizerMode ?? 'bars'),
+  visualizerLevel: savedLevel,
+  visualizer: { ...DEFAULT_SETTINGS, ...levelPatch, ...(saved.visualizer ?? {}) },
 
   setTheme: (theme) => {
     set({ theme });
@@ -45,7 +55,14 @@ export const useSettings = create<SettingsState>((set, get) => ({
     persist(get());
   },
   setVisualizerMode: (id) => {
-    set({ visualizerMode: id });
+    set({ visualizerMode: resolveModeId(id) });
+    persist(get());
+  },
+  setVisualizerLevel: (level) => {
+    set({
+      visualizerLevel: level,
+      visualizer: { ...get().visualizer, ...LEVEL_PRESETS[level] },
+    });
     persist(get());
   },
   updateVisualizer: (patch) => {
@@ -57,7 +74,12 @@ export const useSettings = create<SettingsState>((set, get) => ({
 function persist(s: SettingsState) {
   localStorage.setItem(
     KEY,
-    JSON.stringify({ theme: s.theme, visualizerMode: s.visualizerMode, visualizer: s.visualizer }),
+    JSON.stringify({
+      theme: s.theme,
+      visualizerMode: s.visualizerMode,
+      visualizerLevel: s.visualizerLevel,
+      visualizer: s.visualizer,
+    }),
   );
 }
 

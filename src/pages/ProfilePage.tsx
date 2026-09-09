@@ -6,7 +6,9 @@
  * favorites, account identifiers) never appear here; when you're looking at
  * your own page you additionally get owner actions and your listening stats.
  */
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { Link } from '@/components/AppLink';
+import { armSharedElement, vtName } from '@/lib/motion';
 import { useFetch } from '@/lib/useFetch';
 import { useAuth } from '@/stores/auth';
 import { Avatar } from '@/components/Avatar';
@@ -42,7 +44,15 @@ function PlaylistCard({ pl, ownerId }: { pl: ProfilePlaylist; ownerId: string | 
   };
   const ctxProps = useContextTarget(target);
   return (
-    <Link to={`/playlist/${pl.slug}`} className="profile-playlist" {...ctxProps}>
+    <Link
+      to={`/playlist/${pl.slug}`}
+      className="profile-playlist"
+      {...ctxProps}
+      onPointerDown={(e) => {
+        ctxProps.onPointerDown(e);
+        armSharedElement(e.currentTarget, vtName('playlist', pl.id));
+      }}
+    >
       <strong>{pl.title}</strong>
       <span>{pl.trackCount} track{pl.trackCount === 1 ? '' : 's'}</span>
       {pl.description && <em>{pl.description}</em>}
@@ -55,8 +65,16 @@ function ArtistCard({ artist }: { artist: ProfileArtist }) {
   const target: ContextTarget = { type: 'artist', artist: { id: artist.id, slug: artist.slug, name: artist.name } };
   const ctxProps = useContextTarget(target);
   return (
-    <Link to={`/artist/${artist.slug}`} className="profile-artist-card" {...ctxProps}>
-      <Avatar src={artist.imageUrl} name={artist.name} size={44} />
+    <Link
+      to={`/artist/${artist.slug}`}
+      className="profile-artist-card"
+      {...ctxProps}
+      onPointerDown={(e) => {
+        ctxProps.onPointerDown(e);
+        armSharedElement(e.currentTarget, vtName('artist', artist.id));
+      }}
+    >
+      <Avatar src={artist.imageUrl} name={artist.name} size={44} shared />
       <span>
         <strong>{artist.name}</strong>
         <em>{artist.trackCount} track{artist.trackCount === 1 ? '' : 's'}</em>
@@ -117,7 +135,7 @@ export default function ProfilePage() {
   return (
     <div className="page">
       <header className="profile-head">
-        <Avatar src={p.avatarUrl} name={p.displayName} size={112} className="profile-avatar" />
+        <Avatar src={p.avatarUrl} name={p.displayName} size={112} className="profile-avatar" sharedName={vtName('avatar', p.id)} />
         <div className="profile-identity">
           <div className="profile-role-row">
             {p.role !== 'listener' && <span className="role-chip">{ROLE_LABEL[p.role]}</span>}

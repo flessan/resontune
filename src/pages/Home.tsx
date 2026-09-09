@@ -3,7 +3,8 @@
  * A compact artwork-led featured banner, then horizontal shelves and dense
  * track lists. No promotional storytelling; the music is the interface.
  */
-import { Link } from 'react-router-dom';
+import { Link } from '@/components/AppLink';
+import { armSharedElement, vtName } from '@/lib/motion';
 import { useFetch } from '@/lib/useFetch';
 import type { Track, Album, Artist, Collection } from '@/lib/types';
 import { TrackTile, AlbumTile, ArtistTile, CollectionTile } from '@/components/Tiles';
@@ -99,7 +100,8 @@ export default function Home() {
           <h3>No music yet</h3>
           <p>
             ResonTune is ready for its first releases.<br />
-            Explore <Link to="/library">locally stored music</Link>, or{' '}
+            Explore <Link to="/library">locally stored music</Link>, play{' '}
+            <Link to="/game">Flow</Link>, or{' '}
             <Link to="/submit">release music</Link> through the community.
           </p>
         </div>
@@ -108,7 +110,12 @@ export default function Home() {
       {feat && (
         <section className="featured" aria-label="Featured release">
           {feat.artworkUrl && (
-            <Link to={`/release/${feat.slug}`}><img src={feat.artworkUrl} alt="" /></Link>
+            <Link
+              to={`/release/${feat.slug}`}
+              onPointerDown={(e) => armSharedElement(e.currentTarget, vtName('release', feat.id))}
+            >
+              <img src={feat.artworkUrl} alt="" data-shared="" />
+            </Link>
           )}
           <div>
             <div className="kicker">
@@ -220,6 +227,15 @@ export default function Home() {
           </div>
         </>
       )}
+
+      <div className="section-head">
+        <h2 className="section-title">Flow</h2>
+        <Link to="/game" className="section-link">Play</Link>
+      </div>
+      <p className="page-sub" style={{ marginTop: 0 }}>
+        Turn any song on this device into a rhythm game. Notes stay on your
+        machine — the same local library, never uploaded.
+      </p>
     </div>
   );
 }

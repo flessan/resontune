@@ -20,7 +20,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, type NavigateFunction, type NavigateOptions, type To } from 'react-router-dom';
+import { shouldViewTransition } from '@/lib/motion';
 import { usePlayer } from '@/player/store';
 import { useAuth } from '@/stores/auth';
 import { buildActions, type ActionContext } from './actions';
@@ -103,7 +104,11 @@ export function ContextMenuRoot() {
   const openId = useContextMenu((s) => s.openId);
   const closeMenu = useContextMenu((s) => s.closeMenu);
 
-  const navigate = useNavigate();
+  const navigateRaw = useNavigate();
+  const navigate = useCallback<NavigateFunction>((to: To | number, opts?: NavigateOptions) => {
+    if (typeof to === 'number') return navigateRaw(to);
+    return navigateRaw(to, { viewTransition: shouldViewTransition(), ...opts });
+  }, [navigateRaw]);
   const location = useLocation();
   const user = useAuth((s) => s.user);
   const favoriteIds = useAuth((s) => s.favoriteIds);

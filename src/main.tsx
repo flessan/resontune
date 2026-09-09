@@ -6,6 +6,7 @@ import '@fontsource/poppins/500.css';
 import '@fontsource/poppins/600.css';
 import '@fontsource/poppins/700.css';
 import './styles/global.css';
+import './styles/motion.css';
 
 import { Layout } from './components/Layout';
 import Home from './pages/Home';
@@ -46,6 +47,7 @@ const AdminReleases = lazy(() => import('./pages/admin/Releases'));
 const AdminReleaseEditor = lazy(() => import('./pages/admin/ReleaseEditor'));
 const AdminTracks = lazy(() => import('./pages/admin/Tracks'));
 const AdminTrackEditor = lazy(() => import('./pages/admin/TrackEditor'));
+const GamePage = lazy(() => import('./game/GamePage'));
 
 const lazyRoute = (node: React.ReactNode) => (
   <Suspense fallback={<div className="loading-page"><span className="spin" /></div>}>{node}</Suspense>
@@ -64,6 +66,7 @@ const router = createBrowserRouter([
       { path: '/originals', element: <Originals /> },
       { path: '/community', element: <Community /> },
       { path: '/radio', element: <Radio /> },
+      { path: '/game', element: lazyRoute(<GamePage />) },
       { path: '/collections', element: <Collections /> },
       { path: '/collection/:slug', element: <CollectionPage /> },
       { path: '/about', element: <About /> },

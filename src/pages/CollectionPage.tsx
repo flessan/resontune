@@ -2,7 +2,9 @@
  * A single collection: title/curator/description plus its ordered mix of
  * tracks, releases and artists - with the curator's notes inline.
  */
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { Link } from '@/components/AppLink';
+import { sharedStyle } from '@/lib/motion';
 import { useFetch } from '@/lib/useFetch';
 import type { Collection, CollectionItem, Track } from '@/lib/types';
 import { TrackRow } from '@/components/TrackRow';
@@ -47,7 +49,7 @@ export default function CollectionPage() {
   return (
     <div className="page">
       <div className="detail-head">
-        <div className="detail-art landscape">
+        <div className="detail-art landscape" style={sharedStyle('collection', collection.id)}>
           <Artwork src={collection.artworkUrl} alt="" />
         </div>
         <div className="detail-identity detail-meta">

@@ -7,7 +7,8 @@ import { usePlayer } from '@/player/store';
 import { localTrackToQueueItem, resolveLocalArtworkUrl } from '@/providers';
 import { formatBytes } from '@/lib/format';
 import { toast } from '@/stores/toast';
-import { IconPlay, IconUpload, IconDownload } from '@/components/Icons';
+import { IconPlay, IconUpload, IconDownload, IconFlow } from '@/components/Icons';
+import { Link } from 'react-router-dom';
 import { LibraryTabs } from '@/components/LibraryTabs';
 
 type Filter = 'all' | 'favorites';
@@ -131,6 +132,9 @@ export default function Library() {
             <button className="btn primary small" onClick={() => void playAll()}>
               <IconPlay width={13} height={13} /> Play all
             </button>
+            <Link to="/game" className="btn small">
+              <IconFlow width={14} height={14} /> Play in Flow
+            </Link>
             <div className="pill-row">
               <button className={`pill ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>
                 All ({tracks.length})

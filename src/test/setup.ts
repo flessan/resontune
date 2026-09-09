@@ -36,6 +36,14 @@ if (!('IntersectionObserver' in window)) {
     observe() {} unobserve() {} disconnect() {}
   };
 }
+if (!('ResizeObserver' in window)) {
+  (window as any).ResizeObserver = class {
+    observe() {} unobserve() {} disconnect() {}
+  };
+}
+if (!HTMLCanvasElement.prototype.getContext) {
+  HTMLCanvasElement.prototype.getContext = () => null;
+}
 if (!navigator.clipboard) {
   Object.defineProperty(navigator, 'clipboard', {
     value: { writeText: vi.fn(async () => {}) },

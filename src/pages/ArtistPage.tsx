@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { Link } from '@/components/AppLink';
 import { useFetch } from '@/lib/useFetch';
 import type { Artist, Album, Track } from '@/lib/types';
 import { TrackRow } from '@/components/TrackRow';
 import { Blurb } from '@/components/Blurb';
 import { Artwork } from '@/components/Artwork';
+import { armSharedElement, sharedStyle, vtName } from '@/lib/motion';
 import { usePlayer } from '@/player/store';
 import { trackToQueueItem } from '@/providers';
 import { IconPlay, IconExternal, IconWave } from '@/components/Icons';
@@ -33,8 +35,16 @@ function ReleaseCard({ album, artist }: { album: Album; artist: Artist }) {
   );
   const ctxProps = useContextTarget(target);
   return (
-    <Link to={`/release/${album.slug}`} className="tile" {...ctxProps}>
-      <div className="tile-art">
+    <Link
+      to={`/release/${album.slug}`}
+      className="tile"
+      {...ctxProps}
+      onPointerDown={(e) => {
+        ctxProps.onPointerDown(e);
+        armSharedElement(e.currentTarget, vtName('release', album.id));
+      }}
+    >
+      <div className="tile-art" data-shared="">
         <Artwork src={album.artworkUrl} alt="" />
         <ContextMenuButton target={target} className="tile-more" size={16} />
       </div>
@@ -88,7 +98,7 @@ export default function ArtistPage() {
   return (
     <div className="page">
       <div className="detail-head" {...headProps}>
-        <div className="detail-art round">
+        <div className="detail-art round" style={sharedStyle('artist', artist.id)}>
           <Artwork src={artist.imageUrl} alt={`Photo of ${artist.name}`} />
         </div>
         <div className="detail-identity">

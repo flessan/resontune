@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink } from './AppLink';
 
 /**
  * "Your music" is one destination with M3 tab navigation:

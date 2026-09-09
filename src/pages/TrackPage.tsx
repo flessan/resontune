@@ -2,7 +2,8 @@
  * Track detail page.
  */
 import { useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { Link } from '@/components/AppLink';
 import { useFetch } from '@/lib/useFetch';
 import type { Track } from '@/lib/types';
 import { usePlayer } from '@/player/store';
@@ -11,9 +12,10 @@ import { trackToQueueItem } from '@/providers';
 import { TrackRow } from '@/components/TrackRow';
 import { Blurb } from '@/components/Blurb';
 import { Artwork } from '@/components/Artwork';
+import { sharedStyle } from '@/lib/motion';
 import { formatDuration, formatCount, formatDate } from '@/lib/format';
 import { toast } from '@/stores/toast';
-import { IconPlay, IconPause, IconHeart, IconQueue, IconWave } from '@/components/Icons';
+import { IconPlay, IconPause, IconHeart, IconQueue, IconWave, IconFlow } from '@/components/Icons';
 import { OriginalBadge, SourceChip, provenanceLabel } from '@/components/Provenance';
 import { api } from '@/lib/api';
 import { ContextMenuButton } from '@/contextmenu/ContextMenuButton';
@@ -94,7 +96,7 @@ export default function TrackPage() {
   return (
     <div className="page">
       <div className="detail-head" {...headProps}>
-        <div className="detail-art">
+        <div className="detail-art" style={sharedStyle('track', track.id)}>
           <Artwork src={track.artworkUrl} alt={`Artwork for ${track.title}`} />
         </div>
         <div className="detail-identity">
@@ -124,6 +126,9 @@ export default function TrackPage() {
             <button className="btn" onClick={() => void startRadio()}>
               <IconWave width={15} height={15} /> Start radio
             </button>
+            <Link className="btn" to={`/game?track=${track.slug}`}>
+              <IconFlow width={15} height={15} /> Play in Flow
+            </Link>
             <ContextMenuButton target={target} className="icon-btn" />
           </div>
           <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>

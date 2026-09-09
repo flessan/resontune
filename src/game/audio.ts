@@ -1,0 +1,224 @@
+/**
+ * Dedicated Flow AudioContext. Music never goes through the streaming
+ * ResonTune player. Pause = ctx.suspend(). Clock = ctx.currentTime.
+ *
+ * MUSIC → musicGain → master
+ * SFX   → sfxGain   → master
+ */
+import type { AnalysisFrame } from '@/player/engine';
+import { SILENT_FRAME } from '@/visualizer/engine';
+import { playKick, type KickKind } from './hitsound';
+
+export const DEFAULT_MUSIC = 0.9;
+export const DEFAULT_SFX = 0.55;
+
+export class GameAudio {
+  ctx: AudioContext | null = null;
+  master: GainNode | null = null;
+  musicGain: GainNode | null = null;
+  sfxGain: GainNode | null = null;
+  analyser: AnalyserNode | null = null;
+  musicLevel = DEFAULT_MUSIC;
+  sfxLevel = DEFAULT_SFX;
+  private source: AudioBufferSourceNode | null = null;
+  private previewSource: AudioBufferSourceNode | null = null;
+  private freq = new Uint8Array(1024);
+  private wave = new Uint8Array(2048);
+  private smoothedLevel = 0;
+  private onEnded: (() => void) | null = null;
+  private lastDuck = 0;
+
+  async ensure(): Promise<AudioContext> {
+    if (this.ctx && this.ctx.state !== 'closed') {
+      if (this.ctx.state === 'suspended') await this.ctx.resume();
+      return this.ctx;
+    }
+    const ctx = new AudioContext();
+    const master = ctx.createGain();
+    master.gain.value = 0.92;
+    master.connect(ctx.destination);
+
+    const music = ctx.createGain();
+    music.gain.value = this.musicLevel;
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.78;
+    music.connect(analyser).connect(master);
+    this.freq = new Uint8Array(analyser.frequencyBinCount);
+    this.wave = new Uint8Array(analyser.fftSize);
+
+    const sfx = ctx.createGain();
+    sfx.gain.value = this.sfxLevel;
+    sfx.connect(master);
+
+    this.ctx = ctx;
+    this.master = master;
+    this.musicGain = music;
+    this.sfxGain = sfx;
+    this.analyser = analyser;
+    if (ctx.state === 'suspended') await ctx.resume();
+    return ctx;
+  }
+
+  now(): number {
+    return this.ctx?.currentTime ?? 0;
+  }
+
+  bands(): { bass: number; level: number } {
+    const frame = this.readFrame();
+    return { bass: frame.bass, level: frame.level };
+  }
+
+  /** Same AnalysisFrame the ResonTune visualizer consumes. Frozen while ctx is suspended. */
+  readFrame(): AnalysisFrame {
+    if (!this.analyser || !this.ctx) return SILENT_FRAME;
+    this.analyser.getByteFrequencyData(this.freq);
+    this.analyser.getByteTimeDomainData(this.wave);
+    const bins = this.freq.length;
+    let sum = 0;
+    for (let i = 0; i < bins; i++) sum += this.freq[i];
+    const raw = sum / (bins * 255);
+    this.smoothedLevel += (raw - this.smoothedLevel) * 0.25;
+    const band = (from: number, to: number) => {
+      const a = Math.floor(bins * from);
+      const b = Math.max(a + 1, Math.floor(bins * to));
+      let s = 0;
+      for (let i = a; i < b; i++) s += this.freq[i];
+      return s / ((b - a) * 255);
+    };
+    return {
+      freq: this.freq,
+      wave: this.wave,
+      level: this.smoothedLevel,
+      bass: band(0, 0.08),
+      mid: band(0.08, 0.4),
+      treble: band(0.4, 0.9),
+      sampleRate: this.ctx.sampleRate,
+      binCount: bins,
+    };
+  }
+
+  async decode(data: ArrayBuffer): Promise<AudioBuffer> {
+    const ctx = await this.ensure();
+    return ctx.decodeAudioData(data.slice(0));
+  }
+
+  playBuffer(
+    buffer: AudioBuffer,
+    when: number,
+    opts: { offset?: number; rate?: number; onEnded?: () => void } = {},
+  ): AudioBufferSourceNode {
+    if (!this.ctx || !this.musicGain) throw new Error('GameAudio not ready');
+    this.stopMusic();
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    src.playbackRate.value = opts.rate ?? 1;
+    src.connect(this.musicGain);
+    this.onEnded = opts.onEnded ?? null;
+    src.onended = () => {
+      if (this.source === src) this.source = null;
+      this.onEnded?.();
+    };
+    src.start(when, opts.offset ?? 0);
+    this.source = src;
+    return src;
+  }
+
+  playPreview(buffer: AudioBuffer, from: number, duration = 8): void {
+    if (!this.ctx || !this.musicGain) return;
+    this.stopPreview();
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(this.musicGain);
+    const start = this.ctx.currentTime;
+    src.start(start, Math.max(0, from), duration);
+    src.stop(start + duration);
+    src.onended = () => {
+      if (this.previewSource === src) this.previewSource = null;
+    };
+    this.previewSource = src;
+  }
+
+  stopPreview(): void {
+    try {
+      this.previewSource?.stop();
+    } catch {
+      /* already stopped */
+    }
+    this.previewSource = null;
+  }
+
+  stopMusic(): void {
+    this.onEnded = null;
+    try {
+      this.source?.stop();
+    } catch {
+      /* already stopped */
+    }
+    this.source = null;
+  }
+
+  hit(kind: KickKind, when?: number, opts: { fuller?: boolean } = {}): void {
+    if (!this.ctx || !this.sfxGain) return;
+    const at = when ?? this.ctx.currentTime;
+    playKick(this.ctx, this.sfxGain, kind, at, opts);
+    if (kind === 'chord' || kind === 'clear' || kind === 'fever') {
+      this.duck(at);
+    }
+  }
+
+  /** Brief music dip on accents only. Never pumps every Perfect. */
+  duck(when?: number): void {
+    if (!this.ctx || !this.musicGain) return;
+    const now = when ?? this.ctx.currentTime;
+    if (now - this.lastDuck < 0.28) return;
+    this.lastDuck = now;
+    const g = this.musicGain.gain;
+    const base = this.musicLevel;
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(base, now);
+    g.linearRampToValueAtTime(base * 0.86, now + 0.01);
+    g.linearRampToValueAtTime(base, now + 0.07);
+  }
+
+  async suspend(): Promise<void> {
+    if (this.ctx && this.ctx.state === 'running') await this.ctx.suspend();
+  }
+
+  async resume(): Promise<void> {
+    if (this.ctx && this.ctx.state === 'suspended') await this.ctx.resume();
+  }
+
+  setMaster(volume: number): void {
+    if (this.master) this.master.gain.value = volume;
+  }
+
+  setMusic(volume: number): void {
+    this.musicLevel = Math.max(0, Math.min(1, volume));
+    if (this.musicGain && this.ctx) {
+      const now = this.ctx.currentTime;
+      this.musicGain.gain.cancelScheduledValues(now);
+      this.musicGain.gain.setValueAtTime(this.musicLevel, now);
+    }
+  }
+
+  setSfx(volume: number): void {
+    this.sfxLevel = Math.max(0, Math.min(1, volume));
+    if (this.sfxGain) this.sfxGain.gain.value = this.sfxLevel;
+  }
+
+  close(): void {
+    this.stopPreview();
+    this.stopMusic();
+    void this.ctx?.close();
+    this.ctx = null;
+    this.master = null;
+    this.musicGain = null;
+    this.sfxGain = null;
+    this.analyser = null;
+  }
+}
+
+export async function loadFileBuffer(file: File, audio: GameAudio): Promise<AudioBuffer> {
+  return audio.decode(await file.arrayBuffer());
+}

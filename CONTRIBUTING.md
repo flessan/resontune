@@ -36,6 +36,7 @@ suite runs on Vitest + Testing Library in jsdom (`src/**/*.test.ts{,x}`).
 ```
 server/          Express API, schema, migrations (Neon Postgres / PGlite)
 src/player/      engine (audio element + Web Audio graph), store, UI
+src/game/        Flow rhythm game (session, chart, scoring, canvas stage)
 src/visualizer/  engine + modes/ (one file per visualizer)
 src/providers/   provider abstraction (hosted, local, external)
 src/local/       IndexedDB library + importer

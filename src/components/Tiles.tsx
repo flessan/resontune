@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { Link } from './AppLink';
+import { armSharedElement, vtName } from '@/lib/motion';
 import type { Track, Album, Artist, Playlist, Collection } from '@/lib/types';
 import { OriginalBadge } from './Provenance';
 import { usePlayer } from '@/player/store';
@@ -23,8 +24,16 @@ export function TrackTile({ track, context }: { track: Track; context?: Track[] 
     void usePlayer.getState().playQueue(items, start);
   };
   return (
-    <Link to={`/track/${track.slug}`} className="tile" {...ctxProps}>
-      <div className="tile-art">
+    <Link
+      to={`/track/${track.slug}`}
+      className="tile"
+      {...ctxProps}
+      onPointerDown={(e) => {
+        ctxProps.onPointerDown(e);
+        armSharedElement(e.currentTarget, vtName('track', track.id));
+      }}
+    >
+      <div className="tile-art" data-shared="">
         <Artwork src={track.artworkUrl} alt="" />
         <button className="tile-play" onClick={play} aria-label={`Play ${track.title}`}>
           <IconPlay width={17} height={17} />
@@ -41,8 +50,16 @@ export function AlbumTile({ album }: { album: Album }) {
   const target: ContextTarget = { type: 'release', release: releaseRef(album) };
   const ctxProps = useContextTarget(target);
   return (
-    <Link to={`/release/${album.slug}`} className="tile" {...ctxProps}>
-      <div className="tile-art">
+    <Link
+      to={`/release/${album.slug}`}
+      className="tile"
+      {...ctxProps}
+      onPointerDown={(e) => {
+        ctxProps.onPointerDown(e);
+        armSharedElement(e.currentTarget, vtName('release', album.id));
+      }}
+    >
+      <div className="tile-art" data-shared="">
         <Artwork src={album.artworkUrl} alt="" />
         <ContextMenuButton target={target} className="tile-more" size={16} />
       </div>
@@ -57,8 +74,12 @@ export function AlbumTile({ album }: { album: Album }) {
 
 export function CollectionTile({ collection }: { collection: Collection }) {
   return (
-    <Link to={`/collection/${collection.slug}`} className="collection-tile">
-      <div className="collection-art">
+    <Link
+      to={`/collection/${collection.slug}`}
+      className="collection-tile"
+      onPointerDown={(e) => armSharedElement(e.currentTarget, vtName('collection', collection.id))}
+    >
+      <div className="collection-art" data-shared="">
         <Artwork src={collection.artworkUrl} alt="" />
       </div>
       <div>
@@ -75,8 +96,16 @@ export function ArtistTile({ artist }: { artist: Artist }) {
   const target: ContextTarget = { type: 'artist', artist: artistRef(artist) };
   const ctxProps = useContextTarget(target);
   return (
-    <Link to={`/artist/${artist.slug}`} className="tile artist-tile" {...ctxProps}>
-      <div className="tile-art">
+    <Link
+      to={`/artist/${artist.slug}`}
+      className="tile artist-tile"
+      {...ctxProps}
+      onPointerDown={(e) => {
+        ctxProps.onPointerDown(e);
+        armSharedElement(e.currentTarget, vtName('artist', artist.id));
+      }}
+    >
+      <div className="tile-art" data-shared="">
         <Artwork src={artist.imageUrl} alt="" />
         <ContextMenuButton target={target} className="tile-more" size={16} />
       </div>

@@ -19,6 +19,7 @@ client from `dist/` - one deployable unit.
 ```
 src/
   player/       playback engine + state + player UIs
+  game/         Flow rhythm game (timing, chart, canvas stage)
   visualizer/   analysis-driven render engine + modes/
   providers/    playback resolution (server /api/play + local object URLs)
   contextmenu/  contextual action model (right-click, ⋮, action sheet)
@@ -71,6 +72,19 @@ Mobile specifics worth knowing:
 rather than pixels: the navigation destinations, the header search action,
 `has-player`, accessible names in the mini player, and the drawer's scroll
 lock.
+
+## Flow
+
+`/game` is ResonTune's rhythm-game destination (select → prep → play →
+result). The original FLOW RHYTHM clock still governs play: a dedicated
+`AudioContext` times notes, holds and music together (pause = `suspend()`),
+and wide gaps become holds. Charts are phrased (intro / verse / build /
+chorus / break / drop / outro) with true dual-lane chords. Hit feedback is
+an 808/kick at judgement time; Fever / FLOW STATE multiply score. Play HUD
+is canvas-only. Track pages deep-link with `/game?track=:slug`. Scores stay
+in `localStorage` (`resontune-flow`); local files are never uploaded. The
+streaming player is paused for the duration of a run so the two graphs
+never fight.
 
 ## The player
 

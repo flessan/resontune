@@ -97,6 +97,13 @@ export const IconSettings = (p: SVGProps<SVGSVGElement>) => (
 export const IconWave = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}><path d="M3 12h2c1 0 1-4 2-4s1 8 2 8 1-11 2-11 1 14 2 14 1-11 2-11 1 8 2 8 1-4 2-4h2" /></svg>
 );
+export const IconFlow = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <circle cx="7" cy="12" r="3.1" />
+    <circle cx="16.5" cy="7.5" r="3.1" />
+    <circle cx="16.5" cy="16.5" r="2.4" />
+  </svg>
+);
 export const IconPlus = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}><path d="M12 5v14M5 12h14" /></svg>
 );

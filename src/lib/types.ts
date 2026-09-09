@@ -61,7 +61,8 @@ export interface Track {
   artist: ArtistRef;
   album: AlbumRef | null;
   license: LicenseInfo | null;
-  sources: TrackSource[];
+  /** Optional on lightweight catalog/list responses; populated only when requested. */
+  sources?: TrackSource[];
   genres: { id: string; name: string }[];
   tags: { id: string; name: string }[];
   lyrics?: { body: string; kind: string } | null;

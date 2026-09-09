@@ -10,7 +10,7 @@ import { useScrollLock } from '@/lib/scrollLock';
  * authority). Additional identity providers (e.g. GitHub) are configured
  * inside Neon Auth, not implemented here.
  */
-export function SignInDialog({ onClose }: { onClose: () => void }) {
+export function SignInDialog({ onClose, closing = false }: { onClose: () => void; closing?: boolean }) {
   const available = useAuth((s) => s.available);
   useScrollLock(true);
   const [mode, setMode] = useState<'in' | 'up'>('in');
@@ -42,7 +42,7 @@ export function SignInDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="dialog-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()} role="presentation">
+    <div className={`dialog-backdrop ${closing ? 'closing' : ''}`} onClick={(e) => e.target === e.currentTarget && onClose()} role="presentation">
       <div className="dialog" role="dialog" aria-modal="true" aria-label="Sign in">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <h3>{mode === 'up' ? 'Create your account' : 'Sign in to ResonTune'}</h3>

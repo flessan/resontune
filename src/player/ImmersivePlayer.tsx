@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { usePlayer } from './store';
 import { engine } from './engine';
 import { useSettings } from '@/stores/settings';
-import { VisualizerRunner, listModes } from '@/visualizer/engine';
+import { VisualizerRunner, listModes, type VizLevel } from '@/visualizer/engine';
 import '@/visualizer/modes';
-import { setTypographyText } from '@/visualizer/modes/typography';
 import { extractAccent, loadImage } from '@/lib/artworkColor';
 import { SeekBar } from './SeekBar';
 import { api } from '@/lib/api';
@@ -24,7 +23,8 @@ export function ImmersivePlayer() {
   const { toggle, next, prev, setView } = usePlayer.getState();
   const modeId = useSettings((s) => s.visualizerMode);
   const vSettings = useSettings((s) => s.visualizer);
-  const { setVisualizerMode, updateVisualizer } = useSettings.getState();
+  const visualizerLevel = useSettings((s) => s.visualizerLevel);
+  const { setVisualizerMode, setVisualizerLevel } = useSettings.getState();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runnerRef = useRef<VisualizerRunner | null>(null);
@@ -66,11 +66,11 @@ export function ImmersivePlayer() {
 
   useEffect(() => { runnerRef.current?.setMode(mode); }, [mode]);
   useEffect(() => { runnerRef.current?.setSettings(vSettings); }, [vSettings]);
+  useEffect(() => { runnerRef.current?.setPaused(!playing); }, [playing]);
 
-  /* artwork accent + album image + typography text */
+  /* artwork accent + album image */
   useEffect(() => {
     if (!item) return;
-    setTypographyText(item.title, item.artistName);
     if (item.artworkUrl) {
       void extractAccent(item.artworkUrl).then((hex) => {
         if (hex) runnerRef.current?.setAccent(hex);
@@ -155,31 +155,25 @@ export function ImmersivePlayer() {
           >
             <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600 }}>{mode.name}</p>
             <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(239,234,224,0.55)' }}>{mode.description}</p>
-            {([
-              ['sensitivity', 'Sensitivity', 0.4, 2],
-              ['intensity', 'Intensity', 0.4, 2],
-              ['speed', 'Speed', 0.3, 2],
-              ['opacity', 'Opacity', 0.2, 1],
-              ['smoothing', 'Smoothing', 0, 0.95],
-              ['scale', 'Scale', 0.5, 1.6],
-            ] as const).map(([key, label, min, max]) => (
-              <div key={key} style={{ marginBottom: 10 }}>
-                <label htmlFor={`vs-${key}`} style={{ fontSize: 11.5, display: 'flex', justifyContent: 'space-between', color: 'rgba(239,234,224,0.7)' }}>
+            <p style={{ margin: '0 0 8px', fontSize: 11.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(239,234,224,0.55)' }}>Intensity</p>
+            <div className="pill-row" role="radiogroup" aria-label="Intensity">
+              {([
+                ['minimal', 'Minimal'],
+                ['ambient', 'Ambient'],
+                ['full', 'Full'],
+              ] as [VizLevel, string][]).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={visualizerLevel === id}
+                  className={`pill ${visualizerLevel === id ? 'active' : ''}`}
+                  onClick={() => setVisualizerLevel(id)}
+                >
                   {label}
-                  <span>{vSettings[key].toFixed(2)}</span>
-                </label>
-                <input
-                  id={`vs-${key}`}
-                  type="range"
-                  min={min}
-                  max={max}
-                  step={0.01}
-                  value={vSettings[key]}
-                  onChange={(e) => updateVisualizer({ [key]: Number(e.target.value) })}
-                  style={{ width: '100%', accentColor: 'var(--accent)' }}
-                />
-              </div>
-            ))}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

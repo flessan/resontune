@@ -84,10 +84,11 @@ function trackActions(target: Extract<ContextTarget, { type: 'track' }>, ctx: Ac
   const current = ctx.queue[ctx.queueIndex];
   const isCurrent = current?.origin === 'remote' && current.id === track.id;
   const alreadyQueued = ctx.queue.some((q) => q.origin === 'remote' && q.id === track.id);
-  const playable = trackToQueueItem(track) !== null;
+  // Queue admission does not inspect `track.sources`: list payloads may omit
+  // source metadata. The player resolves this track through /api/play/:id.
   const actions: MenuAction[] = [];
 
-  if (playable) {
+  {
     actions.push({
       id: 'play',
       label: isCurrent && ctx.playing ? 'Pause' : isCurrent ? 'Resume' : 'Play',
@@ -98,7 +99,7 @@ function trackActions(target: Extract<ContextTarget, { type: 'track' }>, ctx: Ac
         const list = target.context?.length ? target.context : [track];
         const items = queueItemsFor(list);
         const start = items.findIndex((i) => i.id === track.id);
-        if (start === -1) return toast('This track has no playable source.');
+        if (start === -1) return toast('This track could not be added to the queue.');
         void player.playQueue(items, start);
       },
     });
@@ -109,7 +110,7 @@ function trackActions(target: Extract<ContextTarget, { type: 'track' }>, ctx: Ac
       group: 'queue',
       run: () => {
         const item = trackToQueueItem(track);
-        if (!item) return toast('This track has no playable source.');
+        if (!item) return toast('This track could not be added to the queue.');
         player.playNext(item);
         toast('Playing next');
       },
@@ -121,7 +122,7 @@ function trackActions(target: Extract<ContextTarget, { type: 'track' }>, ctx: Ac
       group: 'queue',
       run: () => {
         const item = trackToQueueItem(track);
-        if (!item) return toast('This track has no playable source.');
+        if (!item) return toast('This track could not be added to the queue.');
         player.enqueue([item]);
         toast('Added to queue');
       },
