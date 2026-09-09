@@ -301,9 +301,9 @@ export class FlowEngine {
   tap(id: string, lane: 0 | 1 | null): void {
     if (!this.playing || this.paused || this.finished) return;
     if (this.holds.some((h) => h.inputId === id)) return;
-    const classic = this.modifiers.has('classic');
-    if (classic && this.holds.length) return;
-
+    // Holds never own the input system globally. Every pointer/key can
+    // resolve an independent note while other holds remain active. The
+    // Classic modifier only affects chart generation, not concurrency.
     const now = this.now();
     const d = this.d();
     const split = this.modifiers.has('split');
@@ -332,7 +332,9 @@ export class FlowEngine {
     const hold = this.holds.find((h) => h.inputId === id);
     if (!hold) return;
     const now = this.now();
-    if (now + 0.04 >= hold.until) this.clearHold(hold, true);
+    // Release has its own small musical window. Releasing slightly early
+    // is still a natural completion; only a clearly premature release drops.
+    if (now + this.d().good >= hold.until) this.clearHold(hold, true);
     else this.clearHold(hold, false);
   }
 

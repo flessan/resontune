@@ -61,7 +61,7 @@ describe('multi-input holds', () => {
     engine.dispose();
   });
 
-  it('blocks every other input in Classic while any hold is down', () => {
+  it('keeps accepting independent input in Classic while a hold is down', () => {
     const engine = new FlowEngine();
     engine.modifiers.add('classic');
     live(engine, 0);
@@ -72,7 +72,7 @@ describe('multi-input holds', () => {
     engine.tap('k:KeyD', null);
     live(engine, 0.2);
     engine.tap('k:KeyK', null);
-    expect(engine.notes[1].hit).toBe(false);
+    expect(engine.notes[1].hit).toBe(true);
     expect(engine.holds).toHaveLength(1);
     engine.dispose();
   });
