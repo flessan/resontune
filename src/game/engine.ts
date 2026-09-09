@@ -10,6 +10,7 @@ import { GameAudio } from './audio';
 import { buildChart, describeBeats, describeChart, detectBeats, inferSections, previewBeats, previewSections } from './chart';
 import { feverOnHit, feverOnMiss, feverTick } from './fever';
 import { pickHitTarget } from './judge';
+import type { FlowInputEvent } from './input';
 import { GameView, type ViewWorld } from './renderer';
 import { accuracyPct, healthOnHit, judgeTiming } from './scoring';
 import {
@@ -67,6 +68,8 @@ export class FlowEngine {
   sections: ChartSection[] = [];
   notes: Note[] = [];
   holds: ActiveHold[] = [];
+  /** Physical identities currently owned by the unified input boundary. */
+  readonly activeInputs = new Set<string>();
   particles: Particle[] = [];
   rings: HitRing[] = [];
   timings: TimingSample[] = [];
@@ -298,13 +301,27 @@ export class FlowEngine {
     this.audio.setMaster(volume);
   }
 
+  input(event: FlowInputEvent): void {
+    if (event.phase === 'down') {
+      this.activeInputs.add(event.id);
+      this.tapAt(event.id, event.lane, event.timestamp);
+    } else {
+      this.activeInputs.delete(event.id);
+      this.releaseAt(event.id, event.timestamp);
+    }
+  }
+
   tap(id: string, lane: 0 | 1 | null): void {
+    this.tapAt(id, lane, this.now());
+  }
+
+  private tapAt(id: string, lane: 0 | 1 | null, timestamp: number): void {
     if (!this.playing || this.paused || this.finished) return;
     if (this.holds.some((h) => h.inputId === id)) return;
     // Holds never own the input system globally. Every pointer/key can
     // resolve an independent note while other holds remain active. The
     // Classic modifier only affects chart generation, not concurrency.
-    const now = this.now();
+    const now = timestamp;
     const d = this.d();
     const split = this.modifiers.has('split');
     const target = pickHitTarget(this.notes, now, d, lane, split);
@@ -329,9 +346,14 @@ export class FlowEngine {
   }
 
   release(id: string): void {
+    this.activeInputs.delete(id);
+    this.releaseAt(id, this.now());
+  }
+
+  private releaseAt(id: string, timestamp: number): void {
     const hold = this.holds.find((h) => h.inputId === id);
     if (!hold) return;
-    const now = this.now();
+    const now = timestamp;
     // Release has its own small musical window. Releasing slightly early
     // is still a natural completion; only a clearly premature release drops.
     if (now + this.d().good >= hold.until) this.clearHold(hold, true);

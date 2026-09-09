@@ -8,7 +8,7 @@ import { FlowEngine, DEFAULT_PRACTICE } from './engine';
 import { loadSave, writeSave, scoreKey, readBest, recordBest, bestLine } from './persistence';
 import { fetchCatalogSlice, fetchTrackBySlug, loadCatalogSong, loadFileSong, loadLocalSong } from './source';
 import { PrepScreen, ResultScreen, SelectScreen } from './screens';
-import { laneFromCode, laneFromPointer } from './input';
+import { InputAggregator, keyboardInput, pointerInput, laneFromCode, laneFromPointer } from './input';
 import {
   PREVIEW_SONG,
   type DifficultyId,
@@ -27,6 +27,7 @@ import './game.css';
 export default function GamePage() {
   const [params] = useSearchParams();
   const engineRef = useRef<FlowEngine | null>(null);
+  const inputRef = useRef<InputAggregator | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [mode, setMode] = useState<SessionMode>('select');
   const [song, setSong] = useState<SongRef>(PREVIEW_SONG);
@@ -52,6 +53,7 @@ export default function GamePage() {
   useEffect(() => {
     const engine = new FlowEngine();
     engineRef.current = engine;
+    inputRef.current = new InputAggregator((event) => engine.input(event));
     const save = loadSave();
     engine.setDifficulty(save.lastDifficulty);
     engine.setModifiers(save.lastModifiers);
@@ -356,22 +358,32 @@ export default function GamePage() {
       event.preventDefault();
       event.stopPropagation();
       const split = modifiers.has('split');
-      g.tap(`k:${event.code || event.key}`, split ? laneFromCode(event.code) : null);
+      inputRef.current?.send(keyboardInput(event.code || event.key, 'down', g.now(), split ? laneFromCode(event.code) : null));
     };
     const onKeyUp = (event: KeyboardEvent) => {
-      engine()?.release(`k:${event.code || event.key}`);
+      const g = engine();
+      if (g) inputRef.current?.send(keyboardInput(event.code || event.key, 'up', g.now(), null));
+    };
+    const clearPhysicalInputs = () => {
+      const g = engine();
+      if (g) inputRef.current?.clear(g.now());
     };
     const onVis = () => {
       const g = engine();
-      if (g?.capturing && document.hidden) void g.togglePause();
+      if (g?.capturing && document.hidden) {
+        clearPhysicalInputs();
+        void g.togglePause();
+      }
     };
     window.addEventListener('keydown', onKeyDown, { capture: true });
     window.addEventListener('keyup', onKeyUp);
     document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('blur', clearPhysicalInputs);
     return () => {
       window.removeEventListener('keydown', onKeyDown, { capture: true });
       window.removeEventListener('keyup', onKeyUp);
       document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('blur', clearPhysicalInputs);
     };
   }, [mode, modifiers]);
 
@@ -384,11 +396,12 @@ export default function GamePage() {
     if (!g.capturing) return;
     const split = modifiers.has('split');
     const rect = event.currentTarget.getBoundingClientRect();
-    g.tap(`p:${event.pointerId}`, split ? laneFromPointer(event.clientY - rect.top, rect.height) : null);
+    inputRef.current?.send(pointerInput(event.pointerId, 'down', g.now(), split ? laneFromPointer(event.clientY - rect.top, rect.height) : null));
   };
 
   const onPointerUp = (event: React.PointerEvent) => {
-    engineRef.current?.release(`p:${event.pointerId}`);
+    const g = engineRef.current;
+    if (g) inputRef.current?.send(pointerInput(event.pointerId, 'up', g.now(), null));
   };
 
   const fullscreen = () => {
