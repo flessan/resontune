@@ -38,7 +38,7 @@ describe('multi-input holds', () => {
 
     engine.release('k:KeyD');
     expect(engine.holds).toHaveLength(1);
-    expect(engine.holds[0].inputId).toBe('k:KeyK');
+    expect([...engine.holds[0].inputs]).toEqual(['k:KeyK']);
     expect(engine.notes[0].holding).toBe(false);
     expect(engine.notes[1].holding).toBe(true);
     engine.dispose();
@@ -58,6 +58,23 @@ describe('multi-input holds', () => {
     expect(engine.notes[1].hit).toBe(true);
     expect(engine.notes[0].holding).toBe(true);
     expect(engine.holds).toHaveLength(1);
+    engine.dispose();
+  });
+
+  it('keeps a hold alive when a later tap contact joins and the starter releases', () => {
+    const engine = new FlowEngine();
+    live(engine, 0);
+    engine.notes = [
+      note({ id: 0, time: 0, lane: 0, duration: 1.2 }),
+      note({ id: 1, time: 0.2, lane: 1 }),
+    ];
+    engine.tap('k:KeyA', null);
+    live(engine, 0.2);
+    engine.tap('k:KeyD', null);
+    engine.release('k:KeyA');
+    expect(engine.holds).toHaveLength(1);
+    expect(engine.holds[0].inputs.has('k:KeyD')).toBe(true);
+    engine.release('k:KeyD');
     engine.dispose();
   });
 
@@ -101,7 +118,7 @@ describe('multi-input holds', () => {
     ];
     engine.tick();
     expect(engine.holds).toHaveLength(2);
-    expect(engine.holds[0].inputId).not.toBe(engine.holds[1].inputId);
+    expect(engine.holds[0].inputs).not.toBe(engine.holds[1].inputs);
     engine.dispose();
   });
 

@@ -96,7 +96,8 @@ export interface Note {
 export interface ActiveHold {
   note: Note;
   id: string;
-  inputId: string;
+  /** Physical inputs currently participating in this sustain. */
+  inputs: Set<string>;
   until: number;
   nextTick: number;
 }

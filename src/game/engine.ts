@@ -317,7 +317,8 @@ export class FlowEngine {
 
   private tapAt(id: string, lane: 0 | 1 | null, timestamp: number): void {
     if (!this.playing || this.paused || this.finished) return;
-    if (this.holds.some((h) => h.inputId === id)) return;
+    // A physical input may continue participating in a shared sustain while
+    // also being used to judge another event. It is not a note owner.
     // Holds never own the input system globally. Every pointer/key can
     // resolve an independent note while other holds remain active. The
     // Classic modifier only affects chart generation, not concurrency.
@@ -332,6 +333,12 @@ export class FlowEngine {
     }
 
     const note = target.note;
+    // A tap/chord contact may reinforce already-active sustains, but a new
+    // hold starts its own gameplay object. This keeps dual holds distinct
+    // while allowing taps to carry a shared sustain naturally.
+    if (note.duration === 0) {
+      for (const hold of this.holds) hold.inputs.add(id);
+    }
     const difference = now - note.time;
     const judged = judgeTiming(difference, d);
     if (judged.kind === 'early') {
@@ -351,13 +358,17 @@ export class FlowEngine {
   }
 
   private releaseAt(id: string, timestamp: number): void {
-    const hold = this.holds.find((h) => h.inputId === id);
-    if (!hold) return;
+    // Physical release only removes this contact from every sustain. A hold
+    // remains active while another participating input is still down.
+    for (const hold of [...this.holds]) hold.inputs.delete(id);
     const now = timestamp;
-    // Release has its own small musical window. Releasing slightly early
-    // is still a natural completion; only a clearly premature release drops.
-    if (now + this.d().good >= hold.until) this.clearHold(hold, true);
-    else this.clearHold(hold, false);
+    // Only an empty sustain may resolve early. Otherwise another physical
+    // input keeps the gameplay object alive.
+    for (const hold of [...this.holds]) {
+      if (hold.inputs.size > 0) continue;
+      if (now + this.d().good >= hold.until) this.clearHold(hold, true);
+      else this.clearHold(hold, false);
+    }
   }
 
   tick(): void {
@@ -587,7 +598,7 @@ export class FlowEngine {
     this.holds.push({
       note,
       id: `h${this.holdSeq++}`,
-      inputId,
+      inputs: new Set([inputId]),
       until: note.time + note.duration,
       nextTick: now + HOLD_TICK,
     });
