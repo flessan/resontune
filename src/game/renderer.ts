@@ -396,12 +396,19 @@ export class GameView {
     this.roundRect(ctx, left, d.y - h * 0.16, width + d.r * 0.2, h * 0.32, h * 0.16);
     ctx.fill();
 
+    // The tail is deliberately a release marker, not a second tap: an
+    // outlined cap plus a small center dot keeps the sustain readable after
+    // its head has reached the receptor.
     ctx.beginPath();
-    ctx.arc(d.tailX, d.y, d.r * 0.78, 0, Math.PI * 2);
-    const tail = ctx.createRadialGradient(d.tailX - 3, d.y - 3, 1, d.tailX, d.y, d.r * 0.78);
-    tail.addColorStop(0, '#fff6ee');
-    tail.addColorStop(1, PEACH);
-    ctx.fillStyle = tail;
+    ctx.arc(d.tailX, d.y, d.r * 0.8, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,214,150,0.22)';
+    ctx.fill();
+    ctx.strokeStyle = '#ffd69b';
+    ctx.lineWidth = Math.max(2, d.r * 0.1);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(d.tailX, d.y, d.r * 0.22, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff6ee';
     ctx.fill();
     ctx.globalAlpha = 1;
   }

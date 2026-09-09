@@ -250,6 +250,27 @@
   min-height: 320px;
   cursor: pointer;
 }
+.flow-stage-actions {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 5;
+  display: flex;
+  gap: 8px;
+}
+.flow-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(243,230,216,.18);
+  border-radius: 999px;
+  color: var(--flow-cream, #f3e6d8);
+  background: rgba(29,25,24,.78);
+  cursor: pointer;
+}
+.flow-control:hover { background: rgba(243,230,216,.16); }
 .flow-fs {
   position: absolute;
   right: max(14px, env(safe-area-inset-right, 0px));

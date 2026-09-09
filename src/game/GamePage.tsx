@@ -21,7 +21,7 @@ import {
 import { listLocalTracks } from '@/local/db';
 import type { LocalTrack, Track } from '@/lib/types';
 import { usePlayer } from '@/player/store';
-import { IconExpand } from '@/components/Icons';
+import { IconExpand, IconPause } from '@/components/Icons';
 import './game.css';
 
 export default function GamePage() {
@@ -416,15 +416,28 @@ export default function GamePage() {
           onContextMenu={(e) => e.preventDefault()}
         >
           <canvas ref={canvasRef} aria-label="Flow playfield" />
-          <button
-            type="button"
-            className="flow-fs"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={fullscreen}
-            aria-label="Fullscreen"
-          >
-            <IconExpand width={16} height={16} />
-          </button>
+          <div className="flow-stage-actions">
+            <button
+              type="button"
+              className="flow-control"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => void engineRef.current?.togglePause()}
+              aria-label={paused ? 'Resume FLOW' : 'Pause FLOW'}
+            >
+              <IconPause width={16} height={16} />
+              <span>{paused ? 'Resume' : 'Pause'}</span>
+            </button>
+            <button
+              type="button"
+              className="flow-control"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={fullscreen}
+              aria-label="Fullscreen"
+            >
+              <IconExpand width={16} height={16} />
+              <span>Full screen</span>
+            </button>
+          </div>
           {paused && (
             <div className="flow-pause" role="dialog" aria-label="Paused" aria-modal="true">
               <p className="flow-pause-kicker">Paused</p>
