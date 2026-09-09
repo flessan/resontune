@@ -361,14 +361,11 @@ export class FlowEngine {
     // Physical release only removes this contact from every sustain. A hold
     // remains active while another participating input is still down.
     for (const hold of [...this.holds]) hold.inputs.delete(id);
-    const now = timestamp;
-    // Only an empty sustain may resolve early. Otherwise another physical
-    // input keeps the gameplay object alive.
-    for (const hold of [...this.holds]) {
-      if (hold.inputs.size > 0) continue;
-      if (now + this.d().good >= hold.until) this.clearHold(hold, true);
-      else this.clearHold(hold, false);
-    }
+    // A physical release is never a gameplay failure. The sustain remains a
+    // live gameplay object until its own audio-clock lifecycle reaches the
+    // tail. This deliberately avoids coupling hold validity to any one key,
+    // pointer, or input switch.
+    void timestamp;
   }
 
   tick(): void {

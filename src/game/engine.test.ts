@@ -37,10 +37,10 @@ describe('multi-input holds', () => {
     expect(engine.notes.every((n) => n.holding)).toBe(true);
 
     engine.release('k:KeyD');
-    expect(engine.holds).toHaveLength(1);
-    expect([...engine.holds[0].inputs]).toEqual(['k:KeyK']);
-    expect(engine.notes[0].holding).toBe(false);
-    expect(engine.notes[1].holding).toBe(true);
+    expect(engine.holds).toHaveLength(2);
+    expect(engine.holds[0].inputs.size).toBe(0);
+    expect(engine.holds[1].inputs.has('k:KeyK')).toBe(true);
+    expect(engine.notes.every((n) => n.holding)).toBe(true);
     engine.dispose();
   });
 
@@ -75,6 +75,8 @@ describe('multi-input holds', () => {
     expect(engine.holds).toHaveLength(1);
     expect(engine.holds[0].inputs.has('k:KeyD')).toBe(true);
     engine.release('k:KeyD');
+    expect(engine.holds).toHaveLength(1);
+    expect(engine.counts.drop).toBe(0);
     engine.dispose();
   });
 
