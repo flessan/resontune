@@ -5,7 +5,7 @@ import {
   normalizeMusicBrainzRecording,
   resetMusicDiscoveryForTests,
   searchMusicDiscovery,
-} from '../../shared/music-discovery.ts';
+} from './music-discovery.ts';
 
 afterEach(() => {
   resetMusicDiscoveryForTests();
