@@ -6,6 +6,7 @@ import { Router } from 'express';
 import { getDb, uuid } from '../db/index.ts';
 import { asyncRoute, pagination, HttpError, isDeletedAccountViolation } from '../util/http.ts';
 import { listLinks } from '../db/links.ts';
+import { searchMusicDiscovery } from '../services/music-discovery.ts';
 
 /* ------------------------------ serialization ----------------------------- */
 
@@ -563,6 +564,17 @@ export function catalogRouter(): Router {
           ownerHandle: p.owner_handle,
         })),
       });
+    }),
+  );
+
+  /** Public cross-source metadata search and official provider search links. */
+  r.get(
+    '/discovery/search',
+    asyncRoute(async (req, res) => {
+      const q = String(req.query.q ?? '').trim().slice(0, 80);
+      const result = await searchMusicDiscovery(q, { lastFmApiKey: process.env.LASTFM_API_KEY });
+      res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+      res.json(result);
     }),
   );
 

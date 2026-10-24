@@ -207,3 +207,42 @@ export interface LocalTrack {
   genre?: string | null;
   year?: number | null;
 }
+
+
+/** Cross-source search results. External metadata is descriptive and not automatically playable. */
+export interface ProviderSearchLink {
+  id: string;
+  label: string;
+  description: string;
+  url: string;
+}
+
+export interface ExternalRecording {
+  id: string;
+  title: string;
+  artist: string;
+  release: string | null;
+  releaseDate: string | null;
+  durationSeconds: number | null;
+  url: string;
+  provider: 'musicbrainz';
+}
+
+export interface LastFmTrack {
+  id: string;
+  title: string;
+  artist: string;
+  album: string | null;
+  artworkUrl: string | null;
+  listeners: number | null;
+  durationSeconds: number | null;
+  url: string;
+  provider: 'lastfm';
+}
+
+export interface MusicDiscoveryResponse {
+  query: string;
+  sources: ProviderSearchLink[];
+  musicBrainz: { status: 'ok' | 'unavailable'; recordings: ExternalRecording[] };
+  lastFm: { status: 'ok' | 'unavailable' | 'not-configured'; tracks: LastFmTrack[] };
+}

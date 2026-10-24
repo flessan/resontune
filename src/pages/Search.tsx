@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Link } from '@/components/AppLink';
 import { api } from '@/lib/api';
-import type { Track, Artist, Album, Playlist } from '@/lib/types';
+import type { Track, Artist, Album, Playlist, MusicDiscoveryResponse } from '@/lib/types';
 import { TrackRow } from '@/components/TrackRow';
 import { ArtistTile, AlbumTile, PlaylistTile } from '@/components/Tiles';
 import { listLocalTracks } from '@/local/db';
@@ -24,8 +24,37 @@ export default function Search() {
   const [results, setResults] = useState<Results | null>(null);
   const [localMatches, setLocalMatches] = useState<LocalTrack[]>([]);
   const [loading, setLoading] = useState(false);
+  const [discovery, setDiscovery] = useState<MusicDiscoveryResponse | null>(null);
+  const [discoveryLoading, setDiscoveryLoading] = useState(false);
+  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+  const discoveryRequest = useRef(0);
 
   useEffect(() => setInput(q), [q]);
+
+  useEffect(() => {
+    discoveryRequest.current += 1;
+    setDiscovery(null);
+    setDiscoveryError(null);
+    setDiscoveryLoading(false);
+  }, [q]);
+
+  const searchOtherSources = async (query = q) => {
+    const term = query.trim();
+    if (term.length < 2) return;
+    const requestId = ++discoveryRequest.current;
+    setDiscoveryLoading(true);
+    setDiscoveryError(null);
+    try {
+      const result = await api.get<MusicDiscoveryResponse>(`/discovery/search?q=${encodeURIComponent(term)}`);
+      if (requestId === discoveryRequest.current) setDiscovery(result);
+    } catch {
+      if (requestId === discoveryRequest.current) {
+        setDiscoveryError('External discovery is temporarily unavailable. Try again in a moment.');
+      }
+    } finally {
+      if (requestId === discoveryRequest.current) setDiscoveryLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (q.length < 2) {
@@ -89,6 +118,100 @@ export default function Search() {
           )}
         </div>
       </form>
+
+      {q.length >= 2 && (
+        <div className="discovery-action">
+          <div>
+            <strong>Looking beyond ResonTune?</strong>
+            <p>Search public metadata and browse other music services from one place.</p>
+          </div>
+          <button
+            type="button"
+            className="discovery-button"
+            onClick={() => void searchOtherSources(q)}
+            disabled={discoveryLoading}
+          >
+            {discoveryLoading ? <><span className="spin" /> Searching sources</> : 'Search other sources'}
+          </button>
+        </div>
+      )}
+
+      {discoveryError && <p className="discovery-error" role="status">{discoveryError}</p>}
+
+      {discovery && (
+        <section className="discovery-panel" aria-label="External music discovery">
+          <div className="section-head">
+            <h2 className="section-title">Explore other sources</h2>
+            <span className="section-note">External results open on their original service</span>
+          </div>
+          <div className="provider-search-grid">
+            {discovery.sources.map((source) => (
+              <a className="provider-search-card" href={source.url} key={source.id} target="_blank" rel="noopener noreferrer">
+                <span className="provider-search-title">{source.label}</span>
+                <span className="provider-search-description">{source.description}</span>
+                <span className="provider-search-open">Open search</span>
+              </a>
+            ))}
+          </div>
+
+          <div className="external-metadata-grid">
+            <section className="external-metadata-section">
+              <div className="external-section-heading">
+                <h3>MusicBrainz recordings</h3>
+                <span>{discovery.musicBrainz.status === 'ok' ? discovery.musicBrainz.recordings.length : 'Unavailable'}</span>
+              </div>
+              {discovery.musicBrainz.status === 'unavailable' ? (
+                <p className="discovery-muted">MusicBrainz could not be reached. The external search links above are still available.</p>
+              ) : discovery.musicBrainz.recordings.length ? (
+                <div className="external-track-list">
+                  {discovery.musicBrainz.recordings.map((recording) => (
+                    <a className="external-track-row" href={recording.url} key={recording.id} target="_blank" rel="noopener noreferrer">
+                      <span className="external-track-artwork" aria-hidden="true">♫</span>
+                      <span className="external-track-copy">
+                        <strong>{recording.title}</strong>
+                        <span>{recording.artist}</span>
+                        {recording.release && <small>{recording.release}{recording.releaseDate ? ' · ' + recording.releaseDate : ''}</small>}
+                      </span>
+                      <span className="external-track-open" aria-hidden="true">↗</span>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="discovery-muted">No recording metadata matched this query.</p>
+              )}
+            </section>
+
+            <section className="external-metadata-section">
+              <div className="external-section-heading">
+                <h3>Last.fm tracks</h3>
+                <span>{discovery.lastFm.status === 'ok' ? discovery.lastFm.tracks.length : discovery.lastFm.status === 'not-configured' ? 'Optional' : 'Unavailable'}</span>
+              </div>
+              {discovery.lastFm.status === 'not-configured' ? (
+                <p className="discovery-muted">Last.fm metadata can be enabled with the server-side LASTFM_API_KEY. The key is never exposed to the browser.</p>
+              ) : discovery.lastFm.status === 'unavailable' ? (
+                <p className="discovery-muted">Last.fm could not be reached. Use the Last.fm search link above in the meantime.</p>
+              ) : discovery.lastFm.tracks.length ? (
+                <div className="external-track-list">
+                  {discovery.lastFm.tracks.map((track) => (
+                    <a className="external-track-row" href={track.url} key={track.id} target="_blank" rel="noopener noreferrer">
+                      {track.artworkUrl ? <img className="external-track-artwork" src={track.artworkUrl} alt="" loading="lazy" /> : <span className="external-track-artwork" aria-hidden="true">♫</span>}
+                      <span className="external-track-copy">
+                        <strong>{track.title}</strong>
+                        <span>{track.artist}</span>
+                        {track.album && <small>{track.album}</small>}
+                      </span>
+                      <span className="external-track-open" aria-hidden="true">↗</span>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="discovery-muted">No Last.fm tracks matched this query.</p>
+              )}
+            </section>
+          </div>
+          <p className="discovery-footnote">These are metadata and source links, not direct audio streams. Playback stays on the provider's official player unless a source explicitly permits direct playback.</p>
+        </section>
+      )}
 
       {!q && !loading && (
         <div className="empty">
