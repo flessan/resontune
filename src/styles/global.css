@@ -3344,7 +3344,7 @@ h1.page-title, .detail-title, .profile-name, .ps-track-title, .section-title {
 .discovery-button:disabled { opacity: .68; cursor: wait; }
 .discovery-error { margin: -12px 0 24px; color: var(--error); font-size: 13px; }
 .discovery-panel { margin: 10px 0 34px; padding-top: 10px; }
-.provider-search-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 24px; }
+.provider-search-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 24px; }
 .provider-search-card {
   min-width: 0;
   display: flex;

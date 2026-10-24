@@ -35,6 +35,7 @@ export default function Search() {
     discoveryRequest.current += 1;
     setDiscovery(null);
     setDiscoveryError(null);
+    setDiscoveryLoading(false);
   }, [q]);
 
   const searchOtherSources = async (query = q) => {

@@ -16,7 +16,7 @@ describe('multi-source music discovery', () => {
   it('builds encoded search URLs for provider sites', () => {
     const links = buildProviderSearchLinks('a & b');
     expect(links.map((link) => link.id)).toEqual([
-      'youtube-music', 'soundcloud', 'bandcamp', 'youtube', 'lastfm', 'discogs',
+      'youtube-music', 'soundcloud', 'bandcamp', 'youtube', 'lastfm', 'discogs', 'genius',
     ]);
     expect(links.find((link) => link.id === 'youtube-music')?.url).toContain('q=a%20%26%20b');
     expect(links.find((link) => link.id === 'discogs')?.url).toContain('q=a+%26+b');
@@ -72,6 +72,6 @@ describe('multi-source music discovery', () => {
     const response = await searchMusicDiscovery('Song', { lastFmApiKey: 'test-key', fetcher });
     expect(response.musicBrainz).toMatchObject({ status: 'ok', recordings: [{ title: 'Song' }] });
     expect(response.lastFm).toEqual({ status: 'unavailable', tracks: [] });
-    expect(response.sources).toHaveLength(6);
+    expect(response.sources).toHaveLength(7);
   });
 });

@@ -49,6 +49,7 @@ export function buildProviderSearchLinks(rawQuery: string): ProviderSearchLink[]
     { id: 'youtube', label: 'YouTube', description: 'Find official videos and performances', url: 'https://www.youtube.com/results?search_query=' + encoded },
     { id: 'lastfm', label: 'Last.fm', description: 'Explore listening stats and similar artists', url: lastFm.toString() },
     { id: 'discogs', label: 'Discogs', description: 'Explore editions, releases and credits', url: discogs.toString() },
+    { id: 'genius', label: 'Genius', description: 'Search lyrics and annotations', url: 'https://genius.com/search?q=' + encoded },
   ];
 }
 

@@ -50,8 +50,7 @@ The web Search page can query `/api/discovery/search?q=...`. The API returns
 normalized metadata from the public MusicBrainz recording API and, when
 configured, Last.fm track search. Results link to the original metadata record;
 they are not converted into playable stream URLs. The page also provides
-search links for YouTube Music, SoundCloud, Bandcamp, YouTube, Last.fm and
-Discogs.
+search links for YouTube Music, SoundCloud, Bandcamp, YouTube, Last.fm, Discogs and Genius.
 
 Last.fm is optional and uses the server-side `LASTFM_API_KEY` variable. Do
 not put this key in a `VITE_*` variable. Without it, ordinary ResonTune
