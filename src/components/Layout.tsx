@@ -20,6 +20,7 @@ import { DialogHost } from './DialogHost';
 import { SignInDialog } from './SignInDialog';
 import { Avatar } from './Avatar';
 import { Footer } from './Footer';
+import { ListenBrainzAnnouncement } from './ListenBrainzAnnouncement';
 import { useScrollLock } from '@/lib/scrollLock';
 
 const REPO = 'https://github.com/flessan/resontune';
@@ -296,6 +297,7 @@ export function Layout() {
           so any row anywhere in the app can reach them. */}
       <ContextMenuRoot />
       <DialogHost />
+      <ListenBrainzAnnouncement />
 
       <div className="toast-zone" aria-live="polite">
         {toasts.map((t) => (
