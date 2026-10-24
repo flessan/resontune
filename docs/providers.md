@@ -42,3 +42,21 @@ If a service only permits embedded playback, the adapter should return an
 `embed`/`external` resolution - **do not** force it into the `stream` shape.
 Fundamentally incompatible services should not be crammed into the common
 abstraction; extend the `Resolution` union instead.
+
+
+## Cross-source discovery
+
+The web Search page can query `/api/discovery/search?q=...`. The API returns
+normalized metadata from the public MusicBrainz recording API and, when
+configured, Last.fm track search. Results link to the original metadata record;
+they are not converted into playable stream URLs. The page also provides
+search links for YouTube Music, SoundCloud, Bandcamp, YouTube, Last.fm and
+Discogs.
+
+Last.fm is optional and uses the server-side `LASTFM_API_KEY` variable. Do
+not put this key in a `VITE_*` variable. Without it, ordinary ResonTune
+features and the other provider search links continue to work.
+
+Metadata requests are best-effort and independent. If one service is down or
+misconfigured, the other results and search links remain available. MusicBrainz
+requests are serialized and paced to avoid request bursts.
