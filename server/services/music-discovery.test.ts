@@ -62,7 +62,7 @@ describe('multi-source music discovery', () => {
   });
 
   it('keeps partial results when one provider is unavailable', async () => {
-    const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+    const fetcher = vi.fn(async (input: string | URL) => {
       if (String(input).includes('musicbrainz.org')) {
         return Response.json({ recordings: [{ id: 'recording-1', title: 'Song', 'artist-credit': [{ name: 'Artist' }] }] });
       }
