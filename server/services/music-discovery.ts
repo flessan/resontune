@@ -178,7 +178,7 @@ export function normalizeLastFmTrack(track: LastFmApiTrack): LastFmTrack | null 
   };
 }
 
-async function fetchJson<T>(url: string, fetcher: typeof fetch, headers: HeadersInit = {}): Promise<T> {
+async function fetchJson<T>(url: string, fetcher: typeof fetch, headers: Record<string, string> = {}): Promise<T> {
   const response = await fetcher(url, {
     headers: {
       Accept: 'application/json',
