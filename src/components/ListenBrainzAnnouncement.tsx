@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useScrollLock } from '@/lib/scrollLock';
 import { IconClose } from './Icons';
+import './listenbrainz-announcement.css';
 
 const AUTO_SHOW_KEY = 'rt-listenbrainz-announcement-auto';
 const SESSION_SEEN_KEY = 'rt-listenbrainz-announcement-seen';
