@@ -10,6 +10,11 @@ import { listModes, type VizLevel } from '@/visualizer/engine';
 import '@/visualizer/modes';
 import { usePlayer } from '@/player/store';
 import { IconSun, IconMoon, IconSettings as IconSys, IconWave } from '@/components/Icons';
+import {
+  getListenBrainzAnnouncementAutoShow,
+  openListenBrainzAnnouncement,
+  setListenBrainzAnnouncementAutoShow,
+} from '@/components/ListenBrainzAnnouncement';
 
 /** Admin-only: edit the public support links without redeploying. */
 function SupportConfigEditor() {
@@ -321,11 +326,57 @@ export default function Settings() {
   const visualizerLevel = useSettings((s) => s.visualizerLevel);
   const { setTheme, setVisualizerMode, setVisualizerLevel } = useSettings.getState();
   const modes = listModes();
+  const [listenBrainzAutoShow, setListenBrainzAutoShow] = useState(() => getListenBrainzAnnouncementAutoShow());
+
+  const updateListenBrainzAutoShow = (enabled: boolean) => {
+    setListenBrainzAutoShow(enabled);
+    setListenBrainzAnnouncementAutoShow(enabled);
+  };
 
   return (
     <div className="page">
       <h1 className="page-title">Settings</h1>
       <p className="page-sub">Appearance, player and visualizer preferences. Stored locally in this browser.</p>
+
+      <div className="section-head listenbrainz-settings-head">
+        <h2 className="section-title">ListenBrainz</h2>
+        <span className="listenbrainz-status">Exploring integration</span>
+      </div>
+      <div className="listenbrainz-settings">
+        <p className="listenbrainz-settings-copy">
+          ResonTune is exploring an integration with ListenBrainz, a music listening
+          and discovery project from the non-profit MetaBrainz Foundation. This is
+          an independent community effort, not an official partnership, and the
+          integration is not available yet.
+          {' '}<a href="https://listenbrainz.org/about/" target="_blank" rel="noopener noreferrer">Learn about ListenBrainz</a>.
+        </p>
+        <div className="data-actions">
+          <div className="data-action">
+            <div>
+              <strong>Show the project announcement automatically</strong>
+              <p>Show it once per new tab session. This preference is stored in this browser.</p>
+            </div>
+            <label className="listenbrainz-toggle">
+              <input
+                type="checkbox"
+                checked={listenBrainzAutoShow}
+                onChange={(event) => updateListenBrainzAutoShow(event.target.checked)}
+              />
+              <span>{listenBrainzAutoShow ? 'On' : 'Off'}</span>
+            </label>
+          </div>
+          <div className="data-action">
+            <div>
+              <strong>Read the announcement again</strong>
+              <p>Reopen the note about our open-source plans and the unofficial status.</p>
+            </div>
+            <button className="btn small" type="button" onClick={openListenBrainzAnnouncement}>Show announcement</button>
+          </div>
+        </div>
+        <p className="listenbrainz-settings-note">
+          This only controls the announcement. It does not connect an account or send listening data to ListenBrainz.
+        </p>
+      </div>
 
       <div className="section-head"><h2 className="section-title">Appearance</h2></div>
       <div className="pill-row" role="radiogroup" aria-label="Theme">
