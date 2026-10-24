@@ -1,0 +1,24 @@
+# dependencies
+node_modules/
+
+# builds
+dist/
+dist-server/
+
+# local data (embedded Postgres, generated media)
+var/
+media/audio/*.wav
+media/audio/*.mp3
+media/audio/*.ogg
+
+# environment
+.env
+.env.local
+.env.*.local
+
+# logs / misc
+*.log
+.DS_Store
+
+# typescript build info
+*.tsbuildinfo

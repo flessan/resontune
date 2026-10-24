@@ -1,0 +1,134 @@
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('./_shared', async () => {
+  const actual = await vi.importActual<typeof import('./_shared')>('./_shared');
+  return {
+    ...actual,
+    session: vi.fn(async (_context: unknown, required = false) => {
+      if (required) throw new actual.ApiError(401, 'Authentication required.');
+      return null;
+    }),
+    database: vi.fn(),
+  };
+});
+
+import { onRequest } from './api/[[path]]';
+import { database, session, type PagesContext } from './_shared';
+
+const call = async (path: string, init?: RequestInit) => onRequest({
+  request: new Request(`https://resontune.pages.dev${path}`, init), env: {}, params: {},
+} as PagesContext);
+
+describe('Cloudflare Pages API adapter', () => {
+  it('returns JSON health', async () => {
+    const response = await call('/api/health');
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(await response.json()).toEqual({ ok: true, name: 'resontune' });
+  });
+  it('does not send API auth failures through the SPA', async () => {
+    const response = await call('/api/auth/me');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ user: null });
+  });
+  it('returns a JSON 404 for an unknown API path', async () => {
+    const response = await call('/api/not-a-route');
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: 'Not found.' });
+  });
+  it('protects admin and moderation routes before database access', async () => {
+    for (const path of ['/api/admin/overview', '/api/moderation/tracks']) {
+      const response = await call(path);
+      expect(response.status).toBe(401);
+      expect(response.headers.get('content-type')).toContain('application/json');
+      expect(await response.json()).toEqual({ error: 'Authentication required.' });
+    }
+  });
+
+  it.each([
+    ['/api/admin/artists', { name: 'Pages Artist' }, 'artist'],
+    ['/api/admin/releases', { title: 'Pages Release', artistId: crypto.randomUUID() }, 'release'],
+    ['/api/admin/tracks', { title: 'Pages Track', artistId: crypto.randomUUID() }, 'track'],
+  ])('allows admin POST creation on %s collection routes', async (path, payload, key) => {
+    vi.mocked(session).mockResolvedValue({
+      id: crypto.randomUUID(), handle: 'admin', display_name: 'Admin',
+      avatar_url: null, avatar_thumb_url: null, bio: null, location: null,
+      website_url: null, role: 'admin', created_at: new Date().toISOString(),
+      effectiveRole: 'admin', identity: { subject: 'admin-subject', name: 'Admin', email: null, image: null },
+    } as any);
+    const created = { id: crypto.randomUUID(), ...(payload as object) };
+    vi.mocked(database).mockResolvedValue({
+      query: vi.fn(async () => [created]),
+    } as any);
+
+    const response = await call(path, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload),
+    });
+    expect(response.status).toBe(201);
+    expect((await response.json()) as Record<string, unknown>).toHaveProperty(key);
+    vi.mocked(session).mockResolvedValue(null);
+  });
+
+  it('resolves external playback sources with the Express response shape', async () => {
+    const trackId = crypto.randomUUID();
+    vi.mocked(database).mockResolvedValue({
+      query: vi.fn(async (sql: string) => {
+        if (sql.includes('FROM tracks t')) return [{ status: 'published', streaming_permission: true, source_type: 'external', artist_status: 'published', album_status: null }];
+        if (sql.includes('FROM track_sources')) return [{ source_type: 'external', kind: 'external_link', url: 'https://www.youtube.com/watch?v=abc', object_key: null, mime_type: null, availability: 'available', provider: 'youtube', priority: 0 }];
+        return [];
+      }),
+    } as any);
+    const response = await call(`/api/play/${trackId}`);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ mode: 'external', url: 'https://www.youtube.com/watch?v=abc', label: 'Watch on YouTube', sourceType: 'external', trackSourceType: 'external' });
+  });
+
+  it('allows a different authenticated listener to like and unlike a public playlist', async () => {
+    const ownerId = crypto.randomUUID();
+    const listenerId = crypto.randomUUID();
+    const playlistId = crypto.randomUUID();
+    let liked = false;
+    vi.mocked(session).mockResolvedValue({ id: listenerId, handle: 'listener', effectiveRole: 'listener' } as any);
+    vi.mocked(database).mockResolvedValue({
+      query: vi.fn(async (sql: string) => {
+        if (sql.includes('FROM playlists')) return [{ id: playlistId, owner_id: ownerId, is_public: true, title: 'Public mix', slug: 'public-mix' }];
+        if (sql.includes('FROM playlist_likes')) return liked ? [{}] : [];
+        if (sql.includes('INSERT INTO playlist_likes')) { liked = true; return []; }
+        if (sql.includes('DELETE FROM playlist_likes')) { liked = false; return []; }
+        return [];
+      }),
+    } as any);
+
+    const post = await call(`/api/playlists/${playlistId}/like`, { method: 'POST' });
+    expect(post.status).toBe(200);
+    expect(await post.json()).toEqual({ liked: true });
+    const del = await call(`/api/playlists/${playlistId}/like`, { method: 'DELETE' });
+    expect(del.status).toBe(200);
+    expect(await del.json()).toEqual({ liked: false });
+  });
+
+  it('serializes populated public profiles instead of dropping profile content', async () => {
+    const userId = crypto.randomUUID();
+    const artistId = crypto.randomUUID();
+    const playlistId = crypto.randomUUID();
+    vi.mocked(database).mockResolvedValue({
+      query: vi.fn(async (sql: string) => {
+        if (sql.includes('FROM users')) return [{ id: userId, handle: 'alice', display_name: 'Alice', avatar_url: null, avatar_thumb_url: null, bio: 'Music', location: 'Banjarmasin', website_url: null, role: 'listener', created_at: '2026-01-01T00:00:00.000Z' }];
+        if (sql.includes("entity_kind='user'")) return [{ provider: 'website', label: 'Site', url: 'https://example.com' }];
+        if (sql.includes('FROM playlists')) return [{ id: playlistId, slug: 'alice-mix', title: 'Alice Mix', description: 'Public songs', like_count: '3', updated_at: '2026-01-02T00:00:00.000Z', track_count: '7' }];
+        if (sql.includes('FROM artists')) return [{ id: artistId, slug: 'alice-artist', name: 'Alice Artist', image_url: 'https://example.com/a.png', location: 'Banjarmasin', source_type: 'community', track_count: '4' }];
+        if (sql.includes('FROM favorites')) return [{ n: '11' }];
+        return [];
+      }),
+    } as any);
+
+    const response = await call('/api/users/alice');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      profile: expect.objectContaining({ handle: 'alice', links: [{ provider: 'website', label: 'Site', url: 'https://example.com' }] }),
+      stats: { publicPlaylists: 1, favorites: 11 },
+      playlists: [{ id: playlistId, slug: 'alice-mix', title: 'Alice Mix', description: 'Public songs', likeCount: 3, trackCount: 7, isPublic: true, updatedAt: '2026-01-02T00:00:00.000Z' }],
+      artists: [{ id: artistId, slug: 'alice-artist', name: 'Alice Artist', imageUrl: 'https://example.com/a.png', location: 'Banjarmasin', sourceType: 'community', trackCount: 4 }],
+    });
+  });
+});
